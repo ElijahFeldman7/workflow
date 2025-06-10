@@ -420,7 +420,7 @@
             });
 
             const schedulerGrid = document.querySelector('.schedule-grid');
-            const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+            const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'];
             hours.forEach(hour => {
                 const eventKey = `event_${hour.replace(/ /g, '_')}`;
                 const savedEvent = localStorage.getItem(eventKey) || '';
@@ -483,7 +483,7 @@
                 stopTimer();
                 isWorkTime = true;
                 time = 25 * 60;
-                timerStatus.textContent = "Time to Work!";
+                timerStatus.textContent = "get back to Work!";
                 updateDisplay();
             }
 
@@ -493,9 +493,9 @@
 
             const habits = [
                 'Workout',
-                'Read 10 Pages',
-                'Meditate',
-                'No Junk Food'
+                'Read',
+                'Relax',
+                'Commit'
             ];
             const habitGrid = document.querySelector('.habit-tracker-grid');
             let habitData = JSON.parse(localStorage.getItem('habits')) || {};
@@ -538,17 +538,19 @@
             });
 
             const links = [
-                { title: 'Google', url: 'https://google.com' },
+                { title: 'Discord', url: 'https://discord.com/app' },
                 { title: 'GitHub', url: 'https://github.com' },
-                { title: 'Stack Overflow', url: 'https://stackoverflow.com' },
-                { title: 'Your Favorite News', url: 'https://news.google.com' }
+                { title: 'Ion', url: 'https://ion.tjhsst.edu'},
+                { title: 'Gitlab', url: 'https://gitlab.tjhsst.edu' },
+                {title: 'To-Do', url: 'https://elijahfeldman7.github.io/to-do-list'}
+
             ];
             const linksGrid = document.querySelector('.links-grid');
             links.forEach(link => {
                 const card = document.createElement('a');
                 card.className = 'link-card';
                 card.href = link.url;
-                card.target = '_blank'; // Open in new tab
+                card.target = '_blank'; 
                 card.innerHTML = `
                     <div class="link-card-title">${link.title}</div>
                     <div class="link-card-url">${link.url}</div>
