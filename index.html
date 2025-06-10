@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --main-color: #ffffff;
+            --accent-color: #4a90e2;
+            --accent-hover: #357abd;
+            --text-color: #333;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --success-color: #28a745;
+            --success-bg: #e9f5ec;
+            --danger-color: #dc3545;
+            --danger-bg: #fbebee;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: var(--main-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs-nav {
+            display: flex;
+            background-color: #fcfcfc;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+        }
+        .tab-button {
+            padding: 15px 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #555;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button:hover {
+            color: var(--accent-color);
+        }
+        .tab-button.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .tabs-content {
+            padding: 25px;
+            min-height: 60vh;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            margin-top: 0;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--accent-color);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        #task-input-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #task-list {
+            list-style: none;
+            padding: 0;
+        }
+        #task-list li {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        #task-list li:hover {
+            background-color: #f9f9f9;
+        }
+        #task-list li.completed span {
+            text-decoration: line-through;
+            color: #888;
+        }
+        #task-list li input[type="checkbox"] {
+            margin-right: 15px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--success-color);
+        }
+        #task-list li .delete-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px;
+        }
+        #task-list li .delete-btn:hover {
+            color: var(--danger-color);
+        }
+
+        #notes-area {
+            height: 45vh;
+            resize: vertical;
+        }
+        .save-status {
+            margin-top: 10px;
+            color: #777;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 5px;
+        }
+        .time-slot, .event-slot {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        .time-slot {
+            font-weight: 500;
+            background-color: #f9f9f9;
+            text-align: center;
+        }
+        .event-slot {
+            background-color: #fdfdfd;
+        }
+        .event-slot:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background-color: #fff;
+        }
+
+        .timer-container {
+            text-align: center;
+        }
+        #timer-display {
+            font-size: 72px;
+            font-weight: 300;
+            margin: 20px 0;
+        }
+        .timer-controls button {
+            margin: 0 10px;
+            width: 100px;
+        }
+        #timer-status {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+        }
+
+        .habit-tracker-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .habit-row {
+            display: grid;
+            grid-template-columns: 1fr repeat(7, 40px);
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .habit-name {
+            font-weight: 500;
+        }
+        .habit-day-labels {
+            display: grid;
+            grid-template-columns: 1fr repeat(7, 40px);
+            gap: 10px;
+            padding: 0 10px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .habit-day-labels > div:first-child {
+            text-align: left;
+        }
+        .habit-checkbox {
+            width: 22px;
+            height: 22px;
+            justify-self: center;
+            accent-color: var(--success-color);
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .link-card {
+            display: block;
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text-color);
+            background-color: #f9f9f9;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .link-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px var(--shadow-color);
+            border-color: var(--accent-color);
+        }
+        .link-card-title {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .link-card-url {
+            font-size: 14px;
+            color: #777;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <nav class="tabs-nav">
+            <button class="tab-button active" data-tab="tab-tasks">task Manager</button>
+            <button class="tab-button" data-tab="tab-notes">knowledge Base</button>
+            <button class="tab-button" data-tab="tab-scheduler">daily Scheduler</button>
+            <button class="tab-button" data-tab="tab-focus">focus Timer</button>
+            <button class="tab-button" data-tab="tab-habits">habit Tracker</button>
+            <button class="tab-button" data-tab="tab-links">quick Links</button>
+        </nav>
+
+        <main class="tabs-content">
+            <div id="tab-tasks" class="tab-panel active">
+                <h2>my tasks</h2>
+                <form id="task-input-form">
+                    <input type="text" id="new-task-input" placeholder="Add a new task..." required>
+                    <button type="submit">add task</button>
+                </form>
+                <ul id="task-list"></ul>
+            </div>
+
+            <div id="tab-notes" class="tab-panel">
+                <h2>my notes</h2>
+                <textarea id="notes-area" placeholder="Write anything... your notes are saved automatically."></textarea>
+                <div class="save-status" id="notes-save-status"></div>
+            </div>
+
+            <div id="tab-scheduler" class="tab-panel">
+                <h2>today Schedule</h2>
+                <div class="schedule-grid">
+                    </div>
+            </div>
+
+            <div id="tab-focus" class="tab-panel">
+                <h2>Focus Timer</h2>
+                <div class="timer-container">
+                    <div id="timer-status">get back to Work!</div>
+                    <div id="timer-display">25:00</div>
+                    <div class="timer-controls">
+                        <button id="start-timer-btn">Start</button>
+                        <button id="stop-timer-btn">Stop</button>
+                        <button id="reset-timer-btn">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-habits" class="tab-panel">
+                <h2>habit Tracker</h2>
+                <div class="habit-day-labels">
+                    <div class="habit-name">Habit</div>
+                    <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+                </div>
+                <div class="habit-tracker-grid">
+                    </div>
+            </div>
+
+            <div id="tab-links" class="tab-panel">
+                <h2>Quick Links</h2>
+                <div class="links-grid">
+                     </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab-button');
+            const panels = document.querySelectorAll('.tab-panel');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    panels.forEach(p => p.classList.remove('active'));
+
+                    tab.classList.add('active');
+                    const targetPanel = document.getElementById(tab.dataset.tab);
+                    targetPanel.classList.add('active');
+                });
+            });
+
+            const taskForm = document.getElementById('task-input-form');
+            const taskInput = document.getElementById('new-task-input');
+            const taskList = document.getElementById('task-list');
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+            function renderTasks() {
+                taskList.innerHTML = '';
+                tasks.forEach((task, index) => {
+                    const li = document.createElement('li');
+                    li.className = task.completed ? 'completed' : '';
+                    li.innerHTML = `
+                        <input type="checkbox" data-index="${index}" ${task.completed ? 'checked' : ''}>
+                        <span>${task.text}</span>
+                        <button class="delete-btn" data-index="${index}">&times;</button>
+                    `;
+                    taskList.appendChild(li);
+                });
+            }
+
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (taskInput.value.trim() === '') return;
+                tasks.push({ text: taskInput.value.trim(), completed: false });
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+                taskInput.value = '';
+            });
+
+            taskList.addEventListener('click', (e) => {
+                if (e.target.matches('input[type="checkbox"]')) {
+                    const index = e.target.dataset.index;
+                    tasks[index].completed = !tasks[index].completed;
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    renderTasks();
+                }
+                if (e.target.matches('.delete-btn')) {
+                    const index = e.target.dataset.index;
+                    tasks.splice(index, 1);
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    renderTasks();
+                }
+            });
+
+            const notesArea = document.getElementById('notes-area');
+            const notesStatus = document.getElementById('notes-save-status');
+            let saveTimeout;
+
+            notesArea.value = localStorage.getItem('notes') || '';
+            notesArea.addEventListener('input', () => {
+                notesStatus.textContent = 'Saving...';
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    localStorage.setItem('notes', notesArea.value);
+                    notesStatus.textContent = 'Saved!';
+                    setTimeout(() => notesStatus.textContent = '', 2000);
+                }, 500);
+            });
+
+            const schedulerGrid = document.querySelector('.schedule-grid');
+            const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+            hours.forEach(hour => {
+                const eventKey = `event_${hour.replace(/ /g, '_')}`;
+                const savedEvent = localStorage.getItem(eventKey) || '';
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'time-slot';
+                timeSlot.textContent = hour;
+
+                const eventSlot = document.createElement('div');
+                eventSlot.className = 'event-slot';
+                eventSlot.contentEditable = 'true';
+                eventSlot.textContent = savedEvent;
+                eventSlot.addEventListener('blur', () => {
+                     localStorage.setItem(eventKey, eventSlot.textContent);
+                });
+
+                schedulerGrid.appendChild(timeSlot);
+                schedulerGrid.appendChild(eventSlot);
+            });
+
+            let timer;
+            let isRunning = false;
+            let time = 25 * 60;
+            let isWorkTime = true;
+            const timerDisplay = document.getElementById('timer-display');
+            const timerStatus = document.getElementById('timer-status');
+            const startBtn = document.getElementById('start-timer-btn');
+            const stopBtn = document.getElementById('stop-timer-btn');
+            const resetBtn = document.getElementById('reset-timer-btn');
+
+            function updateDisplay() {
+                const minutes = Math.floor(time / 60);
+                const seconds = time % 60;
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            function startTimer() {
+                if (isRunning) return;
+                isRunning = true;
+                timer = setInterval(() => {
+                    time--;
+                    updateDisplay();
+                    if (time <= 0) {
+                        clearInterval(timer);
+                        isRunning = false;
+                        alert(isWorkTime ? "Time for a break!" : "Time to get back to work!");
+                        isWorkTime = !isWorkTime;
+                        time = isWorkTime ? 25 * 60 : 5 * 60;
+                        timerStatus.textContent = isWorkTime ? "Time to Work!" : "Time for a Break!";
+                        updateDisplay();
+                    }
+                }, 1000);
+            }
+
+            function stopTimer() {
+                clearInterval(timer);
+                isRunning = false;
+            }
+
+            function resetTimer() {
+                stopTimer();
+                isWorkTime = true;
+                time = 25 * 60;
+                timerStatus.textContent = "Time to Work!";
+                updateDisplay();
+            }
+
+            startBtn.addEventListener('click', startTimer);
+            stopBtn.addEventListener('click', stopTimer);
+            resetBtn.addEventListener('click', resetTimer);
+
+            const habits = [
+                'Workout',
+                'Read 10 Pages',
+                'Meditate',
+                'No Junk Food'
+            ];
+            const habitGrid = document.querySelector('.habit-tracker-grid');
+            let habitData = JSON.parse(localStorage.getItem('habits')) || {};
+
+            function renderHabits() {
+                habitGrid.innerHTML = '';
+                habits.forEach((habit, habitIndex) => {
+                    const habitRow = document.createElement('div');
+                    habitRow.className = 'habit-row';
+                    const habitName = document.createElement('div');
+                    habitName.className = 'habit-name';
+                    habitName.textContent = habit;
+                    habitRow.appendChild(habitName);
+
+                    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'habit-checkbox';
+                        checkbox.dataset.habit = habitIndex;
+                        checkbox.dataset.day = dayIndex;
+                        if (habitData[habitIndex] && habitData[habitIndex][dayIndex]) {
+                            checkbox.checked = true;
+                        }
+                        habitRow.appendChild(checkbox);
+                    }
+                    habitGrid.appendChild(habitRow);
+                });
+            }
+
+            habitGrid.addEventListener('change', (e) => {
+                if (e.target.matches('.habit-checkbox')) {
+                    const habitIndex = e.target.dataset.habit;
+                    const dayIndex = e.target.dataset.day;
+                    if (!habitData[habitIndex]) {
+                        habitData[habitIndex] = {};
+                    }
+                    habitData[habitIndex][dayIndex] = e.target.checked;
+                    localStorage.setItem('habits', JSON.stringify(habitData));
+                }
+            });
+
+            const links = [
+                { title: 'Google', url: 'https://google.com' },
+                { title: 'GitHub', url: 'https://github.com' },
+                { title: 'Stack Overflow', url: 'https://stackoverflow.com' },
+                { title: 'Your Favorite News', url: 'https://news.google.com' }
+            ];
+            const linksGrid = document.querySelector('.links-grid');
+            links.forEach(link => {
+                const card = document.createElement('a');
+                card.className = 'link-card';
+                card.href = link.url;
+                card.target = '_blank'; // Open in new tab
+                card.innerHTML = `
+                    <div class="link-card-title">${link.title}</div>
+                    <div class="link-card-url">${link.url}</div>
+                `;
+                linksGrid.appendChild(card);
+            });
+
+            renderTasks();
+            renderHabits();
+            updateDisplay();
+        });
+    </script>
+
+</body>
+</html>
