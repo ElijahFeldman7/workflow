@@ -449,7 +449,7 @@
             let tasks = []; // Will be populated from Firestore
 
             // Import necessary Firebase Firestore functions
-            const { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js");
+            const { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
             const db = window.firebaseDb;
 
             async function renderTasks() {
@@ -533,37 +533,100 @@
             const notesStatus = document.getElementById('notes-save-status');
             let saveTimeout;
 
-            notesArea.value = localStorage.getItem('notes') || '';
+            async function loadNotes() {
+                const user = window.firebaseAuth.currentUser;
+                if (user) {
+                    const docRef = doc(db, "notes", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        notesArea.value = docSnap.data().content;
+                    } else {
+                        notesArea.value = '';
+                    }
+                } else {
+                    notesArea.value = 'Please sign in to save your notes.';
+                }
+            }
+
             notesArea.addEventListener('input', () => {
                 notesStatus.textContent = 'Saving...';
                 clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => {
-                    localStorage.setItem('notes', notesArea.value);
-                    notesStatus.textContent = 'Saved!';
-                    setTimeout(() => notesStatus.textContent = '', 2000);
+                saveTimeout = setTimeout(async () => {
+                    const user = window.firebaseAuth.currentUser;
+                    if (user) {
+                        await setDoc(doc(db, "notes", user.uid), {
+                            content: notesArea.value,
+                            updatedAt: new Date()
+                        }, { merge: true });
+                        notesStatus.textContent = 'Saved!';
+                        setTimeout(() => notesStatus.textContent = '', 2000);
+                    } else {
+                        notesStatus.textContent = 'Sign in to save notes.';
+                    }
                 }, 500);
             });
+            // Call loadNotes when auth state changes
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    loadNotes();
+                } else {
+                    notesArea.value = 'Please sign in to save your notes.';
+                }
+            });
+            // Initial load
+            loadNotes();
 
             const schedulerGrid = document.querySelector('.schedule-grid');
             const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'];
-            hours.forEach(hour => {
-                const eventKey = `event_${hour.replace(/ /g, '_')}`;
-                const savedEvent = localStorage.getItem(eventKey) || '';
-                const timeSlot = document.createElement('div');
-                timeSlot.className = 'time-slot';
-                timeSlot.textContent = hour;
 
-                const eventSlot = document.createElement('div');
-                eventSlot.className = 'event-slot';
-                eventSlot.contentEditable = 'true';
-                eventSlot.textContent = savedEvent;
-                eventSlot.addEventListener('blur', () => {
-                     localStorage.setItem(eventKey, eventSlot.textContent);
+            async function renderSchedule() {
+                schedulerGrid.innerHTML = ''; // Clear existing schedule
+                const user = window.firebaseAuth.currentUser;
+                let scheduleData = {};
+
+                if (user) {
+                    const docRef = doc(db, "schedules", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        scheduleData = docSnap.data();
+                    }
+                }
+
+                hours.forEach(hour => {
+                    const eventKey = `event_${hour.replace(/[^a-zA-Z0-9]/g, '_')}`; // Sanitize key for Firestore
+                    const savedEvent = scheduleData[eventKey] || '';
+
+                    const timeSlot = document.createElement('div');
+                    timeSlot.className = 'time-slot';
+                    timeSlot.textContent = hour;
+
+                    const eventSlot = document.createElement('div');
+                    eventSlot.className = 'event-slot';
+                    eventSlot.contentEditable = 'true';
+                    eventSlot.textContent = savedEvent;
+                    eventSlot.dataset.eventKey = eventKey; // Store key on element
+
+                    eventSlot.addEventListener('blur', async () => {
+                        const user = window.firebaseAuth.currentUser;
+                        if (user) {
+                            const updatedData = {};
+                            updatedData[eventSlot.dataset.eventKey] = eventSlot.textContent;
+                            await setDoc(doc(db, "schedules", user.uid), updatedData, { merge: true });
+                        }
+                    });
+
+                    schedulerGrid.appendChild(timeSlot);
+                    schedulerGrid.appendChild(eventSlot);
                 });
+            }
 
-                schedulerGrid.appendChild(timeSlot);
-                schedulerGrid.appendChild(eventSlot);
+            // Call renderSchedule when auth state changes
+            onAuthStateChanged(auth, (user) => {
+                renderSchedule();
             });
+
+            // Initial render
+            renderSchedule();
 
             let timer;
             let isRunning = false;
@@ -623,10 +686,23 @@
                 'Commit'
             ];
             const habitGrid = document.querySelector('.habit-tracker-grid');
-            let habitData = JSON.parse(localStorage.getItem('habits')) || {};
+            let habitData = {}; // Will be populated from Firestore
 
-            function renderHabits() {
+            async function renderHabits() {
                 habitGrid.innerHTML = '';
+                const user = window.firebaseAuth.currentUser;
+                if (user) {
+                    const docRef = doc(db, "habits", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        habitData = docSnap.data();
+                    } else {
+                        habitData = {};
+                    }
+                } else {
+                    habitData = {}; // Clear habits if no user
+                }
+
                 habits.forEach((habit, habitIndex) => {
                     const habitRow = document.createElement('div');
                     habitRow.className = 'habit-row';
@@ -644,23 +720,44 @@
                         if (habitData[habitIndex] && habitData[habitIndex][dayIndex]) {
                             checkbox.checked = true;
                         }
+                        checkbox.disabled = !user; // Disable if not logged in
                         habitRow.appendChild(checkbox);
                     }
                     habitGrid.appendChild(habitRow);
                 });
             }
 
-            habitGrid.addEventListener('change', (e) => {
+            habitGrid.addEventListener('change', async (e) => {
                 if (e.target.matches('.habit-checkbox')) {
+                    const user = window.firebaseAuth.currentUser;
+                    if (!user) {
+                        alert('Please sign in to track habits.');
+                        e.target.checked = !e.target.checked; // Revert checkbox state
+                        return;
+                    }
+
                     const habitIndex = e.target.dataset.habit;
                     const dayIndex = e.target.dataset.day;
                     if (!habitData[habitIndex]) {
                         habitData[habitIndex] = {};
                     }
                     habitData[habitIndex][dayIndex] = e.target.checked;
-                    localStorage.setItem('habits', JSON.stringify(habitData));
+
+                    try {
+                        await setDoc(doc(db, "habits", user.uid), habitData, { merge: true });
+                    } catch (error) {
+                        console.error("Error updating habit: ", error);
+                    }
                 }
             });
+
+            // Call renderHabits when auth state changes
+            onAuthStateChanged(auth, (user) => {
+                renderHabits();
+            });
+
+            // Initial render
+            renderHabits();
 
             const links = [
                 { title: 'Discord', url: 'https://discord.com/app' },
@@ -729,6 +826,8 @@
                     authStatusDiv.textContent = ''; // Clear status on state change
                     document.getElementById('user-status-display').textContent = `Logged in as: ${user.email}`;
                     renderTasks(); // Update tasks when user logs in
+                    renderHabits(); // Update habits when user logs in
+                    renderSchedule(); // Update schedule when user logs in
                 } else {
                     // User is signed out
                     authFormDiv.style.display = 'block';
@@ -737,6 +836,8 @@
                     authStatusDiv.textContent = ''; // Clear status on state change
                     document.getElementById('user-status-display').textContent = 'Guest';
                     renderTasks(); // Update tasks when user logs out
+                    renderHabits(); // Update habits when user logs out
+                    renderSchedule(); // Update schedule when user logs out
                 }
             });
         });
