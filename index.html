@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elijah Feldman's Dashboard</title>
+    <!-- Firebase SDKs -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
     <style>
         :root {
             --bg-color: #f4f7f9;
@@ -47,6 +51,40 @@
             background-color: #fcfcfc;
             border-bottom: 1px solid var(--border-color);
             padding: 0 20px;
+            overflow-x: auto; /* Enable horizontal scrolling for tabs */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            white-space: nowrap; /* Prevent tabs from wrapping */
+        }
+        .tab-button {
+            flex-shrink: 0; /* Prevent buttons from shrinking */
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+            .tabs-nav {
+                flex-direction: column; /* Stack tabs vertically */
+                padding: 10px;
+                border-bottom: none;
+            }
+            .tab-button {
+                width: 100%; /* Full width for stacked tabs */
+                text-align: left;
+                padding: 12px 15px;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .tab-button:last-child {
+                border-bottom: none;
+            }
+            .tab-button.active {
+                border-bottom-color: transparent; /* Remove bottom border for active stacked tab */
+                border-left: 3px solid var(--accent-color); /* Add left border for active stacked tab */
+            }
+            .tabs-content {
+                padding: 15px;
+            }
         }
         .tab-button {
             padding: 15px 20px;
@@ -282,6 +320,30 @@
 </head>
 <body>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhXrGynZJS10vLoCM9S2Sj_EHS00xkpgc",
+            authDomain: "workflow-8db6b.firebaseapp.com",
+            projectId: "workflow-8db6b",
+            storageBucket: "workflow-8db6b.firebasestorage.app",
+            messagingSenderId: "257703670290",
+            appId: "1:257703670290:web:9815a0bf809e30dd159ecb",
+            measurementId: "G-V2R1JZ64YJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseApp = app; // Make app globally accessible if needed
+        window.firebaseAuth = auth; // Make auth globally accessible
+        window.firebaseDb = db; // Make db globally accessible
+    </script>
+
     <div class="dashboard-container">
         <nav class="tabs-nav">
             <button class="tab-button active" data-tab="tab-tasks">task Manager</button>
@@ -290,7 +352,11 @@
             <button class="tab-button" data-tab="tab-focus">focus Timer</button>
             <button class="tab-button" data-tab="tab-habits">habit Tracker</button>
             <button class="tab-button" data-tab="tab-links">quick Links</button>
+            <button class="tab-button" data-tab="tab-auth">Authentication</button>
         </nav>
+        <div id="user-status-display" style="padding: 10px 20px; background-color: #f0f0f0; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 0.9em; color: #555;">
+            Guest
+        </div>
 
         <main class="tabs-content">
             <div id="tab-tasks" class="tab-panel active">
@@ -342,11 +408,23 @@
                 <div class="links-grid">
                      </div>
             </div>
+
+            <div id="tab-auth" class="tab-panel">
+                <h2>Authentication</h2>
+                <div id="auth-status"></div>
+                <div id="auth-form">
+                    <button id="google-signin-btn">Sign in with Google</button>
+                </div>
+                <div id="auth-logout" style="margin-top: 20px; display: none;">
+                    <p>You are logged in as <span id="user-email"></span>.</p>
+                    <button id="auth-signout-btn">Sign Out</button>
+                </div>
+            </div>
         </main>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const tabs = document.querySelectorAll('.tab-button');
             const panels = document.querySelectorAll('.tab-panel');
 
@@ -364,43 +442,86 @@
             const taskForm = document.getElementById('task-input-form');
             const taskInput = document.getElementById('new-task-input');
             const taskList = document.getElementById('task-list');
-            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            let tasks = []; // Will be populated from Firestore
 
-            function renderTasks() {
+            // Import necessary Firebase Firestore functions
+            const { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+            const db = window.firebaseDb;
+
+            async function renderTasks() {
                 taskList.innerHTML = '';
-                tasks.forEach((task, index) => {
-                    const li = document.createElement('li');
-                    li.className = task.completed ? 'completed' : '';
-                    li.innerHTML = `
-                        <input type="checkbox" data-index="${index}" ${task.completed ? 'checked' : ''}>
-                        <span>${task.text}</span>
-                        <button class="delete-btn" data-index="${index}">&times;</button>
-                    `;
-                    taskList.appendChild(li);
-                });
+                const user = window.firebaseAuth.currentUser;
+                if (user) {
+                    const q = query(collection(db, "tasks"), where("userId", "==", user.uid));
+                    const querySnapshot = await getDocs(q);
+                    tasks = [];
+                    querySnapshot.forEach((doc) => {
+                        tasks.push({ id: doc.id, ...doc.data() });
+                    });
+                    tasks.forEach((task) => {
+                        const li = document.createElement('li');
+                        li.className = task.completed ? 'completed' : '';
+                        li.innerHTML = `
+                            <input type="checkbox" data-id="${task.id}" ${task.completed ? 'checked' : ''}>
+                            <span>${task.text}</span>
+                            <button class="delete-btn" data-id="${task.id}">&times;</button>
+                        `;
+                        taskList.appendChild(li);
+                    });
+                } else {
+                    taskList.innerHTML = '<p>Please sign in to manage your tasks.</p>';
+                }
             }
 
-            taskForm.addEventListener('submit', (e) => {
+            taskForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const user = window.firebaseAuth.currentUser;
+                if (!user) {
+                    alert('Please sign in to add tasks.');
+                    return;
+                }
                 if (taskInput.value.trim() === '') return;
-                tasks.push({ text: taskInput.value.trim(), completed: false });
-                localStorage.setItem('tasks', JSON.stringify(tasks));
-                renderTasks();
-                taskInput.value = '';
+                try {
+                    await addDoc(collection(db, "tasks"), {
+                        text: taskInput.value.trim(),
+                        completed: false,
+                        userId: user.uid,
+                        createdAt: new Date()
+                    });
+                    taskInput.value = '';
+                    renderTasks();
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                }
             });
 
-            taskList.addEventListener('click', (e) => {
+            taskList.addEventListener('click', async (e) => {
+                const user = window.firebaseAuth.currentUser;
+                if (!user) {
+                    alert('Please sign in to modify tasks.');
+                    return;
+                }
+
                 if (e.target.matches('input[type="checkbox"]')) {
-                    const index = e.target.dataset.index;
-                    tasks[index].completed = !tasks[index].completed;
-                    localStorage.setItem('tasks', JSON.stringify(tasks));
-                    renderTasks();
+                    const taskId = e.target.dataset.id;
+                    const taskRef = doc(db, "tasks", taskId);
+                    try {
+                        await updateDoc(taskRef, {
+                            completed: e.target.checked
+                        });
+                        renderTasks();
+                    } catch (error) {
+                        console.error("Error updating document: ", error);
+                    }
                 }
                 if (e.target.matches('.delete-btn')) {
-                    const index = e.target.dataset.index;
-                    tasks.splice(index, 1);
-                    localStorage.setItem('tasks', JSON.stringify(tasks));
-                    renderTasks();
+                    const taskId = e.target.dataset.id;
+                    try {
+                        await deleteDoc(doc(db, "tasks", taskId));
+                        renderTasks();
+                    } catch (error) {
+                        console.error("Error removing document: ", error);
+                    }
                 }
             });
 
@@ -563,6 +684,55 @@
             renderTasks();
             renderHabits();
             updateDisplay();
+
+            // Firebase Authentication Logic
+            const auth = window.firebaseAuth;
+            const googleSigninBtn = document.getElementById('google-signin-btn');
+            const authSignoutBtn = document.getElementById('auth-signout-btn');
+            const authStatusDiv = document.getElementById('auth-status');
+            const authFormDiv = document.getElementById('auth-form');
+            const authLogoutDiv = document.getElementById('auth-logout');
+            const userEmailSpan = document.getElementById('user-email');
+
+            // Import necessary Firebase Auth functions
+            const { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+
+            googleSigninBtn.addEventListener('click', async () => {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                    authStatusDiv.textContent = 'Signed in with Google!';
+                } catch (error) {
+                    authStatusDiv.textContent = `Error signing in with Google: ${error.message}`;
+                }
+            });
+
+            authSignoutBtn.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                    authStatusDiv.textContent = 'User signed out!';
+                } catch (error) {
+                    authStatusDiv.textContent = `Error signing out: ${error.message}`;
+                }
+            });
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // User is signed in
+                    authFormDiv.style.display = 'none';
+                    authLogoutDiv.style.display = 'block';
+                    userEmailSpan.textContent = user.email;
+                    authStatusDiv.textContent = ''; // Clear status on state change
+                    document.getElementById('user-status-display').textContent = `Logged in as: ${user.email}`;
+                } else {
+                    // User is signed out
+                    authFormDiv.style.display = 'block';
+                    authLogoutDiv.style.display = 'none';
+                    userEmailSpan.textContent = '';
+                    authStatusDiv.textContent = ''; // Clear status on state change
+                    document.getElementById('user-status-display').textContent = 'Guest';
+                }
+            });
         });
     </script>
 
