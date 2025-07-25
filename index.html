@@ -65,25 +65,29 @@
                 flex-direction: column;
             }
             .tabs-nav {
-                flex-direction: column; /* Stack tabs vertically */
                 padding: 10px;
                 border-bottom: none;
+                /* Ensure horizontal scrolling is still active */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
             }
             .tab-button {
-                width: 100%; /* Full width for stacked tabs */
-                text-align: left;
+                flex-shrink: 0; /* Prevent buttons from shrinking */
+                text-align: center;
                 padding: 12px 15px;
-                border-bottom: 1px solid var(--border-color);
-            }
-            .tab-button:last-child {
-                border-bottom: none;
+                border-bottom: 3px solid transparent; /* Reset to default horizontal style */
+                border-left: none; /* Remove left border */
             }
             .tab-button.active {
-                border-bottom-color: transparent; /* Remove bottom border for active stacked tab */
-                border-left: 3px solid var(--accent-color); /* Add left border for active stacked tab */
+                border-bottom-color: var(--accent-color); /* Active style for horizontal tabs */
+                border-left: none; /* Ensure no left border */
             }
             .tabs-content {
                 padding: 15px;
+            }
+            #auth-logout p {
+                display: none; /* Hide the 'You are logged in as' message on small screens */
             }
         }
         .tab-button {
@@ -724,6 +728,7 @@
                     userEmailSpan.textContent = user.email;
                     authStatusDiv.textContent = ''; // Clear status on state change
                     document.getElementById('user-status-display').textContent = `Logged in as: ${user.email}`;
+                    renderTasks(); // Update tasks when user logs in
                 } else {
                     // User is signed out
                     authFormDiv.style.display = 'block';
@@ -731,6 +736,7 @@
                     userEmailSpan.textContent = '';
                     authStatusDiv.textContent = ''; // Clear status on state change
                     document.getElementById('user-status-display').textContent = 'Guest';
+                    renderTasks(); // Update tasks when user logs out
                 }
             });
         });
