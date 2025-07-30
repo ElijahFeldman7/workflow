@@ -6,12 +6,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     const { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
+        apiKey: "AIzaSyAhXrGynZJS10vLoCM9S2Sj_EHS00xkpgc",
+        authDomain: "workflow-8db6b.firebaseapp.com",
+        projectId: "workflow-8db6b",
+        storageBucket: "workflow-8db6b.firebasestorage.app",
+        messagingSenderId: "257703670290",
+        appId: "1:257703670290:web:9815a0bf809e30dd159ecb",
+        measurementId: "G-V2R1JZ64YJ"
     };
 
     const app = initializeApp(firebaseConfig);
