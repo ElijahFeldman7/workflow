@@ -15,7 +15,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAhXrGynZJS10vLoCM9S2Sj_EHS00xkpgc",
@@ -38,13 +37,13 @@
 
     <div class="dashboard-container max-w-7xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
         <nav class="tabs-nav flex flex-wrap border-b border-gray-200">
-            <button class="tab-button active text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tasks">Task Manager</button>
-            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="notes">Knowledge Base</button>
-            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="scheduler">Daily Scheduler</button>
-            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="focus">Focus Timer</button>
-            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="habits">Habit Tracker</button>
-            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="links">Quick Links</button>
-            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="auth">Authentication</button>
+            <a href="#tasks" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tasks">Task Manager</a>
+            <a href="#notes" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="notes">Knowledge Base</a>
+            <a href="#scheduler" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="scheduler">Daily Scheduler</a>
+            <a href="#focus" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="focus">Focus Timer</a>
+            <a href="#habits" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="habits">Habit Tracker</a>
+            <a href="#links" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="links">Quick Links</a>
+            <a href="#auth" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="auth">Authentication</a>
         </nav>
         <div id="user-status-display" class="px-6 py-2 bg-gray-50 border-b border-gray-200 text-right text-sm text-gray-600">
             Guest
@@ -59,26 +58,30 @@
             const mainContent = document.getElementById('main-content');
             const tabs = document.querySelectorAll('.tab-button');
 
-            async function loadContent(tab) {
-                const tabName = tab.dataset.tab;
+            async function loadContent(tabName) {
                 try {
                     const response = await fetch(`pages/${tabName}.html`);
+                    if (!response.ok) throw new Error(`Page not found: ${tabName}.html`);
                     const content = await response.text();
                     mainContent.innerHTML = content;
+                    
                     tabs.forEach(t => t.classList.remove('active', 'text-blue-500', 'border-b-2', 'border-blue-500'));
-                    tab.classList.add('active', 'text-blue-500', 'border-b-2', 'border-blue-500');
+                    const activeTab = document.querySelector(`.tab-button[data-tab='${tabName}']`);
+                    if(activeTab) activeTab.classList.add('active', 'text-blue-500', 'border-b-2', 'border-blue-500');
+
                     initializeTab(tabName);
                 } catch (error) {
                     mainContent.innerHTML = `<p class="text-center text-red-500">Error loading content: ${error.message}</p>`;
                 }
             }
 
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => loadContent(tab));
-            });
+            function router() {
+                const hash = window.location.hash.substring(1) || 'tasks';
+                loadContent(hash);
+            }
 
-            // Load initial tab
-            loadContent(document.querySelector('.tab-button.active'));
+            window.addEventListener('hashchange', router);
+            router(); // Initial load
 
             async function initializeTab(tabName) {
                 const { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
@@ -94,6 +97,7 @@
                         let tasks = [];
 
                         async function renderTasks() {
+                            if(!taskList) return;
                             taskList.innerHTML = '';
                             const user = auth.currentUser;
                             if (user) {
@@ -176,6 +180,7 @@
                         let saveTimeout;
 
                         async function loadNotes() {
+                            if(!notesArea) return;
                             const user = auth.currentUser;
                             if (user) {
                                 const docRef = doc(db, "notes", user.uid);
@@ -211,6 +216,7 @@
                         const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'];
 
                         async function renderSchedule() {
+                            if(!schedulerGrid) return;
                             schedulerGrid.innerHTML = '';
                             const user = auth.currentUser;
                             let scheduleData = {};
@@ -261,6 +267,7 @@
                         const resetBtn = document.getElementById('reset-timer-btn');
 
                         function updateDisplay() {
+                            if(!timerDisplay) return;
                             const minutes = Math.floor(time / 60);
                             const seconds = time % 60;
                             timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -314,6 +321,7 @@
                         let habitData = {};
 
                         async function renderHabits() {
+                            if(!habitGrid) return;
                             habitGrid.innerHTML = '';
                             const user = auth.currentUser;
                             if (user) {
@@ -382,17 +390,19 @@
                             { title: 'Me', url: 'https://elijahfeldman.me'}
                         ];
                         const linksGrid = document.querySelector('.grid');
-                        links.forEach(link => {
-                            const card = document.createElement('a');
-                            card.className = 'link-card block p-4 no-underline text-gray-800 bg-gray-50 border border-gray-200 rounded-lg transition transform hover:-translate-y-1 hover:shadow-lg hover:border-blue-400';
-                            card.href = link.url;
-                            card.target = '_blank';
-                            card.innerHTML = `
-                                <div class="font-bold text-lg mb-1">${link.title}</div>
-                                <div class="text-sm text-gray-600 break-all">${link.url}</div>
-                            `;
-                            linksGrid.appendChild(card);
-                        });
+                        if(linksGrid){
+                            links.forEach(link => {
+                                const card = document.createElement('a');
+                                card.className = 'link-card block p-4 no-underline text-gray-800 bg-gray-50 border border-gray-200 rounded-lg transition transform hover:-translate-y-1 hover:shadow-lg hover:border-blue-400';
+                                card.href = link.url;
+                                card.target = '_blank';
+                                card.innerHTML = `
+                                    <div class="font-bold text-lg mb-1">${link.title}</div>
+                                    <div class="text-sm text-gray-600 break-all">${link.url}</div>
+                                `;
+                                linksGrid.appendChild(card);
+                            });
+                        }
                         break;
                     case 'auth':
                         const { GoogleAuthProvider, signInWithPopup, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
@@ -403,24 +413,29 @@
                         const authLogoutDiv = document.getElementById('auth-logout');
                         const userEmailSpan = document.getElementById('user-email');
 
-                        googleSigninBtn.addEventListener('click', async () => {
-                            const provider = new GoogleAuthProvider();
-                            try {
-                                await signInWithPopup(auth, provider);
-                            } catch (error) {
-                                authStatusDiv.textContent = `Error: ${error.message}`;
-                            }
-                        });
+                        if(googleSigninBtn) {
+                            googleSigninBtn.addEventListener('click', async () => {
+                                const provider = new GoogleAuthProvider();
+                                try {
+                                    await signInWithPopup(auth, provider);
+                                } catch (error) {
+                                    authStatusDiv.textContent = `Error: ${error.message}`;
+                                }
+                            });
+                        }
 
-                        authSignoutBtn.addEventListener('click', async () => {
-                            try {
-                                await signOut(auth);
-                            } catch (error) {
-                                authStatusDiv.textContent = `Error: ${error.message}`;
-                            }
-                        });
+                        if(authSignoutBtn) {
+                            authSignoutBtn.addEventListener('click', async () => {
+                                try {
+                                    await signOut(auth);
+                                } catch (error) {
+                                    authStatusDiv.textContent = `Error: ${error.message}`;
+                                }
+                            });
+                        }
 
                         onAuthStateChanged(auth, (user) => {
+                            if(!authFormDiv || !authLogoutDiv) return;
                             if (user) {
                                 authFormDiv.style.display = 'none';
                                 authLogoutDiv.style.display = 'block';
