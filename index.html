@@ -9,7 +9,7 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 p-4 md:p-8">
+<body class="bg-gray-100">
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -35,28 +35,44 @@
         window.firebaseDb = db;
     </script>
 
-    <div class="dashboard-container max-w-7xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-        <nav class="tabs-nav flex flex-wrap border-b border-gray-200">
-            <a href="#tasks" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tasks">Task Manager</a>
-            <a href="#notes" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="notes">Knowledge Base</a>
-            <a href="#scheduler" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="scheduler">Daily Scheduler</a>
-            <a href="#focus" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="focus">Focus Timer</a>
-            <a href="#habits" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="habits">Habit Tracker</a>
-            <a href="#links" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="links">Quick Links</a>
-            <a href="#auth" class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="auth">Authentication</a>
-        </nav>
-        <div id="user-status-display" class="px-6 py-2 bg-gray-50 border-b border-gray-200 text-right text-sm text-gray-600">
-            Guest
-        </div>
+    <div class="flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-md flex flex-col">
+            <div class="p-6 text-2xl font-bold text-gray-800 border-b">Dashboard</div>
+            <nav id="sidebar-nav" class="flex-grow p-4 space-y-2">
+                <a href="#tasks" class="nav-link block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800" data-tab="tasks">Task Manager</a>
+                <a href="#notes" class="nav-link block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800" data-tab="notes">Knowledge Base</a>
+                <a href="#scheduler" class="nav-link block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800" data-tab="scheduler">Daily Scheduler</a>
+                <a href="#focus" class="nav-link block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800" data-tab="focus">Focus Timer</a>
+                <a href="#habits" class="nav-link block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800" data-tab="habits">Habit Tracker</a>
+                <a href="#links" class="nav-link block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800" data-tab="links">Quick Links</a>
+            </nav>
+            <div id="user-status-display" class="p-4 border-t text-sm text-gray-600">
+                <a href="#auth" class="nav-link" data-tab="auth">Authentication</a>
+            </div>
+        </aside>
 
-        <main id="main-content" class="p-4 md:p-8">
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 p-8 overflow-y-auto">
         </main>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
             const mainContent = document.getElementById('main-content');
-            const tabs = document.querySelectorAll('.tab-button');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            // --- DATA FOR DYNAMIC PAGES ---
+            const quickLinksData = [
+                { title: 'Discord', url: 'https://discord.com/app' },
+                { title: 'GitHub', url: 'https://github.com' },
+                { title: 'Ion', url: 'https://ion.tjhsst.edu'},
+                { title: 'Gitlab', url: 'https://gitlab.tjhsst.edu' },
+                { title: 'To-Do', url: 'https://elijahfeldman7.github.io/to-do-list'},
+                { title: 'Me', url: 'https://elijahfeldman.me'}
+            ];
+
+            const habitsData = ['Workout', 'Read', 'Relax', 'Commit'];
 
             async function loadContent(tabName) {
                 try {
@@ -65,9 +81,9 @@
                     const content = await response.text();
                     mainContent.innerHTML = content;
                     
-                    tabs.forEach(t => t.classList.remove('active', 'text-blue-500', 'border-b-2', 'border-blue-500'));
-                    const activeTab = document.querySelector(`.tab-button[data-tab='${tabName}']`);
-                    if(activeTab) activeTab.classList.add('active', 'text-blue-500', 'border-b-2', 'border-blue-500');
+                    navLinks.forEach(t => t.classList.remove('bg-blue-500', 'text-white'));
+                    const activeLink = document.querySelector(`.nav-link[data-tab='${tabName}']`);
+                    if(activeLink) activeLink.classList.add('bg-blue-500', 'text-white');
 
                     initializeTab(tabName);
                 } catch (error) {
@@ -316,7 +332,6 @@
                         updateDisplay();
                         break;
                     case 'habits':
-                        const habits = ['Workout', 'Read', 'Relax', 'Commit'];
                         const habitGrid = document.querySelector('.habit-tracker-grid');
                         let habitData = {};
 
@@ -332,7 +347,7 @@
                                 habitData = {};
                             }
 
-                            habits.forEach((habit, habitIndex) => {
+                            habitsData.forEach((habit, habitIndex) => {
                                 const habitRow = document.createElement('div');
                                 habitRow.className = 'habit-row grid grid-cols-[minmax(120px,1fr)_repeat(7,40px)] items-center gap-2 p-3 bg-gray-50 rounded-lg';
                                 const habitName = document.createElement('div');
@@ -344,9 +359,9 @@
                                     const checkbox = document.createElement('input');
                                     checkbox.type = 'checkbox';
                                     checkbox.className = 'habit-checkbox h-6 w-6 justify-self-center rounded border-gray-300 text-blue-500 focus:ring-blue-400';
-                                    checkbox.dataset.habit = habitIndex;
+                                    checkbox.dataset.habit = habit;
                                     checkbox.dataset.day = dayIndex;
-                                    if (habitData[habitIndex] && habitData[habitIndex][dayIndex]) {
+                                    if (habitData[habit] && habitData[habit][dayIndex]) {
                                         checkbox.checked = true;
                                     }
                                     checkbox.disabled = !user;
@@ -365,10 +380,10 @@
                                     return;
                                 }
 
-                                const habitIndex = e.target.dataset.habit;
+                                const habit = e.target.dataset.habit;
                                 const dayIndex = e.target.dataset.day;
-                                if (!habitData[habitIndex]) habitData[habitIndex] = {};
-                                habitData[habitIndex][dayIndex] = e.target.checked;
+                                if (!habitData[habit]) habitData[habit] = {};
+                                habitData[habit][dayIndex] = e.target.checked;
 
                                 try {
                                     await setDoc(doc(db, "habits", user.uid), habitData, { merge: true });
@@ -381,17 +396,9 @@
                         renderHabits();
                         break;
                     case 'links':
-                        const links = [
-                            { title: 'Discord', url: 'https://discord.com/app' },
-                            { title: 'GitHub', url: 'https://github.com' },
-                            { title: 'Ion', url: 'https://ion.tjhsst.edu'},
-                            { title: 'Gitlab', url: 'https://gitlab.tjhsst.edu' },
-                            { title: 'To-Do', url: 'https://elijahfeldman7.github.io/to-do-list'},
-                            { title: 'Me', url: 'https://elijahfeldman.me'}
-                        ];
-                        const linksGrid = document.querySelector('.grid');
+                        const linksGrid = document.querySelector('.links-grid');
                         if(linksGrid){
-                            links.forEach(link => {
+                            quickLinksData.forEach(link => {
                                 const card = document.createElement('a');
                                 card.className = 'link-card block p-4 no-underline text-gray-800 bg-gray-50 border border-gray-200 rounded-lg transition transform hover:-translate-y-1 hover:shadow-lg hover:border-blue-400';
                                 card.href = link.url;
@@ -457,10 +464,11 @@
             const userStatusDisplay = document.getElementById('user-status-display');
 
             onAuthStateChanged(auth, (user) => {
+                const authLink = document.querySelector('.nav-link[data-tab="auth"]');
                 if (user) {
-                    userStatusDisplay.textContent = `Logged in as: ${user.email}`;
+                    userStatusDisplay.innerHTML = `Logged in as: ${user.email} <br/> <a href="#auth" class="nav-link text-red-500" data-tab="auth">Sign Out</a>`;
                 } else {
-                    userStatusDisplay.textContent = 'Guest';
+                    userStatusDisplay.innerHTML = `<a href="#auth" class="nav-link" data-tab="auth">Authentication</a>`;
                 }
             });
         });
