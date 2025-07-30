@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body class="bg-gray-100 text-gray-800" data-page="tasks">
+
+    <div class="dashboard-container max-w-7xl mx-auto bg-white rounded-2xl shadow-lg my-8">
+        <nav class="tabs-nav flex flex-wrap border-b border-gray-200">
+            <a href="tasks.html" class="nav-link active text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Task Manager</a>
+            <a href="notes.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Knowledge Base</a>
+            <a href="scheduler.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Daily Scheduler</a>
+            <a href="focus.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Focus Timer</a>
+            <a href="habits.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Habit Tracker</a>
+            <a href="links.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Quick Links</a>
+        </nav>
+        <div id="user-status-display" class="px-6 py-2 bg-gray-50 border-b border-gray-200 text-right text-sm text-gray-600">
+            Guest
+        </div>
+
+        <main class="p-8">
+            <div class="relative">
+                <h1 class="text-3xl font-bold mb-6">Task Manager</h1>
+                <button class="settings-cog absolute top-0 right-0 text-2xl">⚙️</button>
+                <div class="settings-panel p-4 bg-gray-100 rounded-lg mb-4 hidden">
+                    <p>No settings for this page yet.</p>
+                </div>
+                <form id="task-input-form" class="flex gap-3 mb-6">
+                    <input type="text" id="new-task-input" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Add a new task..." required>
+                    <button type="submit" class="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">Add Task</button>
+                </form>
+                <ul id="task-list" class="space-y-2"></ul>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

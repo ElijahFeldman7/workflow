@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Scheduler - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body class="bg-gray-100 text-gray-800" data-page="scheduler">
+
+    <div class="dashboard-container max-w-7xl mx-auto bg-white rounded-2xl shadow-lg my-8">
+        <nav class="tabs-nav flex flex-wrap border-b border-gray-200">
+            <a href="tasks.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Task Manager</a>
+            <a href="notes.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Knowledge Base</a>
+            <a href="scheduler.html" class="nav-link active text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Daily Scheduler</a>
+            <a href="focus.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Focus Timer</a>
+            <a href="habits.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Habit Tracker</a>
+            <a href="links.html" class="nav-link text-sm md:text-base py-4 px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap">Quick Links</a>
+        </nav>
+        <div id="user-status-display" class="px-6 py-2 bg-gray-50 border-b border-gray-200 text-right text-sm text-gray-600">
+            Guest
+        </div>
+
+        <main class="p-8">
+            <div class="relative">
+                <h1 class="text-3xl font-bold mb-6">Daily Scheduler</h1>
+                <button class="settings-cog absolute top-0 right-0 text-2xl">⚙️</button>
+                <div class="settings-panel p-4 bg-gray-100 rounded-lg mb-4 hidden">
+                    <p>No settings for this page yet.</p>
+                </div>
+                <div class="schedule-grid grid grid-cols-[auto_1fr] gap-1 bg-white rounded-lg shadow"></div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
