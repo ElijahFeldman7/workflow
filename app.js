@@ -94,44 +94,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             renderTasks();
             break;
         case 'notes':
-            const notesArea = document.getElementById('notes-area');
-            const notesSaveStatus = document.getElementById('notes-save-status');
-            let notesTimeout;
-
-            async function loadNotes() {
-                const user = auth.currentUser;
-                if (user) {
-                    const noteRef = doc(db, "notes", user.uid);
-                    const noteSnap = await getDoc(noteRef);
-                    if (noteSnap.exists()) {
-                        notesArea.value = noteSnap.data().content;
-                    } else {
-                        notesArea.value = '';
-                    }
-                } else {
-                    notesArea.value = 'Please sign in to use the knowledge base.';
-                    notesArea.disabled = true;
-                }
-            }
-
-            async function saveNotes() {
-                const user = auth.currentUser;
-                if (!user) return;
-
-                notesSaveStatus.textContent = 'Saving...';
-                const noteRef = doc(db, "notes", user.uid);
-                await setDoc(noteRef, { content: notesArea.value, updatedAt: new Date() });
-                notesSaveStatus.textContent = 'Saved!';
-                setTimeout(() => notesSaveStatus.textContent = '', 2000);
-            }
-
-            notesArea.addEventListener('keyup', () => {
-                clearTimeout(notesTimeout);
-                notesTimeout = setTimeout(saveNotes, 1000);
-            });
-
-            onAuthStateChanged(auth, loadNotes);
-            loadNotes();
+            // Notes logic
             break;
         case 'scheduler':
             // Scheduler logic
@@ -230,54 +193,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             renderLinks();
             break;
         case 'auth':
-            const googleSignInBtn = document.getElementById('google-signin-btn');
-            const authSignOutBtn = document.getElementById('auth-signout-btn');
-            const authStatus = document.getElementById('auth-status');
-            const authForm = document.getElementById('auth-form');
-            const authLogout = document.getElementById('auth-logout');
-            const userEmail = document.getElementById('user-email');
-
-            const { GoogleAuthProvider, signInWithPopup, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-
-            const provider = new GoogleAuthProvider();
-
-            googleSignInBtn.addEventListener('click', () => {
-                signInWithPopup(auth, provider)
-                    .then((result) => {
-                        const user = result.user;
-                        authStatus.textContent = 'Signed in successfully!';
-                        updateAuthState(user);
-                    }).catch((error) => {
-                        console.error("Authentication error:", error);
-                        authStatus.textContent = `Error: ${error.message}`;
-                    });
-            });
-
-            authSignOutBtn.addEventListener('click', () => {
-                signOut(auth).then(() => {
-                    authStatus.textContent = 'Signed out successfully.';
-                    updateAuthState(null);
-                }).catch((error) => {
-                    console.error("Sign out error:", error);
-                    authStatus.textContent = `Error: ${error.message}`;
-                });
-            });
-
-            function updateAuthState(user) {
-                if (user) {
-                    authForm.style.display = 'none';
-                    authLogout.style.display = 'block';
-                    userEmail.textContent = user.email;
-                } else {
-                    authForm.style.display = 'block';
-                    authLogout.style.display = 'none';
-                    userEmail.textContent = '';
-                }
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                updateAuthState(user);
-            });
+            // Auth logic
             break;
     }
 
