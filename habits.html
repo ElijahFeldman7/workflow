@@ -25,13 +25,10 @@
         <main class="p-8">
             <div class="relative">
                 <h1 class="text-3xl font-bold mb-6">Habit Tracker</h1>
-                <button class="settings-cog absolute top-0 right-0 text-2xl">⚙️</button>
-                <div class="settings-panel p-4 bg-gray-100 rounded-lg mb-4 hidden">
-                    <form id="add-habit-form" class="flex gap-3">
-                        <input type="text" id="new-habit-input" class="flex-grow p-2 border border-gray-300 rounded-lg" placeholder="Add a new habit" required>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Add</button>
-                    </form>
-                </div>
+                <form id="add-habit-form" class="flex gap-3 mb-4">
+                    <input type="text" id="new-habit-input" class="flex-grow p-2 border border-gray-300 rounded-lg" placeholder="Add a new habit" required>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg">Add</button>
+                </form>
                 <div class="habit-day-labels grid grid-cols-[minmax(120px,1fr)_repeat(7,40px)] gap-2 px-3 font-bold text-center mb-2">
                     <div class="text-left">Habit</div>
                     <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
