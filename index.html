@@ -4,330 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Elijah Feldman's Dashboard</title>
-    <!-- Firebase SDKs -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-    <style>
-        :root {
-            --bg-color: #f4f7f9;
-            --main-color: #ffffff;
-            --accent-color: #4a90e2;
-            --accent-hover: #357abd;
-            --text-color: #333;
-            --border-color: #e0e0e0;
-            --shadow-color: rgba(0, 0, 0, 0.08);
-            --success-color: #28a745;
-            --success-bg: #e9f5ec;
-            --danger-color: #dc3545;
-            --danger-bg: #fbebee;
-            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        body {
-            font-family: var(--font-family);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
-
-        .dashboard-container {
-            width: 100%;
-            max-width: 1200px;
-            background-color: var(--main-color);
-            border-radius: 12px;
-            box-shadow: 0 4px 12px var(--shadow-color);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .tabs-nav {
-            display: flex;
-            background-color: #fcfcfc;
-            border-bottom: 1px solid var(--border-color);
-            padding: 0 20px;
-            overflow-x: auto; /* Enable horizontal scrolling for tabs */
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-            white-space: nowrap; /* Prevent tabs from wrapping */
-        }
-        .tab-button {
-            flex-shrink: 0; /* Prevent buttons from shrinking */
-        }
-
-        /* Responsive adjustments for smaller screens */
-        @media (max-width: 768px) {
-            .dashboard-container {
-                flex-direction: column;
-            }
-            .tabs-nav {
-                padding: 10px;
-                border-bottom: none;
-                /* Ensure horizontal scrolling is still active */
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                white-space: nowrap;
-            }
-            .tab-button {
-                flex-shrink: 0; /* Prevent buttons from shrinking */
-                text-align: center;
-                padding: 12px 15px;
-                border-bottom: 3px solid transparent; /* Reset to default horizontal style */
-                border-left: none; /* Remove left border */
-            }
-            .tab-button.active {
-                border-bottom-color: var(--accent-color); /* Active style for horizontal tabs */
-                border-left: none; /* Ensure no left border */
-            }
-            .tabs-content {
-                padding: 15px;
-            }
-            #auth-logout p {
-                display: none; /* Hide the 'You are logged in as' message on small screens */
-            }
-        }
-        .tab-button {
-            padding: 15px 20px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            font-size: 16px;
-            font-weight: 500;
-            color: #555;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s ease-in-out;
-        }
-        .tab-button:hover {
-            color: var(--accent-color);
-        }
-        .tab-button.active {
-            color: var(--accent-color);
-            border-bottom-color: var(--accent-color);
-        }
-
-        .tabs-content {
-            padding: 25px;
-            min-height: 60vh;
-        }
-        .tab-panel {
-            display: none;
-        }
-        .tab-panel.active {
-            display: block;
-            animation: fadeIn 0.4s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        h2 {
-            margin-top: 0;
-            font-weight: 600;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-        input[type="text"]:focus, textarea:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-        button {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            background-color: var(--accent-color);
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: var(--accent-hover);
-        }
-
-        #task-input-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        #task-list {
-            list-style: none;
-            padding: 0;
-        }
-        #task-list li {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s;
-        }
-        #task-list li:hover {
-            background-color: #f9f9f9;
-        }
-        #task-list li.completed span {
-            text-decoration: line-through;
-            color: #888;
-        }
-        #task-list li input[type="checkbox"] {
-            margin-right: 15px;
-            width: 18px;
-            height: 18px;
-            accent-color: var(--success-color);
-        }
-        #task-list li .delete-btn {
-            margin-left: auto;
-            background: none;
-            border: none;
-            color: #aaa;
-            cursor: pointer;
-            font-size: 20px;
-            padding: 5px;
-        }
-        #task-list li .delete-btn:hover {
-            color: var(--danger-color);
-        }
-
-        #notes-area {
-            height: 45vh;
-            resize: vertical;
-        }
-        .save-status {
-            margin-top: 10px;
-            color: #777;
-            font-style: italic;
-            font-size: 14px;
-        }
-
-        .schedule-grid {
-            display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 5px;
-        }
-        .time-slot, .event-slot {
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-        }
-        .time-slot {
-            font-weight: 500;
-            background-color: #f9f9f9;
-            text-align: center;
-        }
-        .event-slot {
-            background-color: #fdfdfd;
-        }
-        .event-slot:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            background-color: #fff;
-        }
-
-        .timer-container {
-            text-align: center;
-        }
-        #timer-display {
-            font-size: 72px;
-            font-weight: 300;
-            margin: 20px 0;
-        }
-        .timer-controls button {
-            margin: 0 10px;
-            width: 100px;
-        }
-        #timer-status {
-            font-size: 20px;
-            font-weight: 500;
-            margin-bottom: 20px;
-            color: var(--accent-color);
-        }
-
-        .habit-tracker-grid {
-            display: grid;
-            gap: 15px;
-        }
-        .habit-row {
-            display: grid;
-            grid-template-columns: 1fr repeat(7, 40px);
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-        }
-        .habit-name {
-            font-weight: 500;
-        }
-        .habit-day-labels {
-            display: grid;
-            grid-template-columns: 1fr repeat(7, 40px);
-            gap: 10px;
-            padding: 0 10px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-        .habit-day-labels > div:first-child {
-            text-align: left;
-        }
-        .habit-checkbox {
-            width: 22px;
-            height: 22px;
-            justify-self: center;
-            accent-color: var(--success-color);
-        }
-
-        .links-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-        }
-        .link-card {
-            display: block;
-            padding: 20px;
-            text-decoration: none;
-            color: var(--text-color);
-            background-color: #f9f9f9;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-        .link-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px var(--shadow-color);
-            border-color: var(--accent-color);
-        }
-        .link-card-title {
-            font-weight: 600;
-            font-size: 18px;
-            margin-bottom: 5px;
-        }
-        .link-card-url {
-            font-size: 14px;
-            color: #777;
-            word-break: break-all;
-        }
-    </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800 p-4 md:p-8">
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAhXrGynZJS10vLoCM9S2Sj_EHS00xkpgc",
@@ -343,85 +31,85 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.firebaseApp = app; // Make app globally accessible if needed
-        window.firebaseAuth = auth; // Make auth globally accessible
-        window.firebaseDb = db; // Make db globally accessible
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
     </script>
 
-    <div class="dashboard-container">
-        <nav class="tabs-nav">
-            <button class="tab-button active" data-tab="tab-tasks">task Manager</button>
-            <button class="tab-button" data-tab="tab-notes">knowledge Base</button>
-            <button class="tab-button" data-tab="tab-scheduler">daily Scheduler</button>
-            <button class="tab-button" data-tab="tab-focus">focus Timer</button>
-            <button class="tab-button" data-tab="tab-habits">habit Tracker</button>
-            <button class="tab-button" data-tab="tab-links">quick Links</button>
-            <button class="tab-button" data-tab="tab-auth">Authentication</button>
+    <div class="dashboard-container max-w-7xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+        <nav class="tabs-nav flex flex-wrap border-b border-gray-200">
+            <button class="tab-button active text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-tasks">Task Manager</button>
+            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-notes">Knowledge Base</button>
+            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-scheduler">Daily Scheduler</button>
+            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-focus">Focus Timer</button>
+            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-habits">Habit Tracker</button>
+            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-links">Quick Links</button>
+            <button class="tab-button text-sm md:text-base py-3 px-4 md:py-4 md:px-6 text-gray-600 hover:text-blue-500 focus:outline-none whitespace-nowrap" data-tab="tab-auth">Authentication</button>
         </nav>
-        <div id="user-status-display" style="padding: 10px 20px; background-color: #f0f0f0; border-bottom: 1px solid #e0e0e0; text-align: right; font-size: 0.9em; color: #555;">
+        <div id="user-status-display" class="px-6 py-2 bg-gray-50 border-b border-gray-200 text-right text-sm text-gray-600">
             Guest
         </div>
 
-        <main class="tabs-content">
+        <main class="tabs-content p-4 md:p-8">
             <div id="tab-tasks" class="tab-panel active">
-                <h2>my tasks</h2>
-                <form id="task-input-form">
-                    <input type="text" id="new-task-input" placeholder="Add a new task..." required>
-                    <button type="submit">add task</button>
+                <h2 class="text-2xl font-bold mb-6">My Tasks</h2>
+                <form id="task-input-form" class="flex gap-3 mb-6">
+                    <input type="text" id="new-task-input" class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Add a new task..." required>
+                    <button type="submit" class="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">Add Task</button>
                 </form>
-                <ul id="task-list"></ul>
+                <ul id="task-list" class="space-y-2"></ul>
             </div>
 
             <div id="tab-notes" class="tab-panel">
-                <h2>my notes</h2>
-                <textarea id="notes-area" placeholder="Write anything... your notes are saved automatically."></textarea>
-                <div class="save-status" id="notes-save-status"></div>
+                <h2 class="text-2xl font-bold mb-6">My Notes</h2>
+                <textarea id="notes-area" class="w-full h-96 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Write anything... your notes are saved automatically."></textarea>
+                <div class="save-status mt-2 text-sm text-gray-500 italic" id="notes-save-status"></div>
             </div>
 
             <div id="tab-scheduler" class="tab-panel">
-                <h2>today Schedule</h2>
-                <div class="schedule-grid">
-                    </div>
+                <h2 class="text-2xl font-bold mb-6">Today's Schedule</h2>
+                <div class="schedule-grid grid grid-cols-[auto_1fr] gap-1">
+                </div>
             </div>
 
             <div id="tab-focus" class="tab-panel">
-                <h2>Focus Timer</h2>
-                <div class="timer-container">
-                    <div id="timer-status">get back to Work!</div>
-                    <div id="timer-display">25:00</div>
-                    <div class="timer-controls">
-                        <button id="start-timer-btn">Start</button>
-                        <button id="stop-timer-btn">Stop</button>
-                        <button id="reset-timer-btn">Reset</button>
+                <h2 class="text-2xl font-bold mb-6">Focus Timer</h2>
+                <div class="timer-container text-center p-8 bg-gray-50 rounded-xl">
+                    <div id="timer-status" class="text-xl font-semibold mb-4 text-blue-600">Get back to Work!</div>
+                    <div id="timer-display" class="text-8xl font-extralight my-4">25:00</div>
+                    <div class="timer-controls flex justify-center gap-4">
+                        <button id="start-timer-btn" class="w-32 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600">Start</button>
+                        <button id="stop-timer-btn" class="w-32 px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600">Stop</button>
+                        <button id="reset-timer-btn" class="w-32 px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600">Reset</button>
                     </div>
                 </div>
             </div>
 
             <div id="tab-habits" class="tab-panel">
-                <h2>habit Tracker</h2>
-                <div class="habit-day-labels">
-                    <div class="habit-name">Habit</div>
+                <h2 class="text-2xl font-bold mb-6">Habit Tracker</h2>
+                <div class="habit-day-labels grid grid-cols-[minmax(120px,1fr)_repeat(7,40px)] gap-2 px-3 font-bold text-center mb-2">
+                    <div class="text-left">Habit</div>
                     <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
                 </div>
-                <div class="habit-tracker-grid">
-                    </div>
+                <div class="habit-tracker-grid space-y-3">
+                </div>
             </div>
 
             <div id="tab-links" class="tab-panel">
-                <h2>Quick Links</h2>
-                <div class="links-grid">
-                     </div>
+                <h2 class="text-2xl font-bold mb-6">Quick Links</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                </div>
             </div>
 
             <div id="tab-auth" class="tab-panel">
-                <h2>Authentication</h2>
-                <div id="auth-status"></div>
-                <div id="auth-form">
-                    <button id="google-signin-btn">Sign in with Google</button>
+                <h2 class="text-2xl font-bold mb-6">Authentication</h2>
+                <div id="auth-status" class="mb-4 text-center font-medium"></div>
+                <div id="auth-form" class="text-center">
+                    <button id="google-signin-btn" class="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">Sign in with Google</button>
                 </div>
-                <div id="auth-logout" style="margin-top: 20px; display: none;">
-                    <p>You are logged in as <span id="user-email"></span>.</p>
-                    <button id="auth-signout-btn">Sign Out</button>
+                <div id="auth-logout" class="mt-6 text-center" style="display: none;">
+                    <p class="mb-4">You are logged in as <span id="user-email" class="font-semibold"></span>.</p>
+                    <button id="auth-signout-btn" class="px-6 py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600">Sign Out</button>
                 </div>
             </div>
         </main>
@@ -434,21 +122,27 @@
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
+                    tabs.forEach(t => t.classList.remove('active', 'text-blue-500', 'border-b-2', 'border-blue-500'));
                     panels.forEach(p => p.classList.remove('active'));
 
-                    tab.classList.add('active');
+                    tab.classList.add('active', 'text-blue-500', 'border-b-2', 'border-blue-500');
                     const targetPanel = document.getElementById(tab.dataset.tab);
                     targetPanel.classList.add('active');
                 });
             });
+            
+            // Set active styles for the initially active tab
+            const initialActiveTab = document.querySelector('.tab-button.active');
+            if(initialActiveTab) {
+                initialActiveTab.classList.add('text-blue-500', 'border-b-2', 'border-blue-500');
+            }
+
 
             const taskForm = document.getElementById('task-input-form');
             const taskInput = document.getElementById('new-task-input');
             const taskList = document.getElementById('task-list');
-            let tasks = []; // Will be populated from Firestore
+            let tasks = [];
 
-            // Import necessary Firebase Firestore functions
             const { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
             const db = window.firebaseDb;
 
@@ -462,18 +156,19 @@
                     querySnapshot.forEach((doc) => {
                         tasks.push({ id: doc.id, ...doc.data() });
                     });
+                    tasks.sort((a, b) => (a.createdAt?.toDate() || 0) - (b.createdAt?.toDate() || 0));
                     tasks.forEach((task) => {
                         const li = document.createElement('li');
-                        li.className = task.completed ? 'completed' : '';
+                        li.className = `flex items-center p-3 rounded-lg transition-colors hover:bg-gray-50 ${task.completed ? 'bg-green-50' : 'bg-white'}`;
                         li.innerHTML = `
-                            <input type="checkbox" data-id="${task.id}" ${task.completed ? 'checked' : ''}>
-                            <span>${task.text}</span>
-                            <button class="delete-btn" data-id="${task.id}">&times;</button>
+                            <input type="checkbox" data-id="${task.id}" class="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-400" ${task.completed ? 'checked' : ''}>
+                            <span class="ml-4 flex-grow ${task.completed ? 'line-through text-gray-500' : ''}">${task.text}</span>
+                            <button class="delete-btn text-gray-400 hover:text-red-500 font-bold text-xl" data-id="${task.id}">&times;</button>
                         `;
                         taskList.appendChild(li);
                     });
                 } else {
-                    taskList.innerHTML = '<p>Please sign in to manage your tasks.</p>';
+                    taskList.innerHTML = '<p class="text-center text-gray-500">Please sign in to manage your tasks.</p>';
                 }
             }
 
@@ -501,18 +196,13 @@
 
             taskList.addEventListener('click', async (e) => {
                 const user = window.firebaseAuth.currentUser;
-                if (!user) {
-                    alert('Please sign in to modify tasks.');
-                    return;
-                }
+                if (!user) return;
 
                 if (e.target.matches('input[type="checkbox"]')) {
                     const taskId = e.target.dataset.id;
                     const taskRef = doc(db, "tasks", taskId);
                     try {
-                        await updateDoc(taskRef, {
-                            completed: e.target.checked
-                        });
+                        await updateDoc(taskRef, { completed: e.target.checked });
                         renderTasks();
                     } catch (error) {
                         console.error("Error updating document: ", error);
@@ -520,11 +210,13 @@
                 }
                 if (e.target.matches('.delete-btn')) {
                     const taskId = e.target.dataset.id;
-                    try {
-                        await deleteDoc(doc(db, "tasks", taskId));
-                        renderTasks();
-                    } catch (error) {
-                        console.error("Error removing document: ", error);
+                    if (confirm('Are you sure you want to delete this task?')) {
+                        try {
+                            await deleteDoc(doc(db, "tasks", taskId));
+                            renderTasks();
+                        } catch (error) {
+                            console.error("Error removing document: ", error);
+                        }
                     }
                 }
             });
@@ -538,13 +230,11 @@
                 if (user) {
                     const docRef = doc(db, "notes", user.uid);
                     const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        notesArea.value = docSnap.data().content;
-                    } else {
-                        notesArea.value = '';
-                    }
+                    notesArea.value = docSnap.exists() ? docSnap.data().content : '';
+                    notesArea.disabled = false;
                 } else {
                     notesArea.value = 'Please sign in to save your notes.';
+                    notesArea.disabled = true;
                 }
             }
 
@@ -560,57 +250,41 @@
                         }, { merge: true });
                         notesStatus.textContent = 'Saved!';
                         setTimeout(() => notesStatus.textContent = '', 2000);
-                    } else {
-                        notesStatus.textContent = 'Sign in to save notes.';
                     }
                 }, 500);
             });
-            // Call loadNotes when auth state changes
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    loadNotes();
-                } else {
-                    notesArea.value = 'Please sign in to save your notes.';
-                }
-            });
-            // Initial load
-            loadNotes();
 
             const schedulerGrid = document.querySelector('.schedule-grid');
             const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'];
 
             async function renderSchedule() {
-                schedulerGrid.innerHTML = ''; // Clear existing schedule
+                schedulerGrid.innerHTML = '';
                 const user = window.firebaseAuth.currentUser;
                 let scheduleData = {};
 
                 if (user) {
                     const docRef = doc(db, "schedules", user.uid);
                     const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        scheduleData = docSnap.data();
-                    }
+                    if (docSnap.exists()) scheduleData = docSnap.data();
                 }
 
                 hours.forEach(hour => {
-                    const eventKey = `event_${hour.replace(/[^a-zA-Z0-9]/g, '_')}`; // Sanitize key for Firestore
+                    const eventKey = `event_${hour.replace(/[^a-zA-Z0-9]/g, '_')}`;
                     const savedEvent = scheduleData[eventKey] || '';
 
                     const timeSlot = document.createElement('div');
-                    timeSlot.className = 'time-slot';
+                    timeSlot.className = 'time-slot p-3 border-r border-gray-200 font-semibold text-sm text-right';
                     timeSlot.textContent = hour;
 
                     const eventSlot = document.createElement('div');
-                    eventSlot.className = 'event-slot';
-                    eventSlot.contentEditable = 'true';
+                    eventSlot.className = 'event-slot p-3 border-b border-gray-200 focus:bg-yellow-100 focus:outline-none';
+                    eventSlot.contentEditable = user ? 'true' : 'false';
                     eventSlot.textContent = savedEvent;
-                    eventSlot.dataset.eventKey = eventKey; // Store key on element
+                    eventSlot.dataset.eventKey = eventKey;
 
                     eventSlot.addEventListener('blur', async () => {
-                        const user = window.firebaseAuth.currentUser;
                         if (user) {
-                            const updatedData = {};
-                            updatedData[eventSlot.dataset.eventKey] = eventSlot.textContent;
+                            const updatedData = { [eventSlot.dataset.eventKey]: eventSlot.textContent };
                             await setDoc(doc(db, "schedules", user.uid), updatedData, { merge: true });
                         }
                     });
@@ -619,14 +293,6 @@
                     schedulerGrid.appendChild(eventSlot);
                 });
             }
-
-            // Call renderSchedule when auth state changes
-            onAuthStateChanged(auth, (user) => {
-                renderSchedule();
-            });
-
-            // Initial render
-            renderSchedule();
 
             let timer;
             let isRunning = false;
@@ -647,12 +313,16 @@
             function startTimer() {
                 if (isRunning) return;
                 isRunning = true;
+                startBtn.textContent = 'Running...';
+                startBtn.disabled = true;
                 timer = setInterval(() => {
                     time--;
                     updateDisplay();
                     if (time <= 0) {
                         clearInterval(timer);
                         isRunning = false;
+                        startBtn.disabled = false;
+                        startBtn.textContent = 'Start';
                         alert(isWorkTime ? "Time for a break!" : "Time to get back to work!");
                         isWorkTime = !isWorkTime;
                         time = isWorkTime ? 25 * 60 : 5 * 60;
@@ -665,13 +335,15 @@
             function stopTimer() {
                 clearInterval(timer);
                 isRunning = false;
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start';
             }
 
             function resetTimer() {
                 stopTimer();
                 isWorkTime = true;
                 time = 25 * 60;
-                timerStatus.textContent = "get back to Work!";
+                timerStatus.textContent = "Get back to Work!";
                 updateDisplay();
             }
 
@@ -679,14 +351,9 @@
             stopBtn.addEventListener('click', stopTimer);
             resetBtn.addEventListener('click', resetTimer);
 
-            const habits = [
-                'Workout',
-                'Read',
-                'Relax',
-                'Commit'
-            ];
+            const habits = ['Workout', 'Read', 'Relax', 'Commit'];
             const habitGrid = document.querySelector('.habit-tracker-grid');
-            let habitData = {}; // Will be populated from Firestore
+            let habitData = {};
 
             async function renderHabits() {
                 habitGrid.innerHTML = '';
@@ -694,33 +361,29 @@
                 if (user) {
                     const docRef = doc(db, "habits", user.uid);
                     const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        habitData = docSnap.data();
-                    } else {
-                        habitData = {};
-                    }
+                    habitData = docSnap.exists() ? docSnap.data() : {};
                 } else {
-                    habitData = {}; // Clear habits if no user
+                    habitData = {};
                 }
 
                 habits.forEach((habit, habitIndex) => {
                     const habitRow = document.createElement('div');
-                    habitRow.className = 'habit-row';
+                    habitRow.className = 'habit-row grid grid-cols-[minmax(120px,1fr)_repeat(7,40px)] items-center gap-2 p-3 bg-gray-50 rounded-lg';
                     const habitName = document.createElement('div');
-                    habitName.className = 'habit-name';
+                    habitName.className = 'habit-name font-medium';
                     habitName.textContent = habit;
                     habitRow.appendChild(habitName);
 
                     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
-                        checkbox.className = 'habit-checkbox';
+                        checkbox.className = 'habit-checkbox h-6 w-6 justify-self-center rounded border-gray-300 text-blue-500 focus:ring-blue-400';
                         checkbox.dataset.habit = habitIndex;
                         checkbox.dataset.day = dayIndex;
                         if (habitData[habitIndex] && habitData[habitIndex][dayIndex]) {
                             checkbox.checked = true;
                         }
-                        checkbox.disabled = !user; // Disable if not logged in
+                        checkbox.disabled = !user;
                         habitRow.appendChild(checkbox);
                     }
                     habitGrid.appendChild(habitRow);
@@ -732,15 +395,13 @@
                     const user = window.firebaseAuth.currentUser;
                     if (!user) {
                         alert('Please sign in to track habits.');
-                        e.target.checked = !e.target.checked; // Revert checkbox state
+                        e.target.checked = !e.target.checked;
                         return;
                     }
 
                     const habitIndex = e.target.dataset.habit;
                     const dayIndex = e.target.dataset.day;
-                    if (!habitData[habitIndex]) {
-                        habitData[habitIndex] = {};
-                    }
+                    if (!habitData[habitIndex]) habitData[habitIndex] = {};
                     habitData[habitIndex][dayIndex] = e.target.checked;
 
                     try {
@@ -751,94 +412,74 @@
                 }
             });
 
-            // Call renderHabits when auth state changes
-            onAuthStateChanged(auth, (user) => {
-                renderHabits();
-            });
-
-            // Initial render
-            renderHabits();
-
             const links = [
                 { title: 'Discord', url: 'https://discord.com/app' },
                 { title: 'GitHub', url: 'https://github.com' },
                 { title: 'Ion', url: 'https://ion.tjhsst.edu'},
                 { title: 'Gitlab', url: 'https://gitlab.tjhsst.edu' },
-                {title: 'To-Do', url: 'https://elijahfeldman7.github.io/to-do-list'},
-                {title: 'Me', url: 'https://elijahfeldman.me'}
-
-
+                { title: 'To-Do', url: 'https://elijahfeldman7.github.io/to-do-list'},
+                { title: 'Me', url: 'https://elijahfeldman.me'}
             ];
             const linksGrid = document.querySelector('.links-grid');
             links.forEach(link => {
                 const card = document.createElement('a');
-                card.className = 'link-card';
+                card.className = 'link-card block p-4 no-underline text-gray-800 bg-gray-50 border border-gray-200 rounded-lg transition transform hover:-translate-y-1 hover:shadow-lg hover:border-blue-400';
                 card.href = link.url;
-                card.target = '_blank'; 
+                card.target = '_blank';
                 card.innerHTML = `
-                    <div class="link-card-title">${link.title}</div>
-                    <div class="link-card-url">${link.url}</div>
+                    <div class="font-bold text-lg mb-1">${link.title}</div>
+                    <div class="text-sm text-gray-600 break-all">${link.url}</div>
                 `;
                 linksGrid.appendChild(card);
             });
 
-            renderTasks();
-            renderHabits();
-            updateDisplay();
-
-            // Firebase Authentication Logic
             const auth = window.firebaseAuth;
+            const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
             const googleSigninBtn = document.getElementById('google-signin-btn');
             const authSignoutBtn = document.getElementById('auth-signout-btn');
             const authStatusDiv = document.getElementById('auth-status');
             const authFormDiv = document.getElementById('auth-form');
             const authLogoutDiv = document.getElementById('auth-logout');
             const userEmailSpan = document.getElementById('user-email');
-
-            // Import necessary Firebase Auth functions
-            const { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+            const userStatusDisplay = document.getElementById('user-status-display');
 
             googleSigninBtn.addEventListener('click', async () => {
+                const { GoogleAuthProvider, signInWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
                 const provider = new GoogleAuthProvider();
                 try {
                     await signInWithPopup(auth, provider);
-                    authStatusDiv.textContent = 'Signed in with Google!';
                 } catch (error) {
-                    authStatusDiv.textContent = `Error signing in with Google: ${error.message}`;
+                    authStatusDiv.textContent = `Error: ${error.message}`;
                 }
             });
 
             authSignoutBtn.addEventListener('click', async () => {
+                const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
                 try {
                     await signOut(auth);
-                    authStatusDiv.textContent = 'User signed out!';
                 } catch (error) {
-                    authStatusDiv.textContent = `Error signing out: ${error.message}`;
+                    authStatusDiv.textContent = `Error: ${error.message}`;
                 }
             });
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    // User is signed in
                     authFormDiv.style.display = 'none';
                     authLogoutDiv.style.display = 'block';
                     userEmailSpan.textContent = user.email;
-                    authStatusDiv.textContent = ''; // Clear status on state change
-                    document.getElementById('user-status-display').textContent = `Logged in as: ${user.email}`;
-                    renderTasks(); // Update tasks when user logs in
-                    renderHabits(); // Update habits when user logs in
-                    renderSchedule(); // Update schedule when user logs in
+                    userStatusDisplay.textContent = `Logged in as: ${user.email}`;
+                    authStatusDiv.textContent = '';
                 } else {
-                    // User is signed out
                     authFormDiv.style.display = 'block';
                     authLogoutDiv.style.display = 'none';
                     userEmailSpan.textContent = '';
-                    authStatusDiv.textContent = ''; // Clear status on state change
-                    document.getElementById('user-status-display').textContent = 'Guest';
-                    renderTasks(); // Update tasks when user logs out
-                    renderHabits(); // Update habits when user logs out
-                    renderSchedule(); // Update schedule when user logs out
+                    userStatusDisplay.textContent = 'Guest';
+                    authStatusDiv.textContent = 'You are not signed in.';
                 }
+                renderTasks();
+                loadNotes();
+                renderSchedule();
+                renderHabits();
             });
         });
     </script>
