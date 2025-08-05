@@ -797,6 +797,11 @@
                     completed: false
                 }).then(() => {
                     console.log("Firebase set successful.");
+                    // Optimistically add to UI without waiting for onValue
+                    // This makes the UI feel faster and helps in debugging.
+                    const newTask = { id: newTaskRef.key, text: taskText, completed: false };
+                    tasks.push(newTask);
+                    renderTasks();
                 }).catch((error) => {
                     console.error("Firebase set error:", error);
                 });
