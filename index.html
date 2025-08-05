@@ -759,71 +759,45 @@
 
 
             function renderTasks() {
-
                 taskList.innerHTML = '';
-
-                tasks.forEach((task, index) => {
-
+                tasks.forEach(task => {
                     const li = document.createElement('li');
-
                     li.className = task.completed ? 'completed' : '';
-
+                    li.dataset.id = task.id;
                     li.innerHTML = `
-
-                        <input type="checkbox" data-index="${index}" ${task.completed ? 'checked' : ''}>
-
+                        <input type="checkbox" ${task.completed ? 'checked' : ''}>
                         <span>${task.text}</span>
-
-                        <button class="delete-btn" data-index="${index}">&times;</button>
-
+                        <button class="delete-btn">&times;</button>
                     `;
-
                     taskList.appendChild(li);
-
                 });
-
             }
 
-
-
             taskForm.addEventListener('submit', (e) => {
-
                 e.preventDefault();
-
                 if (taskInput.value.trim() === '') return;
-
                 const newTaskRef = push(tasksRef);
                 set(newTaskRef, {
                     text: taskInput.value.trim(),
                     completed: false
                 });
-
                 taskInput.value = '';
-
             });
 
-
-
             taskList.addEventListener('click', (e) => {
+                const li = e.target.closest('li[data-id]');
+                if (!li) return;
+
+                const taskId = li.dataset.id;
+                const taskRef = child(tasksRef, taskId);
 
                 if (e.target.matches('input[type="checkbox"]')) {
-
-                    const index = e.target.dataset.index;
-                    const taskRef = child(tasksRef, tasks[index].id);
-                    update(taskRef, {
-                        completed: !tasks[index].completed
-                    });
-
+                    update(taskRef, { completed: e.target.checked });
                 }
 
                 if (e.target.matches('.delete-btn')) {
-
-                    const index = e.target.dataset.index;
-                    const taskRef = child(tasksRef, tasks[index].id);
                     remove(taskRef);
-
                 }
-
             });
 
 
