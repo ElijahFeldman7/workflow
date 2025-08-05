@@ -781,12 +781,26 @@
 
             taskForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                if (taskInput.value.trim() === '') return;
+                console.log("Add task form submitted.");
+                const taskText = taskInput.value.trim();
+                console.log("Task text:", taskText);
+
+                if (taskText === '') {
+                    console.log("Task text is empty, not adding.");
+                    return;
+                }
+
                 const newTaskRef = push(tasksRef);
+                console.log("Pushing to Firebase with ref:", newTaskRef);
                 set(newTaskRef, {
-                    text: taskInput.value.trim(),
+                    text: taskText,
                     completed: false
+                }).then(() => {
+                    console.log("Firebase set successful.");
+                }).catch((error) => {
+                    console.error("Firebase set error:", error);
                 });
+
                 taskInput.value = '';
             });
 
