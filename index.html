@@ -692,7 +692,23 @@
 
 
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, child, remove, update } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDx-fMuFeUDFouz8xNerhhOUp8hRqr8RrE",
+            authDomain: "workflow-4c891.firebaseapp.com",
+            projectId: "workflow-4c891",
+            storageBucket: "workflow-4c891.appspot.com",
+            messagingSenderId: "813578513550",
+            appId: "1:813578513550:web:73b745b07af8f3f98eeddf",
+            measurementId: "G-06MRVL8L93",
+            databaseURL: "https://workflow-4c891-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -730,7 +746,15 @@
 
             const taskList = document.getElementById('task-list');
 
-            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            let tasks = [];
+
+            const tasksRef = ref(database, 'tasks');
+
+            onValue(tasksRef, (snapshot) => {
+                const data = snapshot.val();
+                tasks = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+                renderTasks();
+            });
 
 
 
@@ -768,11 +792,11 @@
 
                 if (taskInput.value.trim() === '') return;
 
-                tasks.push({ text: taskInput.value.trim(), completed: false });
-
-                localStorage.setItem('tasks', JSON.stringify(tasks));
-
-                renderTasks();
+                const newTaskRef = push(tasksRef);
+                set(newTaskRef, {
+                    text: taskInput.value.trim(),
+                    completed: false
+                });
 
                 taskInput.value = '';
 
@@ -785,24 +809,18 @@
                 if (e.target.matches('input[type="checkbox"]')) {
 
                     const index = e.target.dataset.index;
-
-                    tasks[index].completed = !tasks[index].completed;
-
-                    localStorage.setItem('tasks', JSON.stringify(tasks));
-
-                    renderTasks();
+                    const taskRef = child(tasksRef, tasks[index].id);
+                    update(taskRef, {
+                        completed: !tasks[index].completed
+                    });
 
                 }
 
                 if (e.target.matches('.delete-btn')) {
 
                     const index = e.target.dataset.index;
-
-                    tasks.splice(index, 1);
-
-                    localStorage.setItem('tasks', JSON.stringify(tasks));
-
-                    renderTasks();
+                    const taskRef = child(tasksRef, tasks[index].id);
+                    remove(taskRef);
 
                 }
 
@@ -890,6 +908,16 @@
 
             let isWorkTime = true;
 
+            const timerRef = ref(database, 'timer');
+            onValue(timerRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    time = data.time;
+                    isWorkTime = data.isWorkTime;
+                    updateDisplay();
+                }
+            });
+
             const timerDisplay = document.getElementById('timer-display');
 
             const timerStatus = document.getElementById('timer-status');
@@ -938,6 +966,8 @@
 
                         time = isWorkTime ? 25 * 60 : 5 * 60;
 
+                        set(timerRef, { time: time, isWorkTime: isWorkTime });
+
                         timerStatus.textContent = isWorkTime ? "Time to Work!" : "Time for a Break!";
 
                         updateDisplay();
@@ -967,6 +997,8 @@
                 isWorkTime = true;
 
                 time = 25 * 60;
+
+                set(timerRef, { time: time, isWorkTime: isWorkTime });
 
                 timerStatus.textContent = "get back to Work!";
 
@@ -1134,7 +1166,5 @@
         });
 
     </script>
-
-
 
 </body>
