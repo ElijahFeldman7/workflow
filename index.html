@@ -750,10 +750,16 @@
 
             const tasksRef = ref(database, 'tasks');
 
+            console.log("Setting up Firebase listener for 'tasks'...");
+
             onValue(tasksRef, (snapshot) => {
+                console.log("Firebase data received:", snapshot.val());
                 const data = snapshot.val();
                 tasks = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+                console.log("Processed tasks:", tasks);
                 renderTasks();
+            }, (error) => {
+                console.error("Firebase onValue error:", error);
             });
 
 
