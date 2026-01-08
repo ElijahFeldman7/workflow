@@ -26,8 +26,8 @@ function App() {
   }, []);
 
   const navItems = [
-    { id: 'tasks', label: 'Tasks', component: <TaskManager /> },
-    { id: 'notes', label: 'Knowledge', component: <KnowledgeBase /> },
+    { id: 'tasks', label: 'Tasks', component: <TaskManager user={user}/> },
+    { id: 'notes', label: 'Knowledge', component: <KnowledgeBase user={user}/> },
     { id: 'scheduler', label: 'Schedule', component: <DailyScheduler /> },
     { id: 'focus', label: 'Focus', component: <FocusTimer /> },
     { id: 'habits', label: 'Habits', component: <HabitTracker /> },
@@ -45,7 +45,7 @@ function App() {
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col">
+    <div className="bg-blue-100 min-h-screen flex flex-col">
       <Navbar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
