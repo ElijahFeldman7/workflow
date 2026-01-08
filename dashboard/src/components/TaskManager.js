@@ -63,8 +63,8 @@ const TaskManager = ({user}) => {
 
   return (
     <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
-      <div className=" pb-4 mb-6">
-        <h2 className="text-xl font-semibold text-neutral-800">My Tasks</h2>
+      <div className="pb-4">
+        <h2 className="text-xl font-semibold text-neutral-800">tasks</h2>
       </div>
 
       <form onSubmit={handleAddTask} className="flex gap-3 mb-6">
