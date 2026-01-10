@@ -13,9 +13,16 @@ describe('DailyScheduler', () => {
     expect(screen.getByRole('heading', { name: /schedule/i })).toBeInTheDocument();
   });
 
+  test('renders time slots', () => {
+    render(<DailyScheduler />);
+    expect(screen.getByText(/9:00 AM/i)).toBeInTheDocument();
+    expect(screen.getByText(/12:00 PM/i)).toBeInTheDocument();
+  });
+
   test('loads events from localStorage on initial render', () => {
     const eventText = 'Morning meeting';
-    localStorage.setItem('event_9:00_AM', eventText);
+    const eventKey = 'event_9:00_AM';
+    localStorage.setItem(eventKey, eventText);
     
     render(<DailyScheduler />);
     
@@ -28,6 +35,7 @@ describe('DailyScheduler', () => {
     
     const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
     
+    await userEvent.clear(timeSlot);
     await userEvent.type(timeSlot, 'Team Standup');
     fireEvent.blur(timeSlot);
 
@@ -39,6 +47,7 @@ describe('DailyScheduler', () => {
     
     const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
     
+    await userEvent.clear(timeSlot);
     await userEvent.type(timeSlot, 'Team Standup');
     fireEvent.blur(timeSlot);
     
@@ -57,6 +66,7 @@ describe('DailyScheduler', () => {
     
     const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
     
+    await userEvent.clear(timeSlot);
     await userEvent.type(timeSlot, 'Team Standup');
     fireEvent.blur(timeSlot);
     
