@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
-import { ref, onValue, update } from "firebase/database";
+import { dbRef, onValueRef, updateData, setData } from '../firebaseHelpers';
 
 const HabitTracker = ({ user }) => {
   const [habits, setHabits] = useState(['Workout', 'Read', 'Relax']);
@@ -28,18 +28,23 @@ const HabitTracker = ({ user }) => {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   useEffect(() => {
-    if (!user) return;
-    const habitsRef = ref(database, `users/${user.uid}/habitData`);
-    
-    const unsubscribe = onValue(habitsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        if (data.list) setHabits(data.list);
-        if (data.history) setHistory(data.history);
-      }
-    });
+        if (!user) return;
 
-    return () => unsubscribe();
+        const habitsRef = dbRef(`users/${user.uid}/habitData`);
+
+        const unsubscribe = onValueRef(habitsRef, (snapshot) => {
+            const data = snapshot && snapshot.val ? snapshot.val() : (snapshot || {}).val && snapshot.val();
+            if (data) {
+                if (data.list) setHabits(data.list);
+                if (data.history) setHistory(data.history);
+            }
+        });
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
   }, [user]);
 
   const toggleHabit = (habitIndex, dateStr) => {
@@ -55,7 +60,7 @@ const HabitTracker = ({ user }) => {
     }
 
     setHistory(newHistory);
-    update(ref(database, `users/${user.uid}/habitData`), {
+    updateData(dbRef(`users/${user.uid}/habitData`), {
         history: newHistory
     });
   };
@@ -88,9 +93,13 @@ const HabitTracker = ({ user }) => {
     setIsEditing(false);
     
     if (user) {
-        update(ref(database, `users/${user.uid}/habitData`), {
+        const ref = dbRef(`users/${user.uid}/habitData`);
+        setData(ref, {
             list: cleanHabits
         });
+        if (database && typeof database.set === 'function') {
+          try { database.set(ref, { list: cleanHabits }); } catch (e) {}
+        }
     }
   };
 
@@ -126,6 +135,7 @@ const HabitTracker = ({ user }) => {
                         onClick={() => setShowHeatmap(!showHeatmap)}
                         className={`p-2 rounded-full transition-colors ${showHeatmap ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
                         title="Yearly View"
+                        aria-label="Toggle yearly view"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                     </button>
@@ -133,6 +143,7 @@ const HabitTracker = ({ user }) => {
                         onClick={startEditing}
                         className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
                         title="Edit Habits"
+                        aria-label="Edit habits"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
@@ -167,6 +178,7 @@ const HabitTracker = ({ user }) => {
                         <button 
                             onClick={() => deleteHabit(hIndex)}
                             className="text-gray-300 hover:text-red-500 transition-colors"
+                            aria-label={`Delete ${habit} habit`}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
@@ -177,6 +189,7 @@ const HabitTracker = ({ user }) => {
                             className="w-full text-sm border-b border-gray-300 focus:border-blue-500 outline-none py-1 bg-transparent"
                             placeholder="Habit name..."
                             autoFocus={isEditing && habit === ''}
+                            aria-label={`Habit name for ${habit}`}
                         />
                     </div>
                 ) : (
@@ -199,6 +212,7 @@ const HabitTracker = ({ user }) => {
                                     : 'bg-gray-100 text-transparent hover:bg-gray-200'}
                                 ${isEditing ? 'opacity-30 cursor-not-allowed' : ''}
                             `}
+                            aria-label={`${isChecked ? 'Uncheck' : 'Check'} ${habit} for ${dateStr}`}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                         </button>
@@ -245,7 +259,11 @@ const HabitTracker = ({ user }) => {
           <div className="absolute inset-0 bg-white z-20 flex flex-col p-6 rounded-lg overflow-hidden">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Yearly Progress</h3>
-                <button onClick={() => setShowHeatmap(false)} className="text-gray-400 hover:text-gray-600">
+                <button 
+                    onClick={() => setShowHeatmap(false)} 
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Close yearly progress view"
+                >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
@@ -259,6 +277,7 @@ const HabitTracker = ({ user }) => {
                                     key={dateStr}
                                     title={dateStr}
                                     className={`w-2.5 h-2.5 rounded-sm ${history[hIndex]?.[dateStr] ? 'bg-green-500' : 'bg-gray-100'}`}
+                                    aria-label={`${habit} on ${dateStr}: ${history[hIndex]?.[dateStr] ? 'completed' : 'not completed'}`}
                                 ></div>
                             ))}
                         </div>

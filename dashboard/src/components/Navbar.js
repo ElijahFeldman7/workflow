@@ -5,6 +5,12 @@ import { logout } from '../firebase';
 const Navbar = ({ activeTab, setActiveTab, navItems, user }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  const fallbackAvatar = typeof user?.displayName === 'string'
+    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}`
+    : 'https://ui-avatars.com/api/?name=User';
+
+  const profileSrc = user?.photoURL || (user?.providerData && user.providerData[0] && user.providerData[0].photoURL) || fallbackAvatar;
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,8 +58,13 @@ const Navbar = ({ activeTab, setActiveTab, navItems, user }) => {
                 >
                   <img
                     className="h-8 w-8 rounded-full object-cover border border-gray-200"
-                    src={user.photoURL || "https://ui-avatars.com/api/?name=" + user.displayName}
-                    alt=""
+                    src={profileSrc}
+                    alt={user.displayName || 'User avatar'}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.src !== fallbackAvatar) target.src = fallbackAvatar;
+                    }}
                   />
                   <span className="text-sm font-medium text-gray-700 hidden md:block">
                     {user.displayName}

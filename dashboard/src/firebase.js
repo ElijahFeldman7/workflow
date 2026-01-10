@@ -1,6 +1,6 @@
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/database'; 
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDx-fMuFeUDFouz8xNerhhOUp8hRqr8RrE",
@@ -13,17 +13,17 @@ const firebaseConfig = {
     databaseURL: "https://workflow-4c891-default-rtdb.firebaseio.com"
 };
 
-const app = !firebase.apps.length 
-  ? firebase.initializeApp(firebaseConfig) 
-  : firebase.app();
+const app = initializeApp(firebaseConfig);
 
-export const auth = app.auth();         
-export const database = app.database();
-export const googleProvider = new firebase.auth.GoogleAuthProvider();
+export const auth = getAuth(app);
+export const database = getDatabase(app);
+export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    await auth.signInWithPopup(googleProvider);
+    const result = await signInWithPopup(auth, googleProvider);
+    try { await auth.currentUser.reload(); } catch (e) {}
+    return result;
   } catch (error) {
     console.error("Error signing in", error);
   }
@@ -31,7 +31,7 @@ export const signInWithGoogle = async () => {
 
 export const logout = async () => {
   try {
-    await auth.signOut();
+    await signOut(auth);
   } catch (error) {
     console.error("Error signing out", error);
   }

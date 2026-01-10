@@ -32,6 +32,7 @@ const DailyScheduler = () => {
               contentEditable
               onBlur={(e) => handleEventChange(hour, e.target.textContent)}
               suppressContentEditableWarning={true}
+              aria-label={`Event for ${hour}`}
             >
               {events[hour]}
             </div>

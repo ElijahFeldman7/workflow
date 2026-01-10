@@ -75,6 +75,7 @@ const TaskManager = ({user}) => {
           placeholder="add a task"
           required
           className="flex-grow border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          aria-label="New task"
         />
         <button 
           type="submit" 
@@ -107,6 +108,7 @@ const TaskManager = ({user}) => {
                 checked={!!task.completed} 
                 onChange={() => handleToggleTask(task)} 
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer" 
+                aria-label={`Mark task ${task.text} as ${task.completed ? 'incomplete' : 'complete'}`}
               />
               <span className={`text-gray-700 ${task.completed ? 'line-through text-gray-400' : ''}`}>
                 {task.text}
@@ -117,6 +119,7 @@ const TaskManager = ({user}) => {
               onClick={() => handleDeleteTask(task.id)} 
               className="text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Delete task"
+              aria-label={`Delete task ${task.text}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

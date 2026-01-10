@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { database } from '../firebase';
-import { ref, update, onValue } from "firebase/database";
+import { dbRef, onValueRef, updateData } from '../firebaseHelpers';
 
 const FocusTimer = ({ user }) => {
   const [time, setTime] = useState(25 * 60);
@@ -58,12 +58,12 @@ const FocusTimer = ({ user }) => {
   useEffect(() => {
     if (!user) return;
     
-    if (Notification.permission !== "granted") {
-      Notification.requestPermission();
+    if (Notification && Notification.permission !== "granted") {
+      if (Notification.requestPermission) Notification.requestPermission();
     }
 
-    const timerRef = ref(database, `users/${user.uid}/timer`);
-    const unsubscribe = onValue(timerRef, (snapshot) => {
+    const timerRef = dbRef(`users/${user.uid}/timer`);
+    const handleSnapshot = (snapshot) => {
       const data = snapshot.val();
       if (data) {
         if (!isRunning) {
@@ -77,9 +77,12 @@ const FocusTimer = ({ user }) => {
             });
         }
       }
-    });
+    };
+    const unsubscribe = onValueRef(timerRef, handleSnapshot);
 
-    return () => unsubscribe();
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [user, isRunning, workDuration, breakDuration]);
 
   useEffect(() => {
@@ -102,23 +105,30 @@ const FocusTimer = ({ user }) => {
 
   const updateDb = (newMode, newTime, newStats) => {
       if (!user) return;
-      update(ref(database, `users/${user.uid}/timer`), {
-          mode: newMode !== undefined ? newMode : mode,
-          timeRemaining: newTime !== undefined ? newTime : time,
-          stats: newStats || stats
+      updateData(dbRef(`users/${user.uid}/timer`), {
+        mode: newMode !== undefined ? newMode : mode,
+        timeRemaining: newTime !== undefined ? newTime : time,
+        stats: newStats || stats
       });
   };
 
   const handleTimerComplete = () => {
     setIsRunning(false);
     
-    audioRef.current.play().catch(e => {});
+    try {
+      const playResult = audioRef.current && audioRef.current.play && audioRef.current.play();
+      if (playResult && typeof playResult.catch === 'function') {
+        playResult.catch(() => {});
+      }
+    } catch (e) {}
 
-    if (Notification.permission === "granted") {
-      new Notification(mode === 'work' ? "Great job!" : "Break over!", {
-        body: mode === 'work' ? "Time to take a break." : "Time to get back to work.",
-        icon: "/logo.png"
-      });
+    if (Notification && Notification.permission === "granted" && typeof Notification === 'function') {
+      try {
+        new Notification(mode === 'work' ? "Great job!" : "Break over!", {
+          body: mode === 'work' ? "Time to take a break." : "Time to get back to work.",
+          icon: "/logo.png"
+        });
+      } catch (e) {}
     }
 
     const newMode = mode === 'work' ? 'break' : 'work';
@@ -183,8 +193,9 @@ const FocusTimer = ({ user }) => {
         <div className="relative w-full h-full flex flex-col">
             <div className="absolute top-4 right-4 z-20">
                 <button 
-                    onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-                    className="text-neutral-300 hover:text-neutral-500 transition-colors p-2 hover:bg-neutral-50"
+                  onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
+                  className="text-neutral-300 hover:text-neutral-500 transition-colors p-2 hover:bg-neutral-50"
+                  aria-label={showSettings ? "Close settings M10.325" : "Open settings M10.325"}
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -246,19 +257,21 @@ const FocusTimer = ({ user }) => {
                             <div>
                                 <label className="block text-xs font-medium text-neutral-500 mb-1">Work (min)</label>
                                 <input 
-                                    type="number" 
-                                    value={workDuration}
-                                    onChange={(e) => setWorkDuration(Number(e.target.value))}
-                                    className="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                  aria-label="Work (min)"
+                                  type="number" 
+                                  value={workDuration}
+                                  onChange={(e) => setWorkDuration(Number(e.target.value))}
+                                  className="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-neutral-500 mb-1">Break (min)</label>
                                 <input 
-                                    type="number" 
-                                    value={breakDuration}
-                                    onChange={(e) => setBreakDuration(Number(e.target.value))}
-                                    className="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                  aria-label="Break (min)"
+                                  type="number" 
+                                  value={breakDuration}
+                                  onChange={(e) => setBreakDuration(Number(e.target.value))}
+                                  className="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                 />
                             </div>
                         </div>

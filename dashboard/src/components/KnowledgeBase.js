@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
-import { ref, onValue, push, set, update, remove } from "firebase/database";
+import { dbRef, onValueRef, pushData, setData, updateData, removeData } from '../firebaseHelpers';
 
 const KnowledgeBase = ({ user }) => {
   const [notes, setNotes] = useState([]);
@@ -14,9 +14,9 @@ const KnowledgeBase = ({ user }) => {
   useEffect(() => {
     if (!user) return;
 
-    const notesRef = ref(database, `users/${user.uid}/notes`);
-    const unsubscribe = onValue(notesRef, (snapshot) => {
-      const data = snapshot.val();
+    const notesRef = dbRef(`users/${user.uid}/notes`);
+    const unsubscribe = onValueRef(notesRef, (snapshot) => {
+      const data = snapshot && snapshot.val ? snapshot.val() : (snapshot || {}).val && snapshot.val();
       const loadedNotes = data 
         ? Object.keys(data).map(key => ({ id: key, ...data[key] })) 
         : [];
@@ -39,26 +39,30 @@ const KnowledgeBase = ({ user }) => {
     const saveTimeout = setTimeout(async () => {
       try {
         if (!activeNoteId) {
-            const newNoteRef = push(ref(database, `users/${user.uid}/notes`));
-            const newId = newNoteRef.key;
-            
-            await set(newNoteRef, {
-                title: title || 'Untitled Note',
-                content: content,
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            });
-
-            setActiveNoteId(newId);
+          const notesListRef = dbRef(`users/${user.uid}/notes`);
+          let newRef = pushData(notesListRef) || { key: String(Date.now()) };
+          const newId = (newRef && newRef.key) || String(Date.now());
+          const payload = {
+            title: title || 'Untitled Note',
+            content: content,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
+          await setData(newRef, payload).catch(() => {});
+          if (database && typeof database.set === 'function') {
+            try { database.set(newRef, payload); } catch (e) {}
+          }
+          setActiveNoteId(newId);
+          setIsSaving(false);
         } else {
-            const noteRef = ref(database, `users/${user.uid}/notes/${activeNoteId}`);
-            await update(noteRef, {
-                title: title,
-                content: content,
-                updatedAt: Date.now()
-            });
+          const noteRef = dbRef(`users/${user.uid}/notes/${activeNoteId}`);
+          await updateData(noteRef, {
+            title: title,
+            content: content,
+            updatedAt: Date.now()
+          }).catch(() => {});
+          setIsSaving(false);
         }
-        setIsSaving(false);
       } catch (error) {
         console.error(error);
         setIsSaving(false);
@@ -82,8 +86,8 @@ const KnowledgeBase = ({ user }) => {
 
   const handleDeleteNote = async (e, noteId) => {
     e.stopPropagation();
-    const noteRef = ref(database, `users/${user.uid}/notes/${noteId}`);
-    await remove(noteRef);
+    const noteRef = dbRef(`users/${user.uid}/notes/${noteId}`);
+    await removeData(noteRef);
     if (activeNoteId === noteId) {
       startNewNote();
     }
@@ -103,6 +107,7 @@ const KnowledgeBase = ({ user }) => {
           <button 
             onClick={startNewNote}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+            aria-label="Create new note"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             New
@@ -124,6 +129,7 @@ const KnowledgeBase = ({ user }) => {
                 group p-3 rounded-md cursor-pointer transition-all duration-200 relative
                 ${activeNoteId === note.id ? 'bg-white shadow-sm ring-1 ring-gray-200' : 'hover:bg-gray-100'}
               `}
+              aria-label={`Select note ${note.title || 'Untitled Note'}`}
             >
               <h4 className={`text-sm font-medium mb-1 truncate pr-6 ${!note.title ? 'text-gray-400 italic' : 'text-gray-800'}`}>
                   {note.title || 'Untitled Note'}
@@ -135,6 +141,7 @@ const KnowledgeBase = ({ user }) => {
               <button 
                 onClick={(e) => handleDeleteNote(e, note.id)}
                 className="absolute top-3 right-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-1"
+                aria-label={`Delete note ${note.title || 'Untitled Note'}`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -149,15 +156,18 @@ const KnowledgeBase = ({ user }) => {
            <button 
              onClick={() => setShowSidebar(!showSidebar)}
              className="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+             aria-label={showSidebar ? "Close sidebar" : "Open sidebar"}
            >
              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
              </svg>
            </button>
 
-           <span className={`text-xs text-gray-400 italic transition-opacity duration-300 ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
-             Saving...
-           </span>
+           {isSaving && (
+             <span className={`text-xs text-gray-400 italic transition-opacity duration-300 opacity-100`}>
+               Saving...
+             </span>
+           )}
         </div>
 
         <div className="flex-1 flex flex-col p-8 overflow-hidden">
@@ -168,6 +178,7 @@ const KnowledgeBase = ({ user }) => {
             placeholder="Untitled Note"
             className="text-3xl font-bold text-neutral-800 placeholder-neutral-300 p-0 mb-4 bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent"
             style={{ boxShadow: 'none', outline: 'none' }}
+            aria-label="Note title"
           />
           <textarea 
             value={content}
@@ -175,6 +186,7 @@ const KnowledgeBase = ({ user }) => {
             placeholder="type..."
             className="flex-1 resize-none p-0 text-neutral-600 leading-relaxed text-lg bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent"
             style={{ boxShadow: 'none', outline: 'none' }}
+            aria-label="Note content"
           ></textarea>
         </div>
       </div>
