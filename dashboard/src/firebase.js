@@ -19,10 +19,16 @@ const app = !firebase.apps.length
 
 export const auth = app.auth();         
 export const database = app.database();
+
+// Create and configure the provider
 export const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+// IMPORTANT: This scope allows the app to add events to the user's calendar
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
 
 export const signInWithGoogle = async () => {
   try {
+    // This will now trigger a popup that includes the Calendar permission request
     await auth.signInWithPopup(googleProvider);
   } catch (error) {
     console.error("Error signing in", error);
