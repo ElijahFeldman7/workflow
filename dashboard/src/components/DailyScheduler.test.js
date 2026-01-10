@@ -13,6 +13,27 @@ describe('DailyScheduler', () => {
     expect(screen.getByRole('heading', { name: /schedule/i })).toBeInTheDocument();
   });
 
+  test('loads events from localStorage on initial render', () => {
+    const eventText = 'Morning meeting';
+    localStorage.setItem('event_9:00_AM', eventText);
+    
+    render(<DailyScheduler />);
+    
+    const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
+    expect(timeSlot).toHaveTextContent(eventText);
+  });
+
+  test('saves an event to localStorage when the user types in a time slot', async () => {
+    render(<DailyScheduler />);
+    
+    const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
+    
+    await userEvent.type(timeSlot, 'Team Standup');
+    fireEvent.blur(timeSlot);
+
+    expect(localStorage.getItem('event_9:00_AM')).toBe('Team Standup');
+  });
+
   test('allows user to add and persist an event', async () => {
     render(<DailyScheduler />);
     
