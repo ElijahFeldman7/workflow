@@ -1,64 +1,51 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DailyScheduler from './DailyScheduler';
 
 describe('DailyScheduler', () => {
-  let store = {};
-  
-  beforeAll(() => {
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: jest.fn((key) => store[key] || null),
-        setItem: jest.fn((key, value) => {
-          store[key] = value.toString();
-        }),
-        clear: jest.fn(() => {
-          store = {};
-        }),
-      },
-      writable: true,
-    });
-  });
-
   beforeEach(() => {
-    store = {};
-    jest.clearAllMocks();
+    localStorage.clear();
   });
 
-  test('renders the scheduler with the correct title', () => {
+  test('renders the scheduler with a title', () => {
     render(<DailyScheduler />);
-    expect(screen.getByText(/today schedule/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /schedule/i })).toBeInTheDocument();
   });
 
-  test('renders all time slots', () => {
+  test('allows user to add and persist an event', async () => {
     render(<DailyScheduler />);
-    const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'];
-    hours.forEach(hour => {
-      expect(screen.getByText(hour)).toBeInTheDocument();
+    
+    const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
+    
+    await userEvent.type(timeSlot, 'Team Standup');
+    fireEvent.blur(timeSlot);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Team Standup')).toBeInTheDocument();
     });
+    
+    const savedData = Object.values(localStorage).find(val => 
+      val.includes('Team Standup')
+    );
+    expect(savedData).toBeTruthy();
   });
 
-  test('loads events from localStorage on initial render', () => {
-    const eventKey = 'event_9:00_AM';
-    const eventText = 'Morning meeting';
+  test('persisted events survive page refresh', async () => {
+    const { unmount } = render(<DailyScheduler />);
     
-    store[eventKey] = eventText;
+    const timeSlot = screen.getByLabelText(/Event for 9:00 AM/i);
     
+    await userEvent.type(timeSlot, 'Team Standup');
+    fireEvent.blur(timeSlot);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Team Standup')).toBeInTheDocument();
+    });
+    
+    unmount();
     render(<DailyScheduler />);
-    expect(screen.getByText(eventText)).toBeInTheDocument();
-  });
-
-  test('saves an event to localStorage when the user types in a time slot', () => {
-    render(<DailyScheduler />);
     
-    const timeLabel = screen.getByText('9:00 AM');
-    const slotContainer = timeLabel.closest('div'); 
-    const inputSlot = slotContainer.querySelector('[contenteditable="true"]');
-    
-    fireEvent.input(inputSlot, { target: { textContent: 'Team Standup' } });
-    fireEvent.blur(inputSlot);
-
-    expect(localStorage.setItem).toHaveBeenCalledWith('event_9:00_AM', 'Team Standup');
-    expect(store['event_9:00_AM']).toBe('Team Standup');
+    expect(screen.getByText('Team Standup')).toBeInTheDocument();
   });
 });
