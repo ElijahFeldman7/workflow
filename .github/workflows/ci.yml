@@ -6,13 +6,18 @@ on:
   push:
     branches: [ master ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: Run Unit Tests
+  build-and-test:
+    name: Lint and Test
     runs-on: ubuntu-latest
+    
     defaults:
       run:
-        working-directory: dashboard
+        working-directory: workflow/dashboard
 
     steps:
       - name: Checkout Code
@@ -26,7 +31,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run Tests
+      - name: Run Linting
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Run Unit Tests
         run: npm test -- --watchAll=false
         env:
           CI: true
+
+      - name: Build Project
+        run: npm run build
