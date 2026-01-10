@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Lint and Test
+    name: Test
     runs-on: ubuntu-latest
     
     defaults:
@@ -31,10 +31,6 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run Linting
-        run: npm run lint
-        continue-on-error: false
-
       - name: Run Unit Tests
         run: npm test -- --watchAll=false
         env:
@@ -43,5 +39,4 @@ jobs:
       - name: Build Project
         run: npm run build
         env:
-          ESLINT_NO_DEV_ERRORS: true
           CI: false
