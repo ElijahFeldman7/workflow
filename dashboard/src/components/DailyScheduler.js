@@ -159,11 +159,20 @@ const DailyScheduler = ({ user }) => {
     };
   }, []);
 
+  // Clear pending saves when date changes to prevent race condition
+  useEffect(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    setPendingChanges({});
+    setIsSaving(false);
+  }, [selectedDate]);
+
   // Get event text for a specific hour
   const getEventText = (hour) => {
     const hourKey = hour.replace(/[: ]/g, "_");
-    return Object.prototype.hasOwnProperty.call(events, hourKey) 
-      ? String(events[hourKey]) 
+    return Object.prototype.hasOwnProperty.call(events, hourKey)
+      ? String(events[hourKey])
       : "";
   };
 
@@ -359,9 +368,10 @@ const DailyScheduler = ({ user }) => {
         <input
           type="date"
           value={formatDateKey(selectedDate)}
-          onChange={(e) =>
-            setSelectedDate(new Date(e.target.value + "T00:00:00"))
-          }
+          onChange={(e) => {
+            const [year, month, day] = e.target.value.split("-").map(Number);
+            setSelectedDate(new Date(year, month - 1, day));
+          }}
           className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
         />
       </div>
@@ -381,15 +391,13 @@ const DailyScheduler = ({ user }) => {
               <div className="time-slot bg-gray-100 p-4 border rounded text-center font-medium text-sm">
                 {hour}
               </div>
-              <div
-                className="event-slot p-4 border rounded bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white min-h-[50px]"
-                contentEditable
-                onBlur={(e) => handleEventChange(hour, e.target.textContent)}
-                suppressContentEditableWarning={true}
+              <textarea
+                value={getEventText(hour)}
+                onChange={(e) => handleEventChange(hour, e.target.value)}
+                className="event-slot p-4 border rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white min-h-[50px] w-full resize-none"
+                rows={2}
                 aria-label={`Event for ${hour}`}
-              >
-                {getEventText(hour)}
-              </div>
+              />
             </React.Fragment>
           ))}
         </div>
@@ -397,8 +405,8 @@ const DailyScheduler = ({ user }) => {
 
       {/* Helper Text */}
       <p className="text-sm text-gray-500 mt-4 text-center">
-        Click on any time slot to add or edit events. Changes are saved
-        automatically after 2 seconds.
+        Type in any time slot to add or edit events. Changes are saved
+        automatically 2 seconds after you stop typing.
       </p>
     </div>
   );

@@ -1,39 +1,22 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import DailyScheduler from "./DailyScheduler";
-import { database } from "../firebase";
 
-// Mock Firebase - following the same pattern as HabitTracker.test.js
-jest.mock("../firebase", () => {
-  const mockRef = {
-    _path: {
-      pieces_: [],
-    },
-    root: {
-      _path: {
-        pieces_: [],
-      },
-    },
-  };
-  return {
-    database: {
-      _checkNotDeleted: jest.fn(),
-      ref: jest.fn(() => mockRef),
-      onValue: jest.fn(),
-      update: jest.fn(),
-    },
-  };
-});
-
-// Mock firebase/database module
+// Mock firebase/database module (remove the ../firebase mock entirely)
 jest.mock("firebase/database", () => ({
   ref: jest.fn(() => ({})),
   onValue: jest.fn(),
   update: jest.fn(() => Promise.resolve()),
 }));
 
-// Get the mock for onValue from firebase/database
-import { onValue, update } from "firebase/database";
+// Get the mocks
+import { onValue, update, ref } from "firebase/database";
 
 describe("DailyScheduler", () => {
   const mockUser = {
@@ -45,10 +28,11 @@ describe("DailyScheduler", () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
 
-    // Setup the mock to return data and an unsubscribe function
-    onValue.mockImplementation((ref, callback) => {
+    // Setup mock to handle both settings and events refs
+    onValue.mockImplementation((refObj, callback) => {
+      // Return empty data for both refs
       callback({
-        val: () => ({}),
+        val: () => null,
       });
       return jest.fn(); // Return unsubscribe function
     });
@@ -60,27 +44,23 @@ describe("DailyScheduler", () => {
 
   test("renders the scheduler with the correct title", () => {
     render(<DailyScheduler user={mockUser} />);
-
     expect(screen.getByText("Today's Schedule")).toBeInTheDocument();
   });
 
   test("renders date navigation buttons", () => {
     render(<DailyScheduler user={mockUser} />);
-
     expect(screen.getByLabelText("Previous day")).toBeInTheDocument();
     expect(screen.getByLabelText("Next day")).toBeInTheDocument();
   });
 
   test("renders date picker", () => {
     render(<DailyScheduler user={mockUser} />);
-
     const datePicker = document.querySelector('input[type="date"]');
     expect(datePicker).toBeInTheDocument();
   });
 
   test("renders all default time slots", () => {
     render(<DailyScheduler user={mockUser} />);
-
     // Default hours: 8 AM to 7 PM
     expect(screen.getByText("8:00 AM")).toBeInTheDocument();
     expect(screen.getByText("12:00 PM")).toBeInTheDocument();
@@ -89,20 +69,17 @@ describe("DailyScheduler", () => {
 
   test("renders event slots with aria-labels for accessibility", () => {
     render(<DailyScheduler user={mockUser} />);
-
     expect(screen.getByLabelText("Event for 8:00 AM")).toBeInTheDocument();
     expect(screen.getByLabelText("Event for 12:00 PM")).toBeInTheDocument();
   });
 
   test("renders settings button", () => {
     render(<DailyScheduler user={mockUser} />);
-
     expect(screen.getByLabelText("Edit time range")).toBeInTheDocument();
   });
 
   test("opens settings panel when settings button is clicked", () => {
     render(<DailyScheduler user={mockUser} />);
-
     const settingsButton = screen.getByLabelText("Edit time range");
     fireEvent.click(settingsButton);
 
@@ -112,23 +89,50 @@ describe("DailyScheduler", () => {
   });
 
   test("debounces Firebase writes", async () => {
-    // Setup update mock to return a resolved promise
     update.mockReturnValue(Promise.resolve());
 
     render(<DailyScheduler user={mockUser} />);
 
     const eventSlot = screen.getByLabelText("Event for 8:00 AM");
 
-    // Simulate typing
-    fireEvent.blur(eventSlot, { target: { textContent: "Meeting" } });
+    // Simulate typing in contentEditable div
+    eventSlot.textContent = "Meeting";
+    fireEvent.input(eventSlot);
+
+    // Trigger blur to call handleEventChange
+    fireEvent.blur(eventSlot);
 
     // Firebase should not be called immediately
     expect(update).not.toHaveBeenCalled();
 
-    // Fast-forward 2 seconds (debounce time)
-    jest.advanceTimersByTime(2000);
+    // Fast-forward 2 seconds (debounce time) wrapped in act
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
 
-    // Now Firebase should be called
-    expect(update).toHaveBeenCalled();
+    // Wait for async update to complete
+    await waitFor(() => {
+      expect(update).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("navigates to previous day", () => {
+    render(<DailyScheduler user={mockUser} />);
+
+    const prevButton = screen.getByLabelText("Previous day");
+    fireEvent.click(prevButton);
+
+    // Should show "Go to today" button when not on today
+    expect(screen.getByText("Go to today")).toBeInTheDocument();
+  });
+
+  test("navigates to next day", () => {
+    render(<DailyScheduler user={mockUser} />);
+
+    const nextButton = screen.getByLabelText("Next day");
+    fireEvent.click(nextButton);
+
+    // Should show "Go to today" button when not on today
+    expect(screen.getByText("Go to today")).toBeInTheDocument();
   });
 });
