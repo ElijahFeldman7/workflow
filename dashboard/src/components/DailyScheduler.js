@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { database } from '../firebase';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { database } from "../firebase";
 import { ref, onValue, update } from "firebase/database";
 
 const DailyScheduler = ({ user }) => {
@@ -14,7 +14,7 @@ const DailyScheduler = ({ user }) => {
   const [tempEndHour, setTempEndHour] = useState(19);
   const [pendingChanges, setPendingChanges] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Debounce timer ref
   const saveTimerRef = useRef(null);
 
@@ -23,7 +23,7 @@ const DailyScheduler = ({ user }) => {
     const hoursArray = [];
     for (let i = startHour; i <= endHour; i++) {
       const hour12 = i > 12 ? i - 12 : i === 0 ? 12 : i;
-      const ampm = i >= 12 ? 'PM' : 'AM';
+      const ampm = i >= 12 ? "PM" : "AM";
       hoursArray.push(`${hour12}:00 ${ampm}`);
     }
     return hoursArray;
@@ -33,16 +33,16 @@ const DailyScheduler = ({ user }) => {
 
   // Format date as YYYY-MM-DD for Firebase key
   const formatDateKey = (date) => {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   // Format date for display
   const formatDisplayDate = (date) => {
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -104,30 +104,36 @@ const DailyScheduler = ({ user }) => {
   }, [user, selectedDate]);
 
   // Debounced save to Firebase
-  const saveToFirebase = useCallback((changesToSave) => {
-    if (!user || Object.keys(changesToSave).length === 0) return;
+  const saveToFirebase = useCallback(
+    (changesToSave) => {
+      if (!user || Object.keys(changesToSave).length === 0) return;
 
-    const dateKey = formatDateKey(selectedDate);
-    update(ref(database, `users/${user.uid}/schedule/${dateKey}`), changesToSave)
-      .then(() => {
-        setIsSaving(false);
-        setPendingChanges({});
-      })
-      .catch((error) => {
-        console.error('Error saving to Firebase:', error);
-        setIsSaving(false);
-      });
-  }, [user, selectedDate]);
+      const dateKey = formatDateKey(selectedDate);
+      update(
+        ref(database, `users/${user.uid}/schedule/${dateKey}`),
+        changesToSave
+      )
+        .then(() => {
+          setIsSaving(false);
+          setPendingChanges({});
+        })
+        .catch((error) => {
+          console.error("Error saving to Firebase:", error);
+          setIsSaving(false);
+        });
+    },
+    [user, selectedDate]
+  );
 
   // Handle event change with debounce
   const handleEventChange = (hour, text) => {
     if (!user) return;
 
-    const hourKey = hour.replace(/[: ]/g, '_');
-    
+    const hourKey = hour.replace(/[: ]/g, "_");
+
     // Update local state immediately
-    setEvents(prev => ({ ...prev, [hourKey]: text }));
-    
+    setEvents((prev) => ({ ...prev, [hourKey]: text }));
+
     // Track pending changes
     const newPendingChanges = { ...pendingChanges, [hourKey]: text };
     setPendingChanges(newPendingChanges);
@@ -155,8 +161,10 @@ const DailyScheduler = ({ user }) => {
 
   // Get event text for a specific hour
   const getEventText = (hour) => {
-    const hourKey = hour.replace(/[: ]/g, '_');
-    return Object.hasOwn(events, hourKey) ? events[hourKey] : '';
+    const hourKey = hour.replace(/[: ]/g, "_");
+    return Object.prototype.hasOwnProperty.call(events, hourKey) 
+      ? String(events[hourKey]) 
+      : "";
   };
 
   // Settings handlers
@@ -168,10 +176,10 @@ const DailyScheduler = ({ user }) => {
 
   const saveSettings = () => {
     if (tempEndHour <= tempStartHour) {
-      alert('End time must be after start time');
+      alert("End time must be after start time");
       return;
     }
-    
+
     setStartHour(tempStartHour);
     setEndHour(tempEndHour);
     setIsEditing(false);
@@ -192,7 +200,7 @@ const DailyScheduler = ({ user }) => {
   const hourOptions = [];
   for (let i = 0; i <= 23; i++) {
     const hour12 = i > 12 ? i - 12 : i === 0 ? 12 : i;
-    const ampm = i >= 12 ? 'PM' : 'AM';
+    const ampm = i >= 12 ? "PM" : "AM";
     hourOptions.push({ value: i, label: `${hour12}:00 ${ampm}` });
   }
 
@@ -206,17 +214,33 @@ const DailyScheduler = ({ user }) => {
             className="p-2 rounded-md hover:bg-gray-100 transition-colors"
             aria-label="Previous day"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-gray-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
 
           <div className="text-center">
             <h2 className="text-xl font-semibold text-neutral-800">
-              {isToday(selectedDate) ? "Today's Schedule" : formatDisplayDate(selectedDate)}
+              {isToday(selectedDate)
+                ? "Today's Schedule"
+                : formatDisplayDate(selectedDate)}
             </h2>
             {!isToday(selectedDate) && (
-              <button onClick={goToToday} className="text-sm text-blue-600 hover:text-blue-800 mt-1">
+              <button
+                onClick={goToToday}
+                className="text-sm text-blue-600 hover:text-blue-800 mt-1"
+              >
                 Go to today
               </button>
             )}
@@ -227,26 +251,50 @@ const DailyScheduler = ({ user }) => {
             className="p-2 rounded-md hover:bg-gray-100 transition-colors"
             aria-label="Next day"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-gray-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </button>
         </div>
 
         <div className="flex items-center gap-2">
-          {isSaving && (
-            <span className="text-sm text-gray-500">Saving...</span>
-          )}
+          {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
           {!isEditing && (
-            <button 
+            <button
               onClick={startEditing}
               className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
               title="Edit Time Range"
               aria-label="Edit time range"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
             </button>
           )}
@@ -256,7 +304,9 @@ const DailyScheduler = ({ user }) => {
       {/* Settings Panel */}
       {isEditing && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Time Range Settings</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">
+            Time Range Settings
+          </h3>
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-600">Start:</label>
@@ -265,8 +315,10 @@ const DailyScheduler = ({ user }) => {
                 onChange={(e) => setTempStartHour(Number(e.target.value))}
                 className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
               >
-                {hourOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                {hourOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -277,8 +329,10 @@ const DailyScheduler = ({ user }) => {
                 onChange={(e) => setTempEndHour(Number(e.target.value))}
                 className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
               >
-                {hourOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                {hourOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -305,25 +359,29 @@ const DailyScheduler = ({ user }) => {
         <input
           type="date"
           value={formatDateKey(selectedDate)}
-          onChange={(e) => setSelectedDate(new Date(e.target.value + 'T00:00:00'))}
+          onChange={(e) =>
+            setSelectedDate(new Date(e.target.value + "T00:00:00"))
+          }
           className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
         />
       </div>
 
       {/* Loading State */}
       {isLoading && (
-        <div className="text-gray-500 text-center py-4">Loading schedule...</div>
+        <div className="text-gray-500 text-center py-4">
+          Loading schedule...
+        </div>
       )}
 
       {/* Schedule Grid */}
       {!isLoading && (
         <div className="schedule-grid grid grid-cols-[80px_1fr] gap-1">
-          {hours.map(hour => (
+          {hours.map((hour) => (
             <React.Fragment key={hour}>
               <div className="time-slot bg-gray-100 p-4 border rounded text-center font-medium text-sm">
                 {hour}
               </div>
-              <div 
+              <div
                 className="event-slot p-4 border rounded bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white min-h-[50px]"
                 contentEditable
                 onBlur={(e) => handleEventChange(hour, e.target.textContent)}
@@ -339,7 +397,8 @@ const DailyScheduler = ({ user }) => {
 
       {/* Helper Text */}
       <p className="text-sm text-gray-500 mt-4 text-center">
-        Click on any time slot to add or edit events. Changes are saved automatically after 2 seconds.
+        Click on any time slot to add or edit events. Changes are saved
+        automatically after 2 seconds.
       </p>
     </div>
   );
