@@ -29,7 +29,7 @@ function App() {
   const navItems = [
     { id: 'tasks', label: 'Tasks', component: <TaskManager user={user}/> },
     { id: 'notes', label: 'Knowledge', component: <KnowledgeBase user={user}/> },
-    { id: 'scheduler', label: 'Schedule', component: <DailyScheduler /> },
+    { id: 'scheduler', label: 'Schedule', component: <DailyScheduler user={user}/> },
     { id: 'focus', label: 'Focus', component: <FocusTimer /> },
     { id: 'habits', label: 'Habits', component: <HabitTracker user={user}/> },
     { id: 'links', label: 'Links', component: <QuickLinks user={user}/> },
