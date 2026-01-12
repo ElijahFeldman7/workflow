@@ -278,7 +278,11 @@ const DailyScheduler = ({ user }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isSaving && <span className="text-sm text-gray-500 dark:text-gray-400">Saving...</span>}
+          {isSaving && (
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Saving...
+            </span>
+          )}
           {!isEditing && (
             <button
               onClick={startEditing}
@@ -318,7 +322,9 @@ const DailyScheduler = ({ user }) => {
           </h3>
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Start:</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Start:
+              </label>
               <select
                 value={tempStartHour}
                 onChange={(e) => setTempStartHour(Number(e.target.value))}
@@ -332,7 +338,9 @@ const DailyScheduler = ({ user }) => {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-300">End:</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                End:
+              </label>
               <select
                 value={tempEndHour}
                 onChange={(e) => setTempEndHour(Number(e.target.value))}
@@ -372,7 +380,7 @@ const DailyScheduler = ({ user }) => {
             const [year, month, day] = e.target.value.split("-").map(Number);
             setSelectedDate(new Date(year, month - 1, day));
           }}
-          className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900"
+          className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 dark:[color-scheme:dark]"
         />
       </div>
 
