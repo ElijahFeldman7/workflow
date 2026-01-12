@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
 import { dbRef, onValueRef, setData } from '../firebaseHelpers';
+import Settings from './Settings';
 
 const QuickLinks = ({ user }) => {
   const defaultLinks = [
@@ -62,6 +63,7 @@ const QuickLinks = ({ user }) => {
 
   return (
     <div className="bg-white shadow rounded-lg p-6 max-w-6xl mx-auto border border-neutral-200">
+      <Settings pageName="Quick Links" />
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-neutral-800">Quick Links</h2>
         <div className="flex items-center gap-3">

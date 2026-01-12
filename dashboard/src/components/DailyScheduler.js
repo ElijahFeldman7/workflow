@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { database } from "../firebase";
 import { ref, onValue, update } from "firebase/database";
+import Settings from './Settings';
 
 const DailyScheduler = ({ user }) => {
   // Default time range settings
@@ -215,6 +216,7 @@ const DailyScheduler = ({ user }) => {
 
   return (
     <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
+    <Settings pageName="Daily Scheduler" />
       {/* Header with Settings */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">

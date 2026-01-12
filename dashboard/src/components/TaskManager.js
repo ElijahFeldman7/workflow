@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
 import { ref, onValue, push, set, child, remove, update } from "firebase/database";
+import Settings from './Settings';
 
 const TaskManager = ({user}) => {
   const [tasks, setTasks] = useState([]);
@@ -63,6 +64,7 @@ const TaskManager = ({user}) => {
 
   return (
     <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
+      <Settings pageName="Task Manager" />
       <div className="pb-4">
         <h2 className="text-xl font-semibold text-neutral-800">tasks</h2>
       </div>

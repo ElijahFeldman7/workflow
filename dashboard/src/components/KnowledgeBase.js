@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
 import { dbRef, onValueRef, pushData, setData, updateData, removeData } from '../firebaseHelpers';
+import Settings from './Settings';
 
 const KnowledgeBase = ({ user }) => {
   const [notes, setNotes] = useState([]);
@@ -95,7 +96,7 @@ const KnowledgeBase = ({ user }) => {
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden max-w-6xl mx-auto flex h-[600px] border border-gray-200 relative">
-      
+      <Settings pageName="Knowledge Base" />
       <div 
         className={`
             bg-gray-50 border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out
