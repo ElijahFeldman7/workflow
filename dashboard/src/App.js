@@ -36,7 +36,11 @@ function App() {
       label: "Knowledge",
       component: <KnowledgeBase user={user} />,
     },
-    { id: "scheduler", label: "Schedule", component: <DailyScheduler /> },
+    {
+      id: "scheduler",
+      label: "Schedule",
+      component: <DailyScheduler user={user} />,
+    },
     { id: "focus", label: "Focus", component: <FocusTimer /> },
     { id: "habits", label: "Habits", component: <HabitTracker user={user} /> },
     { id: "links", label: "Links", component: <QuickLinks user={user} /> },
