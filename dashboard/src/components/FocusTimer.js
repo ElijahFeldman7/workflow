@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { database } from '../firebase';
 import { dbRef, onValueRef, updateData } from '../firebaseHelpers';
+import Settings from './Settings';
 
 const FocusTimer = ({ user }) => {
   const [time, setTime] = useState(25 * 60);
@@ -176,19 +177,21 @@ const FocusTimer = ({ user }) => {
   };
 
   return (
+    <>
+    <Settings pageName="Focus Timer" />
     <div 
-      className="absolute bg-white shadow-2xl rounded-2xl border border-neutral-200 cursor-move select-none overflow-hidden resize-both"
-      onMouseDown={handleMouseDown}
-      style={{ 
-        left: '50%',
-        top: '50%',
-        width: '500px',
-        height: '400px',
-        minWidth: '320px',
-        minHeight: '300px',
-        transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
-        transition: isDragging.current ? 'none' : 'transform 0.1s ease-out'
-      }}
+    className="absolute bg-white shadow-2xl rounded-2xl border border-neutral-200 cursor-move select-none overflow-hidden resize-both"
+    onMouseDown={handleMouseDown}
+    style={{ 
+      left: '50%',
+      top: '50%',
+      width: '500px',
+      height: '400px',
+      minWidth: '320px',
+      minHeight: '300px',
+      transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
+      transition: isDragging.current ? 'none' : 'transform 0.1s ease-out'
+    }}
     >
         <div className="relative w-full h-full flex flex-col">
             <div className="absolute top-4 right-4 z-20">
@@ -294,6 +297,7 @@ const FocusTimer = ({ user }) => {
             )}
         </div>
     </div>
+    </>
   );
 };
 

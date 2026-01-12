@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
 import { dbRef, onValueRef, updateData, setData } from '../firebaseHelpers';
+import Settings from './Settings';
 
 const HabitTracker = ({ user }) => {
   const [habits, setHabits] = useState(['Workout', 'Read', 'Relax']);
@@ -125,6 +126,7 @@ const HabitTracker = ({ user }) => {
 
   return (
     <div className="bg-white shadow rounded-lg p-6 max-w-4xl mx-auto relative">
+        <Settings pageName="Habit Tracker" />
       
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-800">Habit Tracker</h2>
