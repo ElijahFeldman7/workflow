@@ -7,8 +7,8 @@ import SettingsCog from './SettingsCog';
 const TaskManager = ({ user }) => {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
-  const [taskDate, setTaskDate] = useState(''); // State for the date input
-  const [showDateAddOn, setShowDateAddOn] = useState(false); // Toggle state
+  const [taskDate, setTaskDate] = useState(''); 
+  const [showDateAddOn, setShowDateAddOn] = useState(false); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,14 +38,14 @@ const TaskManager = ({ user }) => {
     try {
       const newTaskRef = push(ref(database, `users/${user.uid}/tasks`));
       
-      // Save to Firebase (date is optional)
+     
       await set(newTaskRef, {
         text: newTask,
         completed: false,
         dueDate: taskDate || null 
       });
 
-      // Sync with Google Calendar only if a date is provided
+      
       if (taskDate) {
         await addToGoogleCalendar(newTask, taskDate);
       }
@@ -79,7 +79,7 @@ const TaskManager = ({ user }) => {
     <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center pb-4">
         <h2 className="text-xl font-semibold text-neutral-800">tasks</h2>
-        {/* Settings Cog to toggle date input */}
+        
         <SettingsCog onClick={() => setShowDateAddOn(!showDateAddOn)} />
       </div>
 
@@ -95,14 +95,14 @@ const TaskManager = ({ user }) => {
             aria-label="New task"
           />
           
-          {/* Conditional Date Input */}
+          
           {showDateAddOn && (
             <input 
               type="date" 
               value={taskDate}
               onChange={(e) => setTaskDate(e.target.value)}
               className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              // required attribute removed as requested
+              
             />
           )}
 

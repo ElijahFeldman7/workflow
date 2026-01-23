@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { gapi } from "gapi-script"; // Added for Google Calendar integration
-
+import { gapi } from "gapi-script"; 
 import Navbar from "./components/Navbar";
 import SignIn from "./components/SignIn";
 
@@ -18,7 +17,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tasks");
 
-  // 1. Initialize Google API (gapi)
+ 
   useEffect(() => {
     const initClient = () => {
       gapi.client.init({
@@ -29,7 +28,7 @@ function App() {
     gapi.load("client:auth2", initClient);
   }, []);
 
-  // 2. Handle Firebase Auth State
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       console.log("Auth state changed:", currentUser);

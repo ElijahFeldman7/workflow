@@ -6,7 +6,7 @@ export const addToGoogleCalendar = async (taskText, dateString) => {
       summary: taskText,
       description: 'Assignment from Workflow App',
       start: {
-        date: dateString, // This makes it an all-day assignment
+        date: dateString, 
       },
       end: {
         date: dateString,

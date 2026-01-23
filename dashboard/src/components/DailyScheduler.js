@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { database } from "../firebase";
 import { ref, onValue, update } from "firebase/database";
-import SettingsCog from "./SettingsCog"; // Import the reusable component
+import SettingsCog from "./SettingsCog"; 
 
 const DailyScheduler = ({ user }) => {
-  // Default time range settings
+  
   const [startHour, setStartHour] = useState(8);
   const [endHour, setEndHour] = useState(19); 
   const [events, setEvents] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [showDateAddOn, setShowDateAddOn] = useState(false); // New state for toggling date picker
-  const [tempStartHour, setTempStartHour] = useState(8);
+  const [showDateAddOn, setShowDateAddOn] = useState(false); 
   const [tempEndHour, setTempEndHour] = useState(19);
   const [pendingChanges, setPendingChanges] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -201,7 +200,7 @@ const DailyScheduler = ({ user }) => {
 
         <div className="flex items-center gap-2">
           {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
-          {/* SettingsCog toggles the Date Picker visibility */}
+          
           <SettingsCog onClick={() => setShowDateAddOn(!showDateAddOn)} />
           
           {!isEditing && (
@@ -210,7 +209,7 @@ const DailyScheduler = ({ user }) => {
               className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
               title="Edit Time Range"
             >
-              {/* Manual gear icon for range settings */}
+              
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
@@ -219,7 +218,7 @@ const DailyScheduler = ({ user }) => {
         </div>
       </div>
 
-      {/* Conditional Date Picker wrapped in showDateAddOn */}
+     
       {showDateAddOn && (
         <div className="mb-6 flex justify-center animate-in fade-in slide-in-from-top-2">
           <input

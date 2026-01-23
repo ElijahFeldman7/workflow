@@ -18,10 +18,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const database = getDatabase(app);
 
-// Initialize the provider
 export const googleProvider = new GoogleAuthProvider();
 
-// ADDED: Request permission to manage Google Calendar events
+
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
 
 export const signInWithGoogle = async () => {
