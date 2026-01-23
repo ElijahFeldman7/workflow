@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { auth, logout } from "./firebase";
+import { auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-
+import { gapi } from "gapi-script"; 
 import Navbar from "./components/Navbar";
 import SignIn from "./components/SignIn";
 
@@ -16,6 +16,18 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tasks");
+
+ 
+  useEffect(() => {
+    const initClient = () => {
+      gapi.client.init({
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"],
+        scope: "https://www.googleapis.com/auth/calendar.events",
+      });
+    };
+    gapi.load("client:auth2", initClient);
+  }, []);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -50,7 +62,10 @@ function App() {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        Loading...
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-gray-600 font-medium">Loading Workflow...</span>
+        </div>
       </div>
     );
   }

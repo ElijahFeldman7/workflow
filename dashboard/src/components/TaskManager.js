@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { database } from '../firebase';
 import { ref, onValue, push, set, child, remove, update } from "firebase/database";
+import { addToGoogleCalendar } from '../utils/googleCalendar';
+import SettingsCog from './SettingsCog';
 
-const TaskManager = ({user}) => {
+const TaskManager = ({ user }) => {
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
+  const [taskDate, setTaskDate] = useState(''); 
+  const [showDateAddOn, setShowDateAddOn] = useState(false); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,11 +37,21 @@ const TaskManager = ({user}) => {
 
     try {
       const newTaskRef = push(ref(database, `users/${user.uid}/tasks`));
+      
+     
       await set(newTaskRef, {
         text: newTask,
-        completed: false
+        completed: false,
+        dueDate: taskDate || null 
       });
+
+      
+      if (taskDate) {
+        await addToGoogleCalendar(newTask, taskDate);
+      }
+
       setNewTask('');
+      setTaskDate('');
     } catch (err) {
       setError(err?.message || 'Failed to add task');
     }
@@ -63,26 +77,42 @@ const TaskManager = ({user}) => {
 
   return (
     <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
-      <div className="pb-4">
+      <div className="flex justify-between items-center pb-4">
         <h2 className="text-xl font-semibold text-neutral-800">tasks</h2>
+        
+        <SettingsCog onClick={() => setShowDateAddOn(!showDateAddOn)} />
       </div>
 
-      <form onSubmit={handleAddTask} className="flex gap-3 mb-6">
-        <input
-          type="text"
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          placeholder="add a task"
-          required
-          className="flex-grow border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
-          aria-label="New task"
-        />
-        <button 
-          type="submit" 
-          className="bg-neutral-500 text-white px-5 py-2 rounded-md hover:bg-neutral-600 transition-colors font-medium text-sm"
-        >
-          Add Task
-        </button>
+      <form onSubmit={handleAddTask} className="flex flex-col gap-3 mb-6">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="add a task"
+            required
+            className="flex-grow border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            aria-label="New task"
+          />
+          
+          
+          {showDateAddOn && (
+            <input 
+              type="date" 
+              value={taskDate}
+              onChange={(e) => setTaskDate(e.target.value)}
+              className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              
+            />
+          )}
+
+          <button 
+            type="submit" 
+            className="bg-neutral-500 text-white px-5 py-2 rounded-md hover:bg-neutral-600 transition-colors font-medium text-sm"
+          >
+            add
+          </button>
+        </div>
       </form>
 
       {isLoading && (
@@ -112,6 +142,7 @@ const TaskManager = ({user}) => {
               />
               <span className={`text-gray-700 ${task.completed ? 'line-through text-gray-400' : ''}`}>
                 {task.text}
+                {task.dueDate && <span className="ml-2 text-xs text-gray-400">({task.dueDate})</span>}
               </span>
             </div>
             
