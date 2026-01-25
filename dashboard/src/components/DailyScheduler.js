@@ -129,6 +129,9 @@ const DailyScheduler = ({ user }) => {
   const handleEventChange = (hour, text) => {
     if (!user) return;
 
+    // Validate hour format to prevent prototype pollution
+    if (typeof hour !== 'string' || !/^\d{1,2}:00 (AM|PM)$/.test(hour)) return;
+
     const hourKey = hour.replace(/[: ]/g, "_");
 
     // Update local state immediately

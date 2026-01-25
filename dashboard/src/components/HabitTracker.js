@@ -53,13 +53,22 @@ const HabitTracker = ({ user }) => {
   const toggleHabit = (habitIndex, dateStr) => {
     if (!user || isEditing) return;
 
-    const newHistory = { ...history };
-    if (!newHistory[habitIndex]) newHistory[habitIndex] = {};
+    // Validate habitIndex is a safe integer to prevent prototype pollution
+    const safeHabitIndex = Number(habitIndex);
+    if (!Number.isInteger(safeHabitIndex) || safeHabitIndex < 0) return;
 
-    if (newHistory[habitIndex][dateStr]) {
-      delete newHistory[habitIndex][dateStr];
+    // Validate dateStr is a valid date format to prevent injection
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+
+    const newHistory = { ...history };
+    if (!Object.prototype.hasOwnProperty.call(newHistory, safeHabitIndex)) {
+      newHistory[safeHabitIndex] = {};
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newHistory[safeHabitIndex], dateStr) && newHistory[safeHabitIndex][dateStr]) {
+      delete newHistory[safeHabitIndex][dateStr];
     } else {
-      newHistory[habitIndex][dateStr] = true;
+      newHistory[safeHabitIndex][dateStr] = true;
     }
 
     setHistory(newHistory);
@@ -264,7 +273,10 @@ const HabitTracker = ({ user }) => {
             </div>
 
             {weekDates.map((dateStr, dIndex) => {
-              const isChecked = history[hIndex]?.[dateStr] || false;
+              const isChecked = (Object.prototype.hasOwnProperty.call(history, hIndex) && 
+                Object.prototype.hasOwnProperty.call(history[hIndex] || {}, dateStr)) 
+                ? history[hIndex][dateStr] 
+                : false;
 
               return (
                 <div key={dateStr} className="flex justify-center">
@@ -374,22 +386,27 @@ const HabitTracker = ({ user }) => {
                   {habit}
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {yearDays.map((dateStr) => (
-                    <div
-                      key={dateStr}
-                      title={dateStr}
-                      className={`w-2.5 h-2.5 rounded-sm ${
-                        history[hIndex]?.[dateStr]
-                          ? "bg-green-500 dark:bg-green-600"
-                          : "bg-gray-100 dark:bg-gray-700"
-                      }`}
-                      aria-label={`${habit} on ${dateStr}: ${
-                        history[hIndex]?.[dateStr]
-                          ? "completed"
-                          : "not completed"
-                      }`}
-                    ></div>
-                  ))}
+                    {yearDays.map((dateStr) => {
+                      const hasHistory = Object.prototype.hasOwnProperty.call(history, hIndex) && 
+                        Object.prototype.hasOwnProperty.call(history[hIndex] || {}, dateStr) &&
+                        history[hIndex][dateStr];
+                      return (
+                      <div
+                        key={dateStr}
+                        title={dateStr}
+                        className={`w-2.5 h-2.5 rounded-sm ${
+                          hasHistory
+                            ? "bg-green-500 dark:bg-green-600"
+                            : "bg-gray-100 dark:bg-gray-700"
+                        }`}
+                        aria-label={`${habit} on ${dateStr}: ${
+                          hasHistory
+                            ? "completed"
+                            : "not completed"
+                        }`}
+                      ></div>
+                      );
+                    })}
                 </div>
               </div>
             ))}
