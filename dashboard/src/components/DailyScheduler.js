@@ -129,6 +129,9 @@ const DailyScheduler = ({ user }) => {
   const handleEventChange = (hour, text) => {
     if (!user) return;
 
+    // Validate hour format to prevent prototype pollution
+    if (typeof hour !== 'string' || !/^\d{1,2}:00 (AM|PM)$/.test(hour)) return;
+
     const hourKey = hour.replace(/[: ]/g, "_");
 
     // Update local state immediately
@@ -214,18 +217,18 @@ const DailyScheduler = ({ user }) => {
   }
 
   return (
-    <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-md p-6 max-w-4xl mx-auto transition-colors duration-200">
       {/* Header with Settings */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <button
             onClick={goToPreviousDay}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Previous day"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-600"
+              className="h-6 w-6 text-gray-600 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -240,7 +243,7 @@ const DailyScheduler = ({ user }) => {
           </button>
 
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-neutral-800">
+            <h2 className="text-xl font-semibold text-neutral-800 dark:text-white">
               {isToday(selectedDate)
                 ? "Today's Schedule"
                 : formatDisplayDate(selectedDate)}
@@ -248,7 +251,7 @@ const DailyScheduler = ({ user }) => {
             {!isToday(selectedDate) && (
               <button
                 onClick={goToToday}
-                className="text-sm text-blue-600 hover:text-blue-800 mt-1"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-1"
               >
                 Go to today
               </button>
@@ -257,12 +260,12 @@ const DailyScheduler = ({ user }) => {
 
           <button
             onClick={goToNextDay}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Next day"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-600"
+              className="h-6 w-6 text-gray-600 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -278,11 +281,15 @@ const DailyScheduler = ({ user }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
+          {isSaving && (
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Saving...
+            </span>
+          )}
           {!isEditing && (
             <button
               onClick={startEditing}
-              className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="Edit Time Range"
               aria-label="Edit time range"
             >
@@ -312,17 +319,19 @@ const DailyScheduler = ({ user }) => {
 
       {/* Settings Panel */}
       {isEditing && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border dark:border-gray-600">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
             Time Range Settings
           </h3>
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Start:</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Start:
+              </label>
               <select
                 value={tempStartHour}
                 onChange={(e) => setTempStartHour(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900"
               >
                 {hourOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -332,11 +341,13 @@ const DailyScheduler = ({ user }) => {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">End:</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                End:
+              </label>
               <select
                 value={tempEndHour}
                 onChange={(e) => setTempEndHour(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900"
               >
                 {hourOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -348,7 +359,7 @@ const DailyScheduler = ({ user }) => {
             <div className="flex gap-2 ml-auto">
               <button
                 onClick={cancelEditing}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
               >
                 Cancel
               </button>
@@ -372,13 +383,13 @@ const DailyScheduler = ({ user }) => {
             const [year, month, day] = e.target.value.split("-").map(Number);
             setSelectedDate(new Date(year, month - 1, day));
           }}
-          className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 dark:[color-scheme:dark]"
         />
       </div>
 
       {/* Loading State */}
       {isLoading && (
-        <div className="text-gray-500 text-center py-4">
+        <div className="text-gray-500 dark:text-gray-400 text-center py-4">
           Loading schedule...
         </div>
       )}
@@ -388,13 +399,13 @@ const DailyScheduler = ({ user }) => {
         <div className="schedule-grid grid grid-cols-[80px_1fr] gap-1">
           {hours.map((hour) => (
             <React.Fragment key={hour}>
-              <div className="time-slot bg-gray-100 p-4 border rounded text-center font-medium text-sm">
+              <div className="time-slot bg-gray-100 dark:bg-gray-700 p-4 border dark:border-gray-600 rounded text-center font-medium text-sm text-gray-700 dark:text-gray-200">
                 {hour}
               </div>
               <textarea
                 value={getEventText(hour)}
                 onChange={(e) => handleEventChange(hour, e.target.value)}
-                className="event-slot p-4 border rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white min-h-[50px] w-full resize-none"
+                className="event-slot p-4 border dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:bg-white dark:focus:bg-gray-600 text-gray-800 dark:text-gray-200 min-h-[50px] w-full resize-none"
                 rows={2}
                 aria-label={`Event for ${hour}`}
               />
@@ -404,7 +415,7 @@ const DailyScheduler = ({ user }) => {
       )}
 
       {/* Helper Text */}
-      <p className="text-sm text-gray-500 mt-4 text-center">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
         Type in any time slot to add or edit events. Changes are saved
         automatically 2 seconds after you stop typing.
       </p>

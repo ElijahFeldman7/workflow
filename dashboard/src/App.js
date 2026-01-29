@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { auth, logout } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useDarkMode } from "./context/DarkModeContext";
 
 import Navbar from "./components/Navbar";
 import SignIn from "./components/SignIn";
@@ -11,11 +12,13 @@ import DailyScheduler from "./components/DailyScheduler";
 import FocusTimer from "./components/FocusTimer";
 import HabitTracker from "./components/HabitTracker";
 import QuickLinks from "./components/QuickLinks";
+import UserSettings from "./components/UserSettings";
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tasks");
+  const { isDarkMode } = useDarkMode();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -41,6 +44,12 @@ function App() {
     { id: "focus", label: "Focus", component: <FocusTimer /> },
     { id: "habits", label: "Habits", component: <HabitTracker user={user} /> },
     { id: "links", label: "Links", component: <QuickLinks user={user} /> },
+    {
+      id: "settings",
+      label: "Settings",
+      component: <UserSettings user={user} />,
+      hidden: true,
+    },
   ];
 
   const ActiveComponent = navItems.find(
@@ -49,7 +58,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-blue-100 dark:bg-gray-900 dark:text-white">
         Loading...
       </div>
     );
@@ -60,12 +69,13 @@ function App() {
   }
 
   return (
-    <div className="bg-blue-100 min-h-screen flex flex-col">
+    <div className="bg-blue-100 dark:bg-gray-900 min-h-screen flex flex-col transition-colors duration-200">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        navItems={navItems}
+        navItems={navItems.filter((item) => !item.hidden)}
         user={user}
+        onOpenSettings={() => setActiveTab("settings")}
       />
 
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8">

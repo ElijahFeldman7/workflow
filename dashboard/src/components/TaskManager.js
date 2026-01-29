@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { database } from '../firebase';
-import { ref, onValue, push, set, child, remove, update } from "firebase/database";
+import React, { useState, useEffect } from "react";
+import { database } from "../firebase";
+import {
+  ref,
+  onValue,
+  push,
+  set,
+  child,
+  remove,
+  update,
+} from "firebase/database";
 
-const TaskManager = ({user}) => {
+const TaskManager = ({ user }) => {
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState('');
+  const [newTask, setNewTask] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,12 +23,14 @@ const TaskManager = ({user}) => {
       tasksRef,
       (snapshot) => {
         const data = snapshot.val();
-        const loadedTasks = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+        const loadedTasks = data
+          ? Object.keys(data).map((key) => ({ id: key, ...data[key] }))
+          : [];
         setTasks(loadedTasks);
         setIsLoading(false);
       },
       (err) => {
-        setError(err?.message || 'Failed to load tasks');
+        setError(err?.message || "Failed to load tasks");
         setIsLoading(false);
       }
     );
@@ -29,17 +39,17 @@ const TaskManager = ({user}) => {
 
   const handleAddTask = async (e) => {
     e.preventDefault();
-    if (newTask.trim() === '') return;
+    if (newTask.trim() === "") return;
 
     try {
       const newTaskRef = push(ref(database, `users/${user.uid}/tasks`));
       await set(newTaskRef, {
         text: newTask,
-        completed: false
+        completed: false,
       });
-      setNewTask('');
+      setNewTask("");
     } catch (err) {
-      setError(err?.message || 'Failed to add task');
+      setError(err?.message || "Failed to add task");
     }
   };
 
@@ -48,7 +58,7 @@ const TaskManager = ({user}) => {
       const taskRef = child(ref(database, `users/${user.uid}/tasks`), task.id);
       await update(taskRef, { completed: !task.completed });
     } catch (err) {
-      setError(err?.message || 'Failed to update task');
+      setError(err?.message || "Failed to update task");
     }
   };
 
@@ -57,14 +67,16 @@ const TaskManager = ({user}) => {
       const taskRef = child(ref(database, `users/${user.uid}/tasks`), taskId);
       await remove(taskRef);
     } catch (err) {
-      setError(err?.message || 'Failed to delete task');
+      setError(err?.message || "Failed to delete task");
     }
   };
 
   return (
-    <div className="bg-white shadow rounded-md p-6 max-w-4xl mx-auto">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-md p-6 max-w-4xl mx-auto transition-colors duration-200">
       <div className="pb-4">
-        <h2 className="text-xl font-semibold text-neutral-800">tasks</h2>
+        <h2 className="text-xl font-semibold text-neutral-800 dark:text-white">
+          tasks
+        </h2>
       </div>
 
       <form onSubmit={handleAddTask} className="flex gap-3 mb-6">
@@ -74,55 +86,81 @@ const TaskManager = ({user}) => {
           onChange={(e) => setNewTask(e.target.value)}
           placeholder="add a task"
           required
-          className="flex-grow border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          className="flex-grow border border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
           aria-label="New task"
         />
-        <button 
-          type="submit" 
-          className="bg-neutral-500 text-white px-5 py-2 rounded-md hover:bg-neutral-600 transition-colors font-medium text-sm"
+        <button
+          type="submit"
+          className="bg-neutral-500 dark:bg-neutral-600 text-white px-5 py-2 rounded-md hover:bg-neutral-600 dark:hover:bg-neutral-500 transition-colors font-medium text-sm"
         >
           Add Task
         </button>
       </form>
 
       {isLoading && (
-        <div className="text-gray-500 text-center py-4">fetching tasks...</div>
+        <div className="text-gray-500 dark:text-gray-400 text-center py-4">
+          fetching tasks...
+        </div>
       )}
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4 text-sm">{error}</div>
+        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-md mb-4 text-sm">
+          {error}
+        </div>
       )}
 
       {!isLoading && !error && tasks.length === 0 && (
-        <div className="text-gray-500 text-center py-8 bg-gray-50 rounded-md border border-dashed border-gray-300">
+        <div className="text-gray-500 dark:text-gray-400 text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-dashed border-gray-300 dark:border-gray-600">
           no tasks yet.
         </div>
       )}
 
-      <ul className="divide-y divide-gray-100">
-        {tasks.map(task => (
-          <li key={task.id} className="group flex items-center justify-between py-3 hover:bg-gray-50 px-2 -mx-2 rounded transition-colors">
+      <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+        {tasks.map((task) => (
+          <li
+            key={task.id}
+            className="group flex items-center justify-between py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 px-2 -mx-2 rounded transition-colors"
+          >
             <div className="flex items-center gap-3">
-              <input 
-                type="checkbox" 
-                checked={!!task.completed} 
-                onChange={() => handleToggleTask(task)} 
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer" 
-                aria-label={`Mark task ${task.text} as ${task.completed ? 'incomplete' : 'complete'}`}
+              <input
+                type="checkbox"
+                checked={!!task.completed}
+                onChange={() => handleToggleTask(task)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer dark:bg-gray-700"
+                aria-label={`Mark task ${task.text} as ${
+                  task.completed ? "incomplete" : "complete"
+                }`}
               />
-              <span className={`text-gray-700 ${task.completed ? 'line-through text-gray-400' : ''}`}>
+              <span
+                className={`text-gray-700 dark:text-gray-200 ${
+                  task.completed
+                    ? "line-through text-gray-400 dark:text-gray-500"
+                    : ""
+                }`}
+              >
                 {task.text}
               </span>
             </div>
-            
-            <button 
-              onClick={() => handleDeleteTask(task.id)} 
-              className="text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+
+            <button
+              onClick={() => handleDeleteTask(task.id)}
+              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Delete task"
               aria-label={`Delete task ${task.text}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
               </svg>
             </button>
           </li>
