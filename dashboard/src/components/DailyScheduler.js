@@ -481,9 +481,9 @@ const DailyScheduler = ({ user }) => {
                       className={`text-xs px-2.5 py-1 rounded-full ${color.chip} ${
                         item.done ? "line-through opacity-60" : ""
                       }`}
-                      title={`${typeLabel(item.type)} · ${
-                        priorityOf(item.priority).label
-                      }`}
+                      title={[typeLabel(item.type), priorityOf(item.priority).label]
+                        .filter(Boolean)
+                        .join(" · ")}
                     >
                       {item.title}
                     </span>

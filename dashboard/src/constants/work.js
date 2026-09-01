@@ -137,7 +137,10 @@ export const WORK_TYPES = [
   { id: "other", label: "Other" },
 ];
 export const WORK_TYPE_IDS = WORK_TYPES.map((t) => t.id);
-export const DEFAULT_TYPE = "hw";
+
+// Blank. A type is only set when something actually said one — guessing
+// "Homework" for a club orientation is worse than showing nothing.
+export const DEFAULT_TYPE = "";
 
 // Tag colors for the table view, only used when the color setting is on.
 export const TYPE_CHIPS = {
@@ -164,7 +167,7 @@ export function typeChip(id) {
 
 export function typeLabel(id) {
   const found = WORK_TYPES.find((t) => t.id === id);
-  return found ? found.label : "Other";
+  return found ? found.label : "";
 }
 
 export const PRIORITIES = [
@@ -362,7 +365,7 @@ export function normalizeItem(id, raw) {
     id,
     title: typeof data.title === "string" ? data.title : "Untitled",
     spaceId: typeof data.spaceId === "string" ? data.spaceId : "",
-    type: WORK_TYPE_IDS.includes(data.type) ? data.type : DEFAULT_TYPE,
+    type: WORK_TYPE_IDS.includes(data.type) ? data.type : "",
     priority: PRIORITY_IDS.includes(data.priority)
       ? data.priority
       : DEFAULT_PRIORITY,

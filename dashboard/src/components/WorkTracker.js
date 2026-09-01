@@ -105,6 +105,7 @@ const EditPanel = ({ draft, setDraft, spaces, onSave, onCancel }) => (
           className={field}
           aria-label="Type"
         >
+          <option value="">None</option>
           {WORK_TYPES.map((type) => (
             <option key={type.id} value={type.id}>
               {type.label}
@@ -588,13 +589,15 @@ const WorkTracker = ({ user }) => {
                       {formatWhen(item)}
                     </td>
                     <td className="py-2 px-3">
-                      <span
-                        className={`${tag} ${
-                          prefs.colors ? typeChip(item.type) : NEUTRAL_CHIP
-                        }`}
-                      >
-                        {typeLabel(item.type)}
-                      </span>
+                      {item.type && (
+                        <span
+                          className={`${tag} ${
+                            prefs.colors ? typeChip(item.type) : NEUTRAL_CHIP
+                          }`}
+                        >
+                          {typeLabel(item.type)}
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 px-3">
                       {space && (
@@ -706,7 +709,7 @@ const WorkTracker = ({ user }) => {
                               {space.name}
                             </button>
                           )}
-                          <span>{typeLabel(item.type)}</span>
+                          {item.type && <span>{typeLabel(item.type)}</span>}
                           <span
                             className={
                               isOverdue ? "text-destructive" : ""

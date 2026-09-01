@@ -16,7 +16,6 @@ import {
   DEFAULT_MODE,
   MS_PER_DAY,
   toDateKey,
-  typeLabel,
 } from "../constants/work";
 
 const TYPE_ALIASES = {
@@ -415,7 +414,6 @@ export function parseQuick(input, options = {}) {
     }
 
     if (!found.mode && has(MODE_WORDS, token)) {
-      if (MODE_WORDS[token] === "meeting" && !found.type) found.type = "other";
       found.mode = "event";
       end -= 1;
       continue;
@@ -436,19 +434,18 @@ export function parseQuick(input, options = {}) {
 
   const titleTokens = tokens.slice(0, end + 1);
 
-  // A class name is user-defined vocabulary, so unlike the generic bare words
-  // it's safe to pull out of the middle of a line: "Multi WS2" -> Multi + WS2.
-  // Confident matches only (exact / prefix / word-prefix), and never if it
-  // would leave nothing behind.
+  // A class named inside the title tags the item but stays in the title:
+  // "Scioly Orientation" is still called "Scioly Orientation". Only trailing
+  // tags (handled by the suffix scan above) get consumed. Confident matches
+  // only — exact, prefix or word-prefix.
   if (!found.spaceId && !found.newSpaceName) {
-    for (let index = 0; index < titleTokens.length; index += 1) {
-      const token = clean(titleTokens[index]);
-      if (token.length < 2 || titleTokens.length < 2) continue;
+    for (const raw of titleTokens) {
+      const token = clean(raw);
+      if (token.length < 2) continue;
 
       const space = matchSpaces(token, spaces, 2)[0];
       if (space) {
         found.spaceId = space.id;
-        titleTokens.splice(index, 1);
         break;
       }
     }
@@ -474,7 +471,8 @@ export function parseQuick(input, options = {}) {
 
   return {
     ...found,
-    title: title || (found.type ? typeLabel(found.type) : ""),
+    title,
+    // No type unless the line said one — better blank than a wrong guess.
     type: WORK_TYPE_IDS.includes(found.type) ? found.type : DEFAULT_TYPE,
     priority: PRIORITY_IDS.includes(found.priority)
       ? found.priority

@@ -33,11 +33,20 @@ test("bare vocab in the middle of a title is left alone", () => {
   expect(parse("Test corrections #bio hw mon").title).toBe("Test corrections");
 });
 
-test("a class name is pulled out of the middle of a line", () => {
+test("a class named in the title tags the item but stays in the title", () => {
   const withMulti = [...spaces, { id: "s3", name: "Multivariable" }];
   const result = parseQuick("Multi WS2", { spaces: withMulti, now });
   expect(result.spaceId).toBe("s3");
-  expect(result.title).toBe("WS2");
+  expect(result.title).toBe("Multi WS2");
+
+  const event = parseQuick("Scioly Orientation 9/11 event", {
+    spaces: [...spaces, { id: "s4", name: "Scioly" }],
+    now,
+  });
+  expect(event.title).toBe("Scioly Orientation");
+  expect(event.spaceId).toBe("s4");
+  expect(event.mode).toBe("event");
+  expect(event.type).toBe(""); // no type unless the line said one
 
   // Never strips the only word there is.
   expect(parseQuick("bio", { spaces, now }).title).toBe("bio");
@@ -84,7 +93,7 @@ test("bare numbers are not times", () => {
 test("plain text gets defaults and nothing else", () => {
   const result = parse("email Mr. Chen");
   expect(result.title).toBe("email Mr. Chen");
-  expect(result.type).toBe("hw");
+  expect(result.type).toBe("");
   expect(result.priority).toBe("medium");
   expect(result.mode).toBe("due");
   expect(result.date).toBe("");

@@ -13,8 +13,9 @@ import {
   typeLabel,
 } from "../constants/work";
 
-const HINT =
-  '#class  /type  @3pm  *place  !!!  ·  "bio quiz fri" works without them';
+// Only the parts worth teaching. Times, locations and bare-word matching all
+// still parse — they just don't need a legend.
+const HINT = "#class   /type   !!!   fri";
 
 const QuickAdd = ({ spaces, onSubmit }) => {
   const [text, setText] = useState("");
@@ -155,7 +156,7 @@ const QuickAdd = ({ spaces, onSubmit }) => {
             setShowHint(false);
             setCaret(-1);
           }}
-          placeholder="Cell lab writeup #bio lab fri !!!"
+          placeholder="Multi WS2 #multi /hw fri"
           className="flex-grow border border-border rounded-md px-4 py-2 text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Quick add"
         />
