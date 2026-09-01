@@ -7,6 +7,7 @@ import Navbar from "./components/Navbar";
 import SignIn from "./components/SignIn";
 
 import TaskManager from "./components/TaskManager";
+import WorkTracker from "./components/WorkTracker";
 import KnowledgeBase from "./components/KnowledgeBase";
 import DailyScheduler from "./components/DailyScheduler";
 import FocusTimer from "./components/FocusTimer";
@@ -17,7 +18,7 @@ import UserSettings from "./components/UserSettings";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("tasks");
+  const [activeTab, setActiveTab] = useState("work");
   const { isDarkMode } = useDarkMode();
 
   useEffect(() => {
@@ -30,6 +31,7 @@ function App() {
   }, []);
 
   const navItems = [
+    { id: "work", label: "Work", component: <WorkTracker user={user} /> },
     { id: "tasks", label: "Tasks", component: <TaskManager user={user} /> },
     {
       id: "notes",
@@ -58,7 +60,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-blue-100 dark:bg-gray-900 dark:text-white">
+      <div className="h-screen flex items-center justify-center bg-background dark:text-white">
         Loading...
       </div>
     );
@@ -69,7 +71,7 @@ function App() {
   }
 
   return (
-    <div className="bg-blue-100 dark:bg-gray-900 min-h-screen flex flex-col transition-colors duration-200">
+    <div className="bg-background min-h-screen flex flex-col transition-colors duration-200">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}

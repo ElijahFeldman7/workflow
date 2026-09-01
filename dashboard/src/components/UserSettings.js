@@ -1,8 +1,31 @@
 import React, { useState } from "react";
 import { useDarkMode } from "../context/DarkModeContext";
+import { PALETTES, usePalette } from "../lib/theme";
+import { useWorkPrefs } from "../lib/workPrefs";
+import SpaceManager from "./SpaceManager";
+
+const Switch = ({ on, onClick, label }) => (
+  <button
+    onClick={onClick}
+    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+      on ? "bg-blue-600" : "bg-muted-foreground/40"
+    }`}
+    role="switch"
+    aria-checked={on}
+    aria-label={label}
+  >
+    <span
+      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+        on ? "translate-x-6" : "translate-x-1"
+      }`}
+    />
+  </button>
+);
 
 const UserSettings = ({ user }) => {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const [palette, setPalette] = usePalette();
+  const [workPrefs, setWorkPref] = useWorkPrefs();
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem("notificationsEnabled");
     return saved !== null ? JSON.parse(saved) : true;
@@ -46,14 +69,14 @@ const UserSettings = ({ user }) => {
     fallbackAvatar;
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 max-w-2xl mx-auto transition-colors duration-200">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+    <div className="bg-card shadow rounded-lg p-6 max-w-2xl mx-auto transition-colors duration-200">
+      <h2 className="text-2xl font-bold mb-6 text-foreground">
         Settings
       </h2>
 
       {/* Profile Section */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Profile
         </h3>
         <div className="flex items-center gap-4">
@@ -68,10 +91,10 @@ const UserSettings = ({ user }) => {
             }}
           />
           <div>
-            <p className="text-lg font-medium text-gray-900 dark:text-white">
+            <p className="text-lg font-medium text-foreground">
               {user?.displayName || "User"}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {user?.email}
             </p>
           </div>
@@ -80,22 +103,22 @@ const UserSettings = ({ user }) => {
 
       {/* Appearance Section */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Appearance
         </h3>
         <div className="flex items-center justify-between py-3">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-sm font-medium text-foreground">
               Dark Mode
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Toggle between light and dark theme
             </p>
           </div>
           <button
             onClick={toggleDarkMode}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              isDarkMode ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+              isDarkMode ? "bg-blue-600" : "bg-muted-foreground/40"
             }`}
             role="switch"
             aria-checked={isDarkMode}
@@ -107,26 +130,98 @@ const UserSettings = ({ user }) => {
             />
           </button>
         </div>
+
+        <div className="py-3">
+          <p className="text-sm font-medium text-foreground">
+            Color Theme
+          </p>
+          <p className="text-sm text-muted-foreground mb-3">
+            Dark mode still picks light or dark within the theme
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {PALETTES.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setPalette(option.id)}
+                aria-pressed={palette === option.id}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                  palette === option.id
+                    ? "border-gray-400 dark:border-gray-400 text-foreground"
+                    : "border-border text-muted-foreground hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{ backgroundColor: option.swatch }}
+                />
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Work Section */}
+      <section className="mb-8">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
+          Work
+        </h3>
+
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Table View
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Notion-style columns instead of a grouped list
+            </p>
+          </div>
+          <Switch
+            on={workPrefs.table}
+            onClick={() => setWorkPref("table", !workPrefs.table)}
+            label="Table view"
+          />
+        </div>
+
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Class Colors
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Color-code classes, types and priorities
+            </p>
+          </div>
+          <Switch
+            on={workPrefs.colors}
+            onClick={() => setWorkPref("colors", !workPrefs.colors)}
+            label="Class colors"
+          />
+        </div>
+
+        <div className="pt-4">
+          <SpaceManager user={user} />
+        </div>
       </section>
 
       {/* Notifications Section */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Notifications
         </h3>
         <div className="flex items-center justify-between py-3">
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <p className="text-sm font-medium text-foreground">
               Enable Notifications
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Receive notifications for reminders and alerts
             </p>
           </div>
           <button
             onClick={() => handleNotificationsChange(!notifications)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              notifications ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+              notifications ? "bg-blue-600" : "bg-muted-foreground/40"
             }`}
             role="switch"
             aria-checked={notifications}
@@ -142,16 +237,16 @@ const UserSettings = ({ user }) => {
 
       {/* Focus Timer Settings */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Focus Timer
         </h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-sm font-medium text-foreground">
                 Focus Duration
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Length of each focus session (minutes)
               </p>
             </div>
@@ -160,7 +255,7 @@ const UserSettings = ({ user }) => {
               onChange={(e) =>
                 handleFocusDurationChange(parseInt(e.target.value, 10))
               }
-              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={15}>15 min</option>
               <option value={20}>20 min</option>
@@ -172,10 +267,10 @@ const UserSettings = ({ user }) => {
           </div>
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-sm font-medium text-foreground">
                 Break Duration
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Length of break between sessions (minutes)
               </p>
             </div>
@@ -184,7 +279,7 @@ const UserSettings = ({ user }) => {
               onChange={(e) =>
                 handleBreakDurationChange(parseInt(e.target.value, 10))
               }
-              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={3}>3 min</option>
               <option value={5}>5 min</option>
@@ -197,18 +292,18 @@ const UserSettings = ({ user }) => {
 
       {/* About Section */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           About
         </h3>
-        <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+        <div className="text-sm text-muted-foreground space-y-1">
           <p>
-            <span className="font-medium text-gray-700 dark:text-gray-300">
+            <span className="font-medium text-foreground">
               Version:
             </span>{" "}
             1.0.0
           </p>
           <p>
-            <span className="font-medium text-gray-700 dark:text-gray-300">
+            <span className="font-medium text-foreground">
               Workflow
             </span>{" "}
             - Your personal productivity dashboard

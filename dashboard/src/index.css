@@ -1,3 +1,279 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================================
+   Theme tokens. :root / .dark below is Original — the app's
+   own look, and the default with no palette selected. Named
+   palettes override via [data-palette]; the sun/moon toggle
+   still picks light vs dark within each one.
+   Values are HSL triplets so Tailwind can apply opacity.
+   ============================================================ */
+
+/* Original (light) */
+:root {
+  --background: 214 95% 93%;         /* blue-100 */
+  --foreground: 221 39% 11%;         /* gray-900 */
+  --card: 0 0% 100%;
+  --card-foreground: 221 39% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 221 39% 11%;
+  --primary: 221 83% 53%;            /* blue-600 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 9% 46%;           /* gray-500 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 220 14% 96%;              /* gray-100 */
+  --muted-foreground: 220 9% 46%;    /* gray-500 */
+  --accent: 217 91% 60%;             /* blue-500 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;          /* red-600 */
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --warning: 38 92% 50%;
+  --border: 220 13% 91%;             /* gray-200 */
+  --input: 220 13% 91%;
+  --ring: 217 91% 60%;
+}
+
+/* Original (dark) */
+.dark {
+  --background: 221 39% 11%;         /* gray-900 */
+  --foreground: 0 0% 100%;
+  --card: 215 28% 17%;               /* gray-800 */
+  --card-foreground: 0 0% 100%;
+  --popover: 215 28% 17%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 217 91% 60%;            /* blue-500 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 218 11% 65%;          /* gray-400 */
+  --secondary-foreground: 221 39% 11%;
+  --muted: 217 19% 27%;              /* gray-700 */
+  --muted-foreground: 218 11% 65%;   /* gray-400 */
+  --accent: 213 94% 68%;             /* blue-400 */
+  --accent-foreground: 221 39% 11%;
+  --destructive: 0 91% 71%;          /* red-400 */
+  --destructive-foreground: 221 39% 11%;
+  --success: 142 69% 58%;
+  --warning: 43 96% 56%;
+  --border: 217 19% 27%;             /* gray-700 */
+  --input: 217 19% 27%;
+  --ring: 217 91% 60%;
+}
+
+/* Catppuccin (Latte light / Mocha dark) */
+[data-palette="catppuccin"] {
+  --background: 220 23% 95%;
+  --foreground: 234 16% 35%;
+  --card: 0 0% 100%;
+  --card-foreground: 234 16% 35%;
+  --popover: 220 22% 92%;
+  --popover-foreground: 234 16% 35%;
+  --primary: 266 85% 58%;
+  --primary-foreground: 220 23% 95%;
+  --secondary: 220 91% 54%;
+  --secondary-foreground: 220 23% 95%;
+  --muted: 223 16% 83%;
+  --muted-foreground: 233 10% 47%;
+  --accent: 35 77% 49%;
+  --accent-foreground: 220 23% 95%;
+  --destructive: 347 87% 44%;
+  --destructive-foreground: 220 23% 95%;
+  --success: 109 58% 40%;
+  --warning: 35 77% 49%;
+  --border: 225 14% 77%;
+  --input: 225 14% 77%;
+  --ring: 266 85% 58%;
+}
+[data-palette="catppuccin"].dark {
+  --background: 240 21% 15%;
+  --foreground: 226 64% 88%;
+  --card: 240 21% 12%;
+  --card-foreground: 226 64% 88%;
+  --popover: 240 21% 12%;
+  --popover-foreground: 226 64% 88%;
+  --primary: 267 84% 81%;
+  --primary-foreground: 240 21% 15%;
+  --secondary: 217 92% 76%;
+  --secondary-foreground: 240 21% 15%;
+  --muted: 240 13% 23%;
+  --muted-foreground: 228 24% 72%;
+  --accent: 41 86% 83%;
+  --accent-foreground: 240 21% 15%;
+  --destructive: 343 81% 75%;
+  --destructive-foreground: 240 21% 15%;
+  --success: 115 54% 76%;
+  --warning: 41 86% 83%;
+  --border: 234 13% 31%;
+  --input: 234 13% 31%;
+  --ring: 267 84% 81%;
+}
+
+/* Navy (navy + orange) */
+[data-palette="navy"] {
+  --background: 222 30% 93%;
+  --foreground: 222 20% 9%;
+  --card: 222 25% 96%;
+  --card-foreground: 222 20% 9%;
+  --popover: 222 25% 96%;
+  --popover-foreground: 222 20% 9%;
+  --primary: 22 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 50% 45%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 222 20% 87%;
+  --muted-foreground: 222 12% 40%;
+  --accent: 50 100% 50%;
+  --accent-foreground: 222 20% 9%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --warning: 48 96% 53%;
+  --border: 222 20% 82%;
+  --input: 222 20% 82%;
+  --ring: 22 100% 50%;
+}
+[data-palette="navy"].dark {
+  --background: 222 25% 11%;
+  --foreground: 220 15% 92%;
+  --card: 222 22% 14%;
+  --card-foreground: 220 15% 92%;
+  --popover: 222 22% 14%;
+  --popover-foreground: 220 15% 92%;
+  --primary: 22 100% 60%;
+  --primary-foreground: 222 25% 11%;
+  --secondary: 222 45% 58%;
+  --secondary-foreground: 222 25% 11%;
+  --muted: 222 22% 18%;
+  --muted-foreground: 220 12% 62%;
+  --accent: 50 100% 62%;
+  --accent-foreground: 222 30% 7%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 220 15% 92%;
+  --success: 142 71% 45%;
+  --warning: 48 96% 53%;
+  --border: 222 18% 22%;
+  --input: 222 18% 22%;
+  --ring: 22 100% 60%;
+}
+
+/* Tokyo Night (Day light / Night dark) */
+[data-palette="tokyo"] {
+  --background: 230 11% 89%;
+  --foreground: 222 55% 48%;
+  --card: 230 12% 93%;
+  --card-foreground: 222 55% 48%;
+  --popover: 230 12% 93%;
+  --popover-foreground: 222 55% 48%;
+  --primary: 215 81% 55%;
+  --primary-foreground: 230 11% 97%;
+  --secondary: 266 85% 64%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 225 26% 85%;
+  --muted-foreground: 230 25% 61%;
+  --accent: 195 100% 30%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 343 91% 56%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 89 34% 34%;
+  --warning: 36 39% 40%;
+  --border: 230 25% 73%;
+  --input: 230 25% 73%;
+  --ring: 215 81% 55%;
+}
+[data-palette="tokyo"].dark {
+  --background: 235 19% 13%;
+  --foreground: 229 73% 86%;
+  --card: 240 16% 10%;
+  --card-foreground: 229 73% 86%;
+  --popover: 240 16% 10%;
+  --popover-foreground: 229 73% 86%;
+  --primary: 221 89% 72%;
+  --primary-foreground: 235 19% 13%;
+  --secondary: 261 85% 79%;
+  --secondary-foreground: 235 19% 13%;
+  --muted: 228 23% 21%;
+  --muted-foreground: 229 35% 75%;
+  --accent: 202 100% 75%;
+  --accent-foreground: 235 19% 13%;
+  --destructive: 349 89% 72%;
+  --destructive-foreground: 235 19% 13%;
+  --success: 89 51% 61%;
+  --warning: 36 66% 64%;
+  --border: 229 24% 31%;
+  --input: 229 24% 31%;
+  --ring: 221 89% 72%;
+}
+
+/* Matcha (warm-cream light / deep-green dark) */
+[data-palette="matcha"] {
+  --background: 80 26% 92%;
+  --foreground: 120 14% 22%;
+  --card: 75 33% 95%;
+  --card-foreground: 120 14% 22%;
+  --popover: 75 33% 95%;
+  --popover-foreground: 120 14% 22%;
+  --primary: 105 30% 40%;
+  --primary-foreground: 75 33% 96%;
+  --secondary: 32 40% 45%;
+  --secondary-foreground: 75 33% 96%;
+  --muted: 88 22% 85%;
+  --muted-foreground: 103 9% 42%;
+  --accent: 40 68% 48%;
+  --accent-foreground: 75 33% 96%;
+  --destructive: 8 55% 46%;
+  --destructive-foreground: 75 33% 96%;
+  --success: 103 35% 34%;
+  --warning: 40 68% 48%;
+  --border: 90 22% 78%;
+  --input: 90 22% 78%;
+  --ring: 105 30% 40%;
+}
+[data-palette="matcha"].dark {
+  --background: 120 14% 11%;
+  --foreground: 93 28% 85%;
+  --card: 115 15% 14%;
+  --card-foreground: 93 28% 85%;
+  --popover: 115 15% 14%;
+  --popover-foreground: 93 28% 85%;
+  --primary: 90 34% 65%;
+  --primary-foreground: 120 14% 11%;
+  --secondary: 32 38% 60%;
+  --secondary-foreground: 120 14% 11%;
+  --muted: 112 12% 19%;
+  --muted-foreground: 97 12% 61%;
+  --accent: 41 66% 62%;
+  --accent-foreground: 120 14% 11%;
+  --destructive: 13 66% 63%;
+  --destructive-foreground: 120 14% 11%;
+  --success: 90 34% 65%;
+  --warning: 41 66% 62%;
+  --border: 100 14% 22%;
+  --input: 100 14% 22%;
+  --ring: 90 34% 65%;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}

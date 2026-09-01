@@ -111,22 +111,22 @@ const KnowledgeBase = ({ user }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden max-w-6xl mx-auto flex h-[600px] border border-gray-200 dark:border-gray-700 relative transition-colors duration-200">
+    <div className="bg-card shadow rounded-lg overflow-hidden max-w-6xl mx-auto flex h-[600px] border border-border relative transition-colors duration-200">
       <div
         className={`
-            bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ease-in-out
+            bg-gray-50 dark:bg-gray-900 border-r border-border flex flex-col transition-all duration-300 ease-in-out
             ${
               showSidebar ? "w-80 opacity-100" : "w-0 opacity-0 overflow-hidden"
             }
         `}
       >
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center min-w-[20rem]">
-          <h2 className="font-semibold text-gray-700 dark:text-gray-200">
+        <div className="p-4 border-b border-border flex justify-between items-center min-w-[20rem]">
+          <h2 className="font-semibold text-foreground">
             My Notes
           </h2>
           <button
             onClick={startNewNote}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+            className="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1"
             aria-label="Create new note"
           >
             <svg
@@ -148,7 +148,7 @@ const KnowledgeBase = ({ user }) => {
 
         <div className="overflow-y-auto flex-1 p-2 space-y-1 min-w-[20rem]">
           {notes.length === 0 && (
-            <div className="text-center text-gray-400 dark:text-gray-500 text-sm mt-10 px-4">
+            <div className="text-center text-muted-foreground text-sm mt-10 px-4">
               No notes yet.
             </div>
           )}
@@ -161,7 +161,7 @@ const KnowledgeBase = ({ user }) => {
                 group p-3 rounded-md cursor-pointer transition-all duration-200 relative
                 ${
                   activeNoteId === note.id
-                    ? "bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
+                    ? "bg-card shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
                     : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }
               `}
@@ -170,13 +170,13 @@ const KnowledgeBase = ({ user }) => {
               <h4
                 className={`text-sm font-medium mb-1 truncate pr-6 ${
                   !note.title
-                    ? "text-gray-400 dark:text-gray-500 italic"
-                    : "text-gray-800 dark:text-gray-200"
+                    ? "text-muted-foreground italic"
+                    : "text-foreground"
                 }`}
               >
                 {note.title || "Untitled Note"}
               </h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate h-4">
+              <p className="text-xs text-muted-foreground truncate h-4">
                 {note.content}
               </p>
 
@@ -204,11 +204,11 @@ const KnowledgeBase = ({ user }) => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 min-w-0">
-        <div className="h-12 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between px-4 bg-white dark:bg-gray-800 z-10">
+      <div className="flex-1 flex flex-col bg-card min-w-0">
+        <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-card z-10">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="text-gray-400 hover:text-foreground p-1.5 rounded-md hover:bg-muted/60 transition-colors"
             aria-label={showSidebar ? "Close sidebar" : "Open sidebar"}
           >
             <svg
@@ -228,7 +228,7 @@ const KnowledgeBase = ({ user }) => {
 
           {isSaving && (
             <span
-              className={`text-xs text-gray-400 dark:text-gray-500 italic transition-opacity duration-300 opacity-100`}
+              className={`text-xs text-muted-foreground italic transition-opacity duration-300 opacity-100`}
             >
               Saving...
             </span>
@@ -241,7 +241,7 @@ const KnowledgeBase = ({ user }) => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled Note"
-            className="text-3xl font-bold text-neutral-800 dark:text-white placeholder-neutral-300 dark:placeholder-gray-600 p-0 mb-4 bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent"
+            className="text-3xl font-bold text-foreground placeholder-neutral-300 dark:placeholder-gray-600 p-0 mb-4 bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent"
             style={{ boxShadow: "none", outline: "none" }}
             aria-label="Note title"
           />

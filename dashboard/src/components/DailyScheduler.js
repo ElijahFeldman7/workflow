@@ -1,6 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { database } from "../firebase";
 import { ref, onValue, update } from "firebase/database";
+import {
+  colorOf,
+  formatTime,
+  hourLabelFor,
+  normalizeItem,
+  normalizeSpace,
+  priorityOf,
+  toDateKey,
+  typeLabel,
+} from "../constants/work";
 
 const DailyScheduler = ({ user }) => {
   // Default time range settings
@@ -14,6 +24,8 @@ const DailyScheduler = ({ user }) => {
   const [tempEndHour, setTempEndHour] = useState(19);
   const [pendingChanges, setPendingChanges] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [workItems, setWorkItems] = useState([]);
+  const [spaces, setSpaces] = useState([]);
 
   // Debounce timer ref
   const saveTimerRef = useRef(null);
@@ -31,10 +43,9 @@ const DailyScheduler = ({ user }) => {
 
   const hours = generateHours();
 
-  // Format date as YYYY-MM-DD for Firebase key
-  const formatDateKey = (date) => {
-    return date.toISOString().split("T")[0];
-  };
+  // Format date as YYYY-MM-DD for Firebase key. Local, not UTC — toISOString()
+  // rolls the day over for anyone editing in the evening.
+  const formatDateKey = (date) => toDateKey(date);
 
   // Format date for display
   const formatDisplayDate = (date) => {
@@ -102,6 +113,71 @@ const DailyScheduler = ({ user }) => {
       unsubscribeEvents();
     };
   }, [user, selectedDate]);
+
+  // Assignments and events from the Work tab, shown read-only on the schedule
+  useEffect(() => {
+    if (!user) return;
+
+    const workRef = ref(database, `users/${user.uid}/work`);
+    const spacesRef = ref(database, `users/${user.uid}/spaces`);
+
+    const unsubscribeWork = onValue(workRef, (snapshot) => {
+      const data = snapshot.val();
+      setWorkItems(
+        data ? Object.entries(data).map(([key, value]) => normalizeItem(key, value)) : []
+      );
+    });
+
+    const unsubscribeSpaces = onValue(spacesRef, (snapshot) => {
+      const data = snapshot.val();
+      setSpaces(
+        data ? Object.entries(data).map(([key, value]) => normalizeSpace(key, value)) : []
+      );
+    });
+
+    return () => {
+      if (typeof unsubscribeWork === "function") unsubscribeWork();
+      if (typeof unsubscribeSpaces === "function") unsubscribeSpaces();
+    };
+  }, [user]);
+
+  const spaceById = useMemo(() => {
+    const map = new Map();
+    spaces.forEach((space) => map.set(space.id, space));
+    return map;
+  }, [spaces]);
+
+  const dayItems = useMemo(() => {
+    const dateKey = formatDateKey(selectedDate);
+    return workItems.filter((item) => item.when.date === dateKey);
+  }, [workItems, selectedDate]);
+
+  const dueToday = useMemo(
+    () => dayItems.filter((item) => item.when.mode === "due"),
+    [dayItems]
+  );
+
+  // Timed events land in their hour row; untimed ones stay in the banner.
+  const eventsByHour = useMemo(() => {
+    const map = new Map();
+    dayItems.forEach((item) => {
+      if (item.when.mode !== "event") return;
+      const label = hourLabelFor(item.when.time);
+      if (!label) return;
+      const list = map.get(label) || [];
+      list.push(item);
+      map.set(label, list);
+    });
+    return map;
+  }, [dayItems]);
+
+  // Events with no time, or a time outside the visible hour range, would
+  // otherwise disappear — they go in the banner instead.
+  const bannerEvents = dayItems.filter((item) => {
+    if (item.when.mode !== "event") return false;
+    const label = hourLabelFor(item.when.time);
+    return !label || !hours.includes(label);
+  });
 
   // Debounced save to Firebase
   const saveToFirebase = useCallback(
@@ -217,13 +293,13 @@ const DailyScheduler = ({ user }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-md p-6 max-w-4xl mx-auto transition-colors duration-200">
+    <div className="bg-card shadow rounded-md p-6 max-w-4xl mx-auto transition-colors duration-200">
       {/* Header with Settings */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <button
             onClick={goToPreviousDay}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-md hover:bg-muted/60 transition-colors"
             aria-label="Previous day"
           >
             <svg
@@ -243,7 +319,7 @@ const DailyScheduler = ({ user }) => {
           </button>
 
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-neutral-800 dark:text-white">
+            <h2 className="text-xl font-semibold text-foreground">
               {isToday(selectedDate)
                 ? "Today's Schedule"
                 : formatDisplayDate(selectedDate)}
@@ -251,7 +327,7 @@ const DailyScheduler = ({ user }) => {
             {!isToday(selectedDate) && (
               <button
                 onClick={goToToday}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-1"
+                className="text-sm text-primary hover:text-primary/80 mt-1"
               >
                 Go to today
               </button>
@@ -260,7 +336,7 @@ const DailyScheduler = ({ user }) => {
 
           <button
             onClick={goToNextDay}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-md hover:bg-muted/60 transition-colors"
             aria-label="Next day"
           >
             <svg
@@ -282,14 +358,14 @@ const DailyScheduler = ({ user }) => {
 
         <div className="flex items-center gap-2">
           {isSaving && (
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-muted-foreground">
               Saving...
             </span>
           )}
           {!isEditing && (
             <button
               onClick={startEditing}
-              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="text-muted-foreground hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-full hover:bg-muted/60 transition-colors"
               title="Edit Time Range"
               aria-label="Edit time range"
             >
@@ -320,18 +396,18 @@ const DailyScheduler = ({ user }) => {
       {/* Settings Panel */}
       {isEditing && (
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border dark:border-gray-600">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">
+          <h3 className="text-sm font-medium text-foreground mb-3">
             Time Range Settings
           </h3>
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-300">
+              <label className="text-sm text-muted-foreground">
                 Start:
               </label>
               <select
                 value={tempStartHour}
                 onChange={(e) => setTempStartHour(Number(e.target.value))}
-                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900"
+                className="border border-border bg-card text-foreground rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
                 {hourOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -341,13 +417,13 @@ const DailyScheduler = ({ user }) => {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-300">
+              <label className="text-sm text-muted-foreground">
                 End:
               </label>
               <select
                 value={tempEndHour}
                 onChange={(e) => setTempEndHour(Number(e.target.value))}
-                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900"
+                className="border border-border bg-card text-foreground rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
                 {hourOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -359,13 +435,13 @@ const DailyScheduler = ({ user }) => {
             <div className="flex gap-2 ml-auto">
               <button
                 onClick={cancelEditing}
-                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                className="px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded-md transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={saveSettings}
-                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
               >
                 Save
               </button>
@@ -383,13 +459,70 @@ const DailyScheduler = ({ user }) => {
             const [year, month, day] = e.target.value.split("-").map(Number);
             setSelectedDate(new Date(year, month - 1, day));
           }}
-          className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 dark:[color-scheme:dark]"
+          className="border border-border bg-background text-foreground rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring/40 dark:[color-scheme:dark]"
         />
       </div>
 
+      {/* Work due or happening on this day, pulled from the Work tab */}
+      {(dueToday.length > 0 || bannerEvents.length > 0) && (
+        <div className="mb-6 p-4 rounded-lg bg-muted/40 border border-gray-200 dark:border-gray-600">
+          {dueToday.length > 0 && (
+            <div>
+              <h3 className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-2">
+                Due this day
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {dueToday.map((item) => {
+                  const space = spaceById.get(item.spaceId);
+                  const color = colorOf(space?.color);
+                  return (
+                    <span
+                      key={item.id}
+                      className={`text-xs px-2.5 py-1 rounded-full ${color.chip} ${
+                        item.done ? "line-through opacity-60" : ""
+                      }`}
+                      title={[typeLabel(item.type), priorityOf(item.priority).label]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    >
+                      {item.title}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {bannerEvents.length > 0 && (
+            <div className={dueToday.length > 0 ? "mt-4" : ""}>
+              <h3 className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-2">
+                Events
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {bannerEvents.map((item) => {
+                  const space = spaceById.get(item.spaceId);
+                  const color = colorOf(space?.color);
+                  const start = formatTime(item.when.time);
+                  return (
+                    <span
+                      key={item.id}
+                      className={`text-xs px-2.5 py-1 rounded-full ${color.chip}`}
+                    >
+                      {item.title}
+                      {start ? ` · ${start}` : ""}
+                      {item.location ? ` · ${item.location}` : ""}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Loading State */}
       {isLoading && (
-        <div className="text-gray-500 dark:text-gray-400 text-center py-4">
+        <div className="text-muted-foreground text-center py-4">
           Loading schedule...
         </div>
       )}
@@ -399,23 +532,50 @@ const DailyScheduler = ({ user }) => {
         <div className="schedule-grid grid grid-cols-[80px_1fr] gap-1">
           {hours.map((hour) => (
             <React.Fragment key={hour}>
-              <div className="time-slot bg-gray-100 dark:bg-gray-700 p-4 border dark:border-gray-600 rounded text-center font-medium text-sm text-gray-700 dark:text-gray-200">
+              <div className="time-slot bg-muted p-4 border dark:border-gray-600 rounded text-center font-medium text-sm text-foreground">
                 {hour}
               </div>
-              <textarea
-                value={getEventText(hour)}
-                onChange={(e) => handleEventChange(hour, e.target.value)}
-                className="event-slot p-4 border dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:bg-white dark:focus:bg-gray-600 text-gray-800 dark:text-gray-200 min-h-[50px] w-full resize-none"
-                rows={2}
-                aria-label={`Event for ${hour}`}
-              />
+              <div>
+                {(eventsByHour.get(hour) || []).map((item) => {
+                  const space = spaceById.get(item.spaceId);
+                  const color = colorOf(space?.color);
+                  const start = formatTime(item.when.time);
+                  const end = formatTime(item.when.endTime);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`text-xs px-3 py-1.5 mb-1 rounded ${color.chip}`}
+                      title={space ? space.name : "No class"}
+                    >
+                      <span className="font-medium">{item.title}</span>
+                      {start && (
+                        <span className="opacity-75">
+                          {" "}
+                          · {start}
+                          {end ? `–${end}` : ""}
+                        </span>
+                      )}
+                      {item.location && (
+                        <span className="opacity-75"> · {item.location}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                <textarea
+                  value={getEventText(hour)}
+                  onChange={(e) => handleEventChange(hour, e.target.value)}
+                  className="event-slot p-4 border dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:bg-white dark:focus:bg-gray-600 text-foreground min-h-[50px] w-full resize-none"
+                  rows={2}
+                  aria-label={`Event for ${hour}`}
+                />
+              </div>
             </React.Fragment>
           ))}
         </div>
       )}
 
       {/* Helper Text */}
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
+      <p className="text-sm text-muted-foreground mt-4 text-center">
         Type in any time slot to add or edit events. Changes are saved
         automatically 2 seconds after you stop typing.
       </p>
