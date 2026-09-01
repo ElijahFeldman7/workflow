@@ -10,8 +10,7 @@ import {
   child,
 } from "firebase/database";
 import {
-  PALETTE,
-  PALETTE_KEYS,
+  PALETTE_ENTRIES,
   SPACE_KINDS,
   DEFAULT_COLOR,
   DEFAULT_SPACE_KIND,
@@ -31,15 +30,15 @@ const blankDraft = () => ({
 
 const ColorPicker = ({ value, onChange }) => (
   <div className="flex flex-wrap gap-2">
-    {PALETTE_KEYS.map((key) => (
+    {PALETTE_ENTRIES.map(([key, color]) => (
       <button
         key={key}
         type="button"
         onClick={() => onChange(key)}
-        title={PALETTE[key].label}
-        aria-label={`Color ${PALETTE[key].label}`}
+        title={color.label}
+        aria-label={`Color ${color.label}`}
         aria-pressed={value === key}
-        className={`h-6 w-6 rounded-full ${PALETTE[key].swatch} transition-transform hover:scale-110 ${
+        className={`h-6 w-6 rounded-full ${color.swatch} transition-transform hover:scale-110 ${
           value === key
             ? "ring-2 ring-offset-2 ring-gray-500 dark:ring-gray-300 dark:ring-offset-gray-800"
             : ""
@@ -158,7 +157,7 @@ const SpaceManager = ({ user }) => {
       (snapshot) => {
         const data = snapshot.val();
         const loaded = data
-          ? Object.keys(data).map((key) => normalizeSpace(key, data[key]))
+          ? Object.entries(data).map(([key, value]) => normalizeSpace(key, value))
           : [];
         loaded.sort((a, b) => a.order - b.order || a.createdAt - b.createdAt);
         setSpaces(loaded);
@@ -171,7 +170,7 @@ const SpaceManager = ({ user }) => {
         const data = snapshot.val();
         setItems(
           data
-            ? Object.keys(data).map((key) => normalizeItem(key, data[key]))
+            ? Object.entries(data).map(([key, value]) => normalizeItem(key, value))
             : []
         );
       }

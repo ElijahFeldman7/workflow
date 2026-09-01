@@ -14,6 +14,7 @@ import {
   DEFAULT_TYPE,
   DEFAULT_PRIORITY,
   DEFAULT_MODE,
+  MS_PER_DAY,
   toDateKey,
   typeLabel,
 } from "../constants/work";
@@ -227,7 +228,7 @@ function monthDay(month, day, now) {
   const date = new Date(now.getFullYear(), month, day);
   if (date.getMonth() !== month) return null;
   // More than six months back almost certainly means next year.
-  if (startOfDay(now) - date > 182 * 86400000)
+  if (startOfDay(now) - date > 182 * MS_PER_DAY)
     date.setFullYear(date.getFullYear() + 1);
   return date;
 }

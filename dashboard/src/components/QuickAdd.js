@@ -101,7 +101,7 @@ const QuickAdd = ({ spaces, onSubmit }) => {
       }
       if (event.key === "Tab" || event.key === "Enter") {
         event.preventDefault();
-        applySuggestion(suggestions[highlight]);
+        applySuggestion(suggestions.at(highlight));
         return;
       }
       if (event.key === "Escape") {

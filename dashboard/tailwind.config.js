@@ -1,47 +1,58 @@
 /** @type {import('tailwindcss').Config} */
+
+// Theme tokens are defined as HSL triplets in index.css. This builds the
+// color value for one of them, honoring Tailwind's opacity modifiers
+// (bg-card/40) without the <alpha-value> placeholder string.
+const token =
+  (name) =>
+  ({ opacityValue }) =>
+    opacityValue === undefined
+      ? `hsl(var(${name}))`
+      : `hsl(var(${name}) / ${opacityValue})`;
+
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   darkMode: "class",
   theme: {
     extend: {
-      // Theme tokens defined in index.css. Every palette redefines the same
-      // variables, so these class names stay valid across all of them.
+      // Every palette redefines the same variables, so these class names stay
+      // valid across all of them.
       colors: {
-        border: "hsl(var(--border) / <alpha-value>)",
-        input: "hsl(var(--input) / <alpha-value>)",
-        ring: "hsl(var(--ring) / <alpha-value>)",
-        background: "hsl(var(--background) / <alpha-value>)",
-        foreground: "hsl(var(--foreground) / <alpha-value>)",
+        border: token("--border"),
+        input: token("--input"),
+        ring: token("--ring"),
+        background: token("--background"),
+        foreground: token("--foreground"),
         card: {
-          DEFAULT: "hsl(var(--card) / <alpha-value>)",
-          foreground: "hsl(var(--card-foreground) / <alpha-value>)",
+          DEFAULT: token("--card"),
+          foreground: token("--card-foreground"),
         },
         popover: {
-          DEFAULT: "hsl(var(--popover) / <alpha-value>)",
-          foreground: "hsl(var(--popover-foreground) / <alpha-value>)",
+          DEFAULT: token("--popover"),
+          foreground: token("--popover-foreground"),
         },
         primary: {
-          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
-          foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
+          DEFAULT: token("--primary"),
+          foreground: token("--primary-foreground"),
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
-          foreground: "hsl(var(--secondary-foreground) / <alpha-value>)",
+          DEFAULT: token("--secondary"),
+          foreground: token("--secondary-foreground"),
         },
         muted: {
-          DEFAULT: "hsl(var(--muted) / <alpha-value>)",
-          foreground: "hsl(var(--muted-foreground) / <alpha-value>)",
+          DEFAULT: token("--muted"),
+          foreground: token("--muted-foreground"),
         },
         accent: {
-          DEFAULT: "hsl(var(--accent) / <alpha-value>)",
-          foreground: "hsl(var(--accent-foreground) / <alpha-value>)",
+          DEFAULT: token("--accent"),
+          foreground: token("--accent-foreground"),
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
-          foreground: "hsl(var(--destructive-foreground) / <alpha-value>)",
+          DEFAULT: token("--destructive"),
+          foreground: token("--destructive-foreground"),
         },
-        success: "hsl(var(--success) / <alpha-value>)",
-        warning: "hsl(var(--warning) / <alpha-value>)",
+        success: token("--success"),
+        warning: token("--warning"),
       },
     },
   },

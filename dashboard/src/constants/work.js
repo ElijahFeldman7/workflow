@@ -103,13 +103,15 @@ export const PALETTE = {
   },
 };
 
-export const PALETTE_KEYS = Object.keys(PALETTE);
+export const PALETTE_ENTRIES = Object.entries(PALETTE);
+export const PALETTE_KEYS = PALETTE_ENTRIES.map(([key]) => key);
 export const DEFAULT_COLOR = "blue";
 
+// A Map keeps lookups of stored (i.e. untrusted) color names off the object.
+const PALETTE_BY_KEY = new Map(PALETTE_ENTRIES);
+
 export function colorOf(key) {
-  return Object.prototype.hasOwnProperty.call(PALETTE, key)
-    ? PALETTE[key]
-    : PALETTE[DEFAULT_COLOR];
+  return PALETTE_BY_KEY.get(key) || PALETTE_BY_KEY.get(DEFAULT_COLOR);
 }
 
 // A "space" is a class, a club, or a personal bucket. Same entity, same color
@@ -154,10 +156,10 @@ export const TYPE_CHIPS = {
 export const NEUTRAL_CHIP =
   "bg-muted text-muted-foreground";
 
+const TYPE_CHIP_BY_ID = new Map(Object.entries(TYPE_CHIPS));
+
 export function typeChip(id) {
-  return Object.prototype.hasOwnProperty.call(TYPE_CHIPS, id)
-    ? TYPE_CHIPS[id]
-    : TYPE_CHIPS.other;
+  return TYPE_CHIP_BY_ID.get(id) || TYPE_CHIPS.other;
 }
 
 export function typeLabel(id) {
@@ -243,12 +245,14 @@ export function addDaysKey(key, days) {
   return toDateKey(date);
 }
 
+export const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 // Whole days from today to the given key. Negative means the past.
 export function daysUntil(key, from = new Date()) {
   if (!isDateKey(key)) return null;
   const target = fromDateKey(key);
   const base = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  return Math.round((target - base) / 86400000);
+  return Math.round((target - base) / MS_PER_DAY);
 }
 
 export function formatTime(value) {

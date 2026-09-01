@@ -124,14 +124,14 @@ const DailyScheduler = ({ user }) => {
     const unsubscribeWork = onValue(workRef, (snapshot) => {
       const data = snapshot.val();
       setWorkItems(
-        data ? Object.keys(data).map((key) => normalizeItem(key, data[key])) : []
+        data ? Object.entries(data).map(([key, value]) => normalizeItem(key, value)) : []
       );
     });
 
     const unsubscribeSpaces = onValue(spacesRef, (snapshot) => {
       const data = snapshot.val();
       setSpaces(
-        data ? Object.keys(data).map((key) => normalizeSpace(key, data[key])) : []
+        data ? Object.entries(data).map(([key, value]) => normalizeSpace(key, value)) : []
       );
     });
 

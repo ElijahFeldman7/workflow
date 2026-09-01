@@ -277,7 +277,7 @@ const WorkTracker = ({ user }) => {
       (snapshot) => {
         const data = snapshot.val();
         const loaded = data
-          ? Object.keys(data).map((key) => normalizeSpace(key, data[key]))
+          ? Object.entries(data).map(([key, value]) => normalizeSpace(key, value))
           : [];
         loaded.sort((a, b) => a.order - b.order || a.createdAt - b.createdAt);
         setSpaces(loaded);
@@ -298,7 +298,7 @@ const WorkTracker = ({ user }) => {
         const data = snapshot.val();
         setItems(
           data
-            ? Object.keys(data).map((key) => normalizeItem(key, data[key]))
+            ? Object.entries(data).map(([key, value]) => normalizeItem(key, value))
             : []
         );
         setIsLoading(false);
