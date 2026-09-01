@@ -64,14 +64,14 @@ const QuickLinks = ({ user }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 max-w-6xl mx-auto border border-neutral-200 dark:border-gray-700 transition-colors duration-200">
+    <div className="bg-card shadow rounded-lg p-6 max-w-6xl mx-auto border border-neutral-200 dark:border-gray-700 transition-colors duration-200">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-neutral-800 dark:text-white">
+        <h2 className="text-xl font-semibold text-foreground">
           Quick Links
         </h2>
         <div className="flex items-center gap-3">
           {isSaving && (
-            <span className="text-xs text-neutral-400 dark:text-gray-500">
+            <span className="text-xs text-muted-foreground">
               Saving...
             </span>
           )}
@@ -126,10 +126,10 @@ const QuickLinks = ({ user }) => {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block h-full p-4 bg-white dark:bg-gray-700 border border-neutral-300 dark:border-gray-600 rounded hover:border-neutral-400 dark:hover:border-gray-500 transition-colors"
+                className="block h-full p-4 bg-background border border-neutral-300 dark:border-gray-600 rounded hover:border-neutral-400 dark:hover:border-gray-500 transition-colors"
                 aria-label={`${link.title} at ${link.url}`}
               >
-                <div className="font-medium text-neutral-800 dark:text-white text-base mb-1 truncate">
+                <div className="font-medium text-foreground text-base mb-1 truncate">
                   {link.title}
                 </div>
                 <div className="text-xs text-neutral-500 dark:text-gray-400 truncate">
@@ -137,9 +137,9 @@ const QuickLinks = ({ user }) => {
                 </div>
               </a>
             ) : (
-              <div className="block h-full p-4 bg-white dark:bg-gray-700 border border-dashed border-neutral-300 dark:border-gray-600 rounded">
+              <div className="block h-full p-4 bg-background border border-dashed border-neutral-300 dark:border-gray-600 rounded">
                 <div className="mb-3">
-                  <label className="text-[10px] text-neutral-400 dark:text-gray-500 uppercase font-bold tracking-wider">
+                  <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                     Title
                   </label>
                   <input
@@ -148,12 +148,12 @@ const QuickLinks = ({ user }) => {
                     onChange={(e) =>
                       handleChange(index, "title", e.target.value)
                     }
-                    className="w-full text-sm font-medium text-neutral-800 dark:text-white border-b border-neutral-200 dark:border-gray-600 focus:border-neutral-500 dark:focus:border-gray-400 outline-none pb-1 bg-transparent"
+                    className="w-full text-sm font-medium text-foreground border-b border-neutral-200 dark:border-gray-600 focus:border-neutral-500 dark:focus:border-gray-400 outline-none pb-1 bg-transparent"
                     aria-label={`Title`}
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-neutral-400 dark:text-gray-500 uppercase font-bold tracking-wider">
+                  <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                     URL
                   </label>
                   <input
@@ -166,7 +166,7 @@ const QuickLinks = ({ user }) => {
                 </div>
                 <button
                   onClick={() => deleteLink(index)}
-                  className="absolute -top-2 -right-2 bg-neutral-100 dark:bg-gray-600 text-neutral-400 dark:text-gray-300 border border-neutral-200 dark:border-gray-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-400"
+                  className="absolute -top-2 -right-2 bg-neutral-100 dark:bg-gray-600 text-neutral-400 dark:text-gray-300 border border-neutral-200 dark:border-gray-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:border-red-200 dark:hover:border-red-400"
                   aria-label={`Delete ${link.title}`}
                 >
                   <svg
@@ -191,7 +191,7 @@ const QuickLinks = ({ user }) => {
         {isEditing && (
           <button
             onClick={addNewLink}
-            className="flex flex-col items-center justify-center h-full min-h-[100px] p-4 border border-dashed border-neutral-300 dark:border-gray-600 rounded text-neutral-400 dark:text-gray-500 hover:bg-neutral-50 dark:hover:bg-gray-700 hover:text-neutral-600 dark:hover:text-gray-300 transition-colors"
+            className="flex flex-col items-center justify-center h-full min-h-[100px] p-4 border border-dashed border-neutral-300 dark:border-gray-600 rounded text-muted-foreground hover:bg-neutral-50 dark:hover:bg-gray-700 hover:text-neutral-600 dark:hover:text-gray-300 transition-colors"
             aria-label="Add new link"
           >
             <svg

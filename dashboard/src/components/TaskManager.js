@@ -72,9 +72,9 @@ const TaskManager = ({ user }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-md p-6 max-w-4xl mx-auto transition-colors duration-200">
+    <div className="bg-card shadow rounded-md p-6 max-w-4xl mx-auto transition-colors duration-200">
       <div className="pb-4">
-        <h2 className="text-xl font-semibold text-neutral-800 dark:text-white">
+        <h2 className="text-xl font-semibold text-foreground">
           tasks
         </h2>
       </div>
@@ -86,55 +86,55 @@ const TaskManager = ({ user }) => {
           onChange={(e) => setNewTask(e.target.value)}
           placeholder="add a task"
           required
-          className="flex-grow border border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+          className="flex-grow border border-border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring/40 bg-background text-foreground placeholder-muted-foreground"
           aria-label="New task"
         />
         <button
           type="submit"
-          className="bg-neutral-500 dark:bg-neutral-600 text-white px-5 py-2 rounded-md hover:bg-neutral-600 dark:hover:bg-neutral-500 transition-colors font-medium text-sm"
+          className="bg-primary text-primary-foreground px-5 py-2 rounded-md hover:bg-primary/90 transition-colors font-medium text-sm"
         >
           Add Task
         </button>
       </form>
 
       {isLoading && (
-        <div className="text-gray-500 dark:text-gray-400 text-center py-4">
+        <div className="text-muted-foreground text-center py-4">
           fetching tasks...
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-md mb-4 text-sm">
+        <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4 text-sm">
           {error}
         </div>
       )}
 
       {!isLoading && !error && tasks.length === 0 && (
-        <div className="text-gray-500 dark:text-gray-400 text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-dashed border-gray-300 dark:border-gray-600">
+        <div className="text-muted-foreground text-center py-8 bg-muted/40 rounded-md border border-dashed border-border">
           no tasks yet.
         </div>
       )}
 
-      <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+      <ul className="divide-y divide-border">
         {tasks.map((task) => (
           <li
             key={task.id}
-            className="group flex items-center justify-between py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 px-2 -mx-2 rounded transition-colors"
+            className="group flex items-center justify-between py-3 hover:bg-muted/40 px-2 -mx-2 rounded transition-colors"
           >
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={!!task.completed}
                 onChange={() => handleToggleTask(task)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer dark:bg-gray-700"
+                className="h-4 w-4 text-primary focus:ring-ring border-border rounded cursor-pointer dark:bg-gray-700"
                 aria-label={`Mark task ${task.text} as ${
                   task.completed ? "incomplete" : "complete"
                 }`}
               />
               <span
-                className={`text-gray-700 dark:text-gray-200 ${
+                className={`text-foreground ${
                   task.completed
-                    ? "line-through text-gray-400 dark:text-gray-500"
+                    ? "line-through text-muted-foreground"
                     : ""
                 }`}
               >
@@ -144,7 +144,7 @@ const TaskManager = ({ user }) => {
 
             <button
               onClick={() => handleDeleteTask(task.id)}
-              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-gray-400 hover:text-destructive p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Delete task"
               aria-label={`Delete task ${task.text}`}
             >

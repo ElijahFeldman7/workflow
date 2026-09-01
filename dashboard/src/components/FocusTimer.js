@@ -198,7 +198,7 @@ const FocusTimer = ({ user }) => {
 
   return (
     <div
-      className="absolute bg-white dark:bg-gray-800 shadow-2xl rounded-2xl border border-neutral-200 dark:border-gray-700 cursor-move select-none overflow-hidden resize-both transition-colors duration-200"
+      className="absolute bg-card shadow-2xl rounded-2xl border border-neutral-200 dark:border-gray-700 cursor-move select-none overflow-hidden resize-both transition-colors duration-200"
       onMouseDown={handleMouseDown}
       style={{
         left: "50%",
@@ -250,14 +250,14 @@ const FocusTimer = ({ user }) => {
             <span
               className={`inline-block px-3 py-1 text-sm font-medium mb-6 rounded ${
                 mode === "work"
-                  ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+                  ? "bg-blue-50 dark:bg-blue-900/50 text-primary"
                   : "bg-green-50 dark:bg-green-900/50 text-green-600 dark:text-green-400"
               }`}
             >
               {mode === "work" ? "get back to work!" : "be chill"}
             </span>
 
-            <div className="text-7xl font-light text-neutral-800 dark:text-white tabular-nums tracking-tight mb-8">
+            <div className="text-7xl font-light text-foreground tabular-nums tracking-tight mb-8">
               {formatTime(time)}
             </div>
 
@@ -274,7 +274,7 @@ const FocusTimer = ({ user }) => {
               </button>
               <button
                 onClick={resetTimer}
-                className="px-8 py-3 rounded-lg bg-white dark:bg-gray-700 border border-neutral-200 dark:border-gray-600 text-neutral-600 dark:text-gray-200 font-medium hover:bg-neutral-50 dark:hover:bg-gray-600 transition-colors"
+                className="px-8 py-3 rounded-lg bg-background border border-neutral-200 dark:border-gray-600 text-neutral-600 dark:text-gray-200 font-medium hover:bg-neutral-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Reset
               </button>
@@ -289,7 +289,7 @@ const FocusTimer = ({ user }) => {
           >
             <div className="grid grid-cols-2 gap-4 w-full mb-6 max-w-sm">
               <div className="p-4 rounded-lg text-center bg-blue-50/50 dark:bg-blue-900/30">
-                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider mb-1">
+                <div className="text-xs text-primary font-medium uppercase tracking-wider mb-1">
                   Study Time
                 </div>
                 <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
@@ -317,7 +317,7 @@ const FocusTimer = ({ user }) => {
                     type="number"
                     value={workDuration}
                     onChange={(e) => setWorkDuration(Number(e.target.value))}
-                    className="w-full border border-neutral-200 dark:border-gray-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full border border-neutral-200 dark:border-gray-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none bg-background text-foreground"
                   />
                 </div>
                 <div>
@@ -329,7 +329,7 @@ const FocusTimer = ({ user }) => {
                     type="number"
                     value={breakDuration}
                     onChange={(e) => setBreakDuration(Number(e.target.value))}
-                    className="w-full border border-neutral-200 dark:border-gray-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full border border-neutral-200 dark:border-gray-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none bg-background text-foreground"
                   />
                 </div>
               </div>

@@ -27,16 +27,16 @@ const Navbar = ({
     fallbackAvatar;
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 transition-colors duration-200">
+    <header className="bg-card border-b border-border sticky top-0 z-50 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-6">
             <div
               className="flex-shrink-0 flex items-center cursor-pointer gap-3"
-              onClick={() => setActiveTab("tasks")}
+              onClick={() => setActiveTab("work")}
             >
               <img className="h-8 w-8" src="/logo.png" alt="Workflow Logo" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              <span className="text-xl font-bold text-foreground tracking-tight">
                 Workflow
               </span>
             </div>
@@ -50,8 +50,8 @@ const Navbar = ({
                     px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
                     ${
                       activeTab === item.id
-                        ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
                     }
                   `}
                 >
@@ -65,7 +65,7 @@ const Navbar = ({
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
               aria-label={
                 isDarkMode ? "Switch to light mode" : "Switch to dark mode"
               }
@@ -109,7 +109,7 @@ const Navbar = ({
                     className={`flex items-center gap-3 max-w-xs p-1 pr-3 rounded-lg transition-colors duration-200 ease-in-out ${
                       isDropdownOpen
                         ? "bg-gray-200 dark:bg-gray-700"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        : "hover:bg-muted/60"
                     }`}
                   >
                     <img
@@ -123,7 +123,7 @@ const Navbar = ({
                           target.src = fallbackAvatar;
                       }}
                     />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hidden md:block">
+                    <span className="text-sm font-medium text-foreground hidden md:block">
                       {user.displayName}
                     </span>
                   </button>
@@ -135,12 +135,12 @@ const Navbar = ({
                         onClick={() => setIsDropdownOpen(false)}
                       ></div>
 
-                      <div className="select-none origin-top-right absolute right-0 mt-1 w-48 rounded-md py-2 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 shadow-lg z-20">
-                        <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="select-none origin-top-right absolute right-0 mt-1 w-48 rounded-md py-2 bg-card ring-1 ring-black ring-opacity-5 dark:ring-gray-700 shadow-lg z-20">
+                        <div className="px-4 py-2 border-b border-border">
+                          <p className="text-xs text-muted-foreground">
                             Signed in as
                           </p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {user.email}
                           </p>
                         </div>
@@ -150,7 +150,7 @@ const Navbar = ({
                             setIsDropdownOpen(false);
                             onOpenSettings();
                           }}
-                          className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          className="w-full text-left block px-4 py-2 text-sm text-foreground hover:bg-muted/40"
                         >
                           <span className="flex items-center gap-2">
                             <svg
@@ -181,7 +181,7 @@ const Navbar = ({
                             setIsDropdownOpen(false);
                             logout();
                           }}
-                          className="w-full text-left block px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          className="w-full text-left block px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:bg-muted/40"
                         >
                           Sign out
                         </button>

@@ -33,6 +33,9 @@ jest.mock("./firebase", () => ({
 jest.mock("./components/TaskManager", () => () => (
   <div data-testid="task-manager">TaskManager</div>
 ));
+jest.mock("./components/WorkTracker", () => () => (
+  <div data-testid="work-tracker">WorkTracker</div>
+));
 jest.mock("./components/KnowledgeBase", () => () => (
   <div data-testid="knowledge-base">KnowledgeBase</div>
 ));
@@ -97,16 +100,21 @@ describe("App component", () => {
       expect(screen.getByText("Tasks")).toBeInTheDocument();
     });
 
-    test("renders TaskManager by default", async () => {
+    test("renders WorkTracker by default", async () => {
       renderApp();
       await waitFor(() => {
-        expect(screen.getByTestId("task-manager")).toBeInTheDocument();
+        expect(screen.getByTestId("work-tracker")).toBeInTheDocument();
       });
-      expect(screen.getByText("Tasks")).toHaveClass("bg-blue-50 text-blue-700");
+      expect(screen.getByText("Work")).toHaveClass("bg-primary/15 text-primary");
     });
 
     test("switches tabs when clicking navigation items", async () => {
       renderApp();
+      await waitFor(() => {
+        expect(screen.getByTestId("work-tracker")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Tasks"));
       await waitFor(() => {
         expect(screen.getByTestId("task-manager")).toBeInTheDocument();
       });
@@ -116,10 +124,10 @@ describe("App component", () => {
         expect(screen.getByTestId("knowledge-base")).toBeInTheDocument();
       });
       expect(screen.getByText("Knowledge")).toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
       expect(screen.getByText("Tasks")).not.toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
 
       fireEvent.click(screen.getByText("Schedule"));
@@ -127,19 +135,19 @@ describe("App component", () => {
         expect(screen.getByTestId("daily-scheduler")).toBeInTheDocument();
       });
       expect(screen.getByText("Schedule")).toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
       expect(screen.getByText("Knowledge")).not.toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
 
       fireEvent.click(screen.getByText("Focus"));
       await waitFor(() => {
         expect(screen.getByTestId("focus-timer")).toBeInTheDocument();
       });
-      expect(screen.getByText("Focus")).toHaveClass("bg-blue-50 text-blue-700");
+      expect(screen.getByText("Focus")).toHaveClass("bg-primary/15 text-primary");
       expect(screen.getByText("Schedule")).not.toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
 
       fireEvent.click(screen.getByText("Habits"));
@@ -147,19 +155,19 @@ describe("App component", () => {
         expect(screen.getByTestId("habit-tracker")).toBeInTheDocument();
       });
       expect(screen.getByText("Habits")).toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
       expect(screen.getByText("Focus")).not.toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
 
       fireEvent.click(screen.getByText("Links"));
       await waitFor(() => {
         expect(screen.getByTestId("quick-links")).toBeInTheDocument();
       });
-      expect(screen.getByText("Links")).toHaveClass("bg-blue-50 text-blue-700");
+      expect(screen.getByText("Links")).toHaveClass("bg-primary/15 text-primary");
       expect(screen.getByText("Habits")).not.toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
     });
 
@@ -204,10 +212,10 @@ describe("App component", () => {
       });
     });
 
-    test("clicking logo switches to tasks tab", async () => {
+    test("clicking logo switches to work tab", async () => {
       renderApp();
       await waitFor(() => {
-        expect(screen.getByTestId("task-manager")).toBeInTheDocument();
+        expect(screen.getByTestId("work-tracker")).toBeInTheDocument();
       });
 
       // First switch to another tab
@@ -216,22 +224,23 @@ describe("App component", () => {
         expect(screen.getByTestId("knowledge-base")).toBeInTheDocument();
       });
       expect(screen.getByText("Knowledge")).toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
 
       // Then click the logo
       fireEvent.click(screen.getByAltText("Workflow Logo"));
       await waitFor(() => {
-        expect(screen.getByTestId("task-manager")).toBeInTheDocument();
+        expect(screen.getByTestId("work-tracker")).toBeInTheDocument();
       });
-      expect(screen.getByText("Tasks")).toHaveClass("bg-blue-50 text-blue-700");
+      expect(screen.getByText("Work")).toHaveClass("bg-primary/15 text-primary");
       expect(screen.getByText("Knowledge")).not.toHaveClass(
-        "bg-blue-50 text-blue-700"
+        "bg-primary/15 text-primary"
       );
     });
 
     test("navItems array is correctly structured", () => {
       const expectedNavItems = [
+        { id: "work", label: "Work" },
         { id: "tasks", label: "Tasks" },
         { id: "notes", label: "Knowledge" },
         { id: "scheduler", label: "Schedule" },
