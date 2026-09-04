@@ -115,28 +115,77 @@ export const InlineDate = ({ value, display, onChange, className = "", label }) 
  * Checkbox that stays put after it's ticked. The row doesn't move, so the
  * click has a visible result and stays reversible.
  */
-export const DoneBox = ({ done, onToggle, label }) => (
+export const DoneBox = ({ done, onToggle, label, small = false }) => (
   <button
     onClick={onToggle}
     role="checkbox"
     aria-checked={done}
     aria-label={label}
-    className={`h-[18px] w-[18px] flex-shrink-0 rounded-[5px] border flex items-center justify-center transition-colors ${
+    className={`flex-shrink-0 border flex items-center justify-center transition-colors ${
+      small ? "h-3 w-3 rounded-[3px]" : "h-[18px] w-[18px] rounded-[5px]"
+    } ${
       done
         ? "bg-primary border-primary text-primary-foreground"
         : "border-muted-foreground/40 hover:border-primary hover:bg-primary/10"
     }`}
   >
     <svg
-      className={`w-3 h-3 ${done ? "opacity-100" : "opacity-0"}`}
+      className={`${small ? "w-2 h-2" : "w-3 h-3"} ${
+        done ? "opacity-100" : "opacity-0"
+      }`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={3}
+      strokeWidth={small ? 4 : 3}
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   </button>
+);
+
+/**
+ * One item as it appears inside a calendar cell — the month grid and the
+ * week's all-day row share this, so they stay interactive in the same way.
+ *
+ * The checkbox ticks in place; the label selects the day so the panel below
+ * can rename, reschedule, edit or delete. Events get no checkbox, since they
+ * have no done state.
+ */
+export const DayChip = ({
+  label,
+  time,
+  done,
+  onToggle,
+  onSelect,
+  className = "",
+}) => (
+  <div
+    className={`flex items-center gap-1 px-1 py-0.5 rounded text-[11px] leading-tight ${className}`}
+    title={label}
+  >
+    {onToggle && (
+      <DoneBox
+        small
+        done={done}
+        onToggle={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+        label={`Mark ${label} as ${done ? "not done" : "done"}`}
+      />
+    )}
+    <button
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+      className="min-w-0 flex-grow truncate text-left"
+      aria-label={`Open ${label}`}
+    >
+      {time && <span className="opacity-70 mr-1">{time}</span>}
+      {label}
+    </button>
+  </div>
 );
 
 /** Non-interactive marker for events, which have no done state. */

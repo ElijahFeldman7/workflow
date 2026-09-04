@@ -195,7 +195,36 @@ test("the calendar's day panel can add, edit and delete", () => {
   ).toBeInTheDocument();
 
   // Both of today's items are events, which have no done state to tick.
-  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("checkbox", { name: /Activity Fair/i })
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("checkbox", { name: /Orientation/i })
+  ).not.toBeInTheDocument();
+});
+
+test("calendar chips tick off deadlines and open events", () => {
+  render(<CalendarView user={user} />);
+
+  // A deadline in a month cell gets its own checkbox.
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: /Mark Cell lab writeup as done/i })
+  );
+  expect(update).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ done: true })
+  );
+
+  // Events are moments with no done state, so they get no checkbox...
+  expect(
+    screen.queryByRole("checkbox", { name: /Mark Activity Fair/i })
+  ).not.toBeInTheDocument();
+
+  // ...but the label still opens the day, which is where editing happens.
+  const chip = screen.getAllByRole("button", { name: /Open Activity Fair/i })[0];
+  expect(chip).toBeInTheDocument();
+  fireEvent.click(chip);
+  expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
 });
 
 test("the calendar follows the table setting like the work list", () => {

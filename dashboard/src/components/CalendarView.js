@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import QuickAdd from "./QuickAdd";
 import WorkList from "./WorkList";
 import WeekGrid from "./WeekGrid";
+import { DayChip } from "./InlineFields";
 import { useWorkData } from "../lib/useWorkData";
 import { useWorkWrites } from "../lib/useWorkWrites";
 import { useWorkPrefs } from "../lib/workPrefs";
@@ -222,6 +223,7 @@ const CalendarView = ({ user }) => {
             spaceById={spaceById}
             colors={prefs.colors}
             isDone={isDone}
+            onToggleDone={toggleDone}
             today={today}
             selected={selected}
             onSelectDay={setSelected}
@@ -251,17 +253,24 @@ const CalendarView = ({ user }) => {
                 const overdue = overdueByDate.get(day.key) || 0;
 
                 return (
-                  <button
+                  // A div rather than a button: the chips inside are
+                  // interactive, and nesting buttons isn't valid. The day
+                  // number carries the accessible name and keyboard focus.
+                  <div
                     key={day.key}
                     onClick={() => pickDay(day.key)}
-                    aria-label={longDayLabel(day.key)}
-                    aria-pressed={isSelected}
-                    className={`min-h-[5.5rem] p-1.5 text-left align-top transition-colors ${
+                    className={`min-h-[5.5rem] p-1.5 text-left align-top cursor-pointer transition-colors ${
                       day.inMonth ? "bg-card" : "bg-muted/30"
                     } ${isSelected ? "ring-1 ring-inset ring-ring" : "hover:bg-muted/40"}`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          pickDay(day.key);
+                        }}
+                        aria-label={longDayLabel(day.key)}
+                        aria-pressed={isSelected}
                         className={`text-xs w-5 h-5 flex items-center justify-center rounded-full ${
                           isToday
                             ? "bg-primary text-primary-foreground font-medium"
@@ -271,7 +280,7 @@ const CalendarView = ({ user }) => {
                         }`}
                       >
                         {day.dayOfMonth}
-                      </span>
+                      </button>
                       {overdue > 0 && (
                         <span
                           className="h-1.5 w-1.5 rounded-full bg-destructive"
@@ -282,17 +291,23 @@ const CalendarView = ({ user }) => {
 
                     <div className="space-y-0.5">
                       {shown.map((item) => (
-                        <div
+                        <DayChip
                           key={item.id}
-                          className={`text-[11px] leading-tight px-1 py-0.5 rounded truncate ${chipClass(item)}`}
-                        >
-                          {item.when.time && (
-                            <span className="opacity-70 mr-1">
-                              {formatTime(item.when.time).replace(":00", "")}
-                            </span>
-                          )}
-                          {item.title}
-                        </div>
+                          label={item.title}
+                          time={
+                            item.when.time
+                              ? formatTime(item.when.time).replace(":00", "")
+                              : ""
+                          }
+                          done={isDone(item)}
+                          onToggle={
+                            item.when.mode === "due"
+                              ? () => toggleDone(item)
+                              : undefined
+                          }
+                          onSelect={() => pickDay(day.key)}
+                          className={chipClass(item)}
+                        />
                       ))}
                       {extra > 0 && (
                         <div className="text-[11px] text-muted-foreground px-1">
@@ -300,7 +315,7 @@ const CalendarView = ({ user }) => {
                         </div>
                       )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

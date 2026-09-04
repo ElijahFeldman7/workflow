@@ -89,8 +89,15 @@ const WorkTracker = ({ user }) => {
   const activeFilterCount =
     filters.spaces.length + filters.types.length + filters.priorities.length;
 
+  // Written out per kind rather than with a computed key, so an unexpected
+  // `kind` is a no-op instead of writing a new property onto the state.
   const toggleFilter = (kind, value) =>
-    setFilters((prev) => ({ ...prev, [kind]: toggle(prev[kind], value) }));
+    setFilters((prev) => ({
+      spaces: kind === "spaces" ? toggle(prev.spaces, value) : prev.spaces,
+      types: kind === "types" ? toggle(prev.types, value) : prev.types,
+      priorities:
+        kind === "priorities" ? toggle(prev.priorities, value) : prev.priorities,
+    }));
 
   const clearFilters = () =>
     setFilters({ spaces: [], types: [], priorities: [] });
@@ -155,12 +162,23 @@ const WorkTracker = ({ user }) => {
   const filterPanel = showFilters && (
     <div className="mt-3 p-3 bg-muted/40 rounded-md">
       {[
-        { key: "spaces", heading: "Class", options: filterOptions.spaces },
-        { key: "types", heading: "Type", options: filterOptions.types },
+        {
+          key: "spaces",
+          heading: "Class",
+          options: filterOptions.spaces,
+          active: filters.spaces,
+        },
+        {
+          key: "types",
+          heading: "Type",
+          options: filterOptions.types,
+          active: filters.types,
+        },
         {
           key: "priorities",
           heading: "Priority",
           options: filterOptions.priorities,
+          active: filters.priorities,
         },
       ]
         .filter((row) => row.options.length > 0)
@@ -172,7 +190,7 @@ const WorkTracker = ({ user }) => {
             <div className="flex flex-wrap gap-1">
               <FilterChips
                 options={row.options}
-                active={filters[row.key]}
+                active={row.active}
                 onToggle={(value) => toggleFilter(row.key, value)}
               />
             </div>

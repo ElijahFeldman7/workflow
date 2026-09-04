@@ -1,14 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { database } from "../firebase";
-import {
-  ref,
-  onValue,
-  push,
-  set,
-  update,
-  remove,
-  child,
-} from "firebase/database";
+import { useWorkData } from "../lib/useWorkData";
+import { IconButton, PencilIcon, TrashIcon, ArchiveIcon } from "./Icons";
+import { ref, push, set, update, remove, child } from "firebase/database";
 import {
   PALETTE_ENTRIES,
   SPACE_KINDS,
@@ -16,8 +10,6 @@ import {
   DEFAULT_SPACE_KIND,
   bucketFor,
   colorOf,
-  normalizeItem,
-  normalizeSpace,
 } from "../constants/work";
 
 const blankDraft = () => ({
@@ -139,48 +131,13 @@ const SpaceForm = ({ draft, setDraft, onSave, onCancel, saveLabel }) => (
 );
 
 const SpaceManager = ({ user }) => {
-  const [spaces, setSpaces] = useState([]);
-  const [items, setItems] = useState([]);
+  const { spaces, items, error, setError } = useWorkData(user);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(blankDraft);
   const [showArchived, setShowArchived] = useState(false);
-  const [error, setError] = useState(null);
 
   const spacesPath = user ? `users/${user.uid}/spaces` : null;
-
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribeSpaces = onValue(
-      ref(database, `users/${user.uid}/spaces`),
-      (snapshot) => {
-        const data = snapshot.val();
-        const loaded = data
-          ? Object.entries(data).map(([key, value]) => normalizeSpace(key, value))
-          : [];
-        loaded.sort((a, b) => a.order - b.order || a.createdAt - b.createdAt);
-        setSpaces(loaded);
-      }
-    );
-
-    const unsubscribeItems = onValue(
-      ref(database, `users/${user.uid}/work`),
-      (snapshot) => {
-        const data = snapshot.val();
-        setItems(
-          data
-            ? Object.entries(data).map(([key, value]) => normalizeItem(key, value))
-            : []
-        );
-      }
-    );
-
-    return () => {
-      if (typeof unsubscribeSpaces === "function") unsubscribeSpaces();
-      if (typeof unsubscribeItems === "function") unsubscribeItems();
-    };
-  }, [user]);
 
   // Item counts per class, for the "3 open · 1 overdue" line on each card.
   const counts = useMemo(() => {
@@ -398,68 +355,30 @@ const SpaceManager = ({ user }) => {
                 </div>
 
                 <div className="flex flex-shrink-0 gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                  <button
+                  <IconButton
                     onClick={() => startEditing(space)}
-                    className="p-1 text-gray-400 hover:text-foreground"
                     title="Edit"
-                    aria-label={`Edit ${space.name}`}
+                    label={`Edit ${space.name}`}
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </button>
-                  <button
+                    <PencilIcon />
+                  </IconButton>
+                  <IconButton
                     onClick={() => handleArchive(space)}
-                    className="p-1 text-gray-400 hover:text-foreground"
                     title={space.archived ? "Unarchive" : "Archive"}
-                    aria-label={`${space.archived ? "Unarchive" : "Archive"} ${
+                    label={`${space.archived ? "Unarchive" : "Archive"} ${
                       space.name
                     }`}
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                      />
-                    </svg>
-                  </button>
-                  <button
+                    <ArchiveIcon />
+                  </IconButton>
+                  <IconButton
                     onClick={() => handleDelete(space)}
-                    className="p-1 text-gray-400 hover:text-destructive"
+                    danger
                     title="Delete"
-                    aria-label={`Delete ${space.name}`}
+                    label={`Delete ${space.name}`}
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
+                    <TrashIcon />
+                  </IconButton>
                 </div>
               </div>
             </div>

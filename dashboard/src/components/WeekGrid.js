@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useEffect } from "react";
 import { layoutTimed, hourRange, isTimedBlock } from "../lib/calendar";
+import { DayChip } from "./InlineFields";
 import { NEUTRAL_CHIP, colorOf, formatTime, priorityOf } from "../constants/work";
 
 const PX_PER_MINUTE = 0.8; // 48px per hour
@@ -20,6 +21,7 @@ const WeekGrid = ({
   spaceById,
   colors,
   isDone,
+  onToggleDone,
   today,
   selected,
   onSelectDay,
@@ -141,13 +143,18 @@ const WeekGrid = ({
               className="border-l border-border p-1 space-y-0.5 min-h-[2.25rem]"
             >
               {untimed.map((item) => (
-                <div
+                <DayChip
                   key={item.id}
-                  title={item.title}
-                  className={`text-[11px] leading-tight px-1 py-0.5 rounded truncate ${chipClass(item)}`}
-                >
-                  {item.title}
-                </div>
+                  label={item.title}
+                  done={isDone(item)}
+                  onToggle={
+                    item.when.mode === "due"
+                      ? () => onToggleDone(item)
+                      : undefined
+                  }
+                  onSelect={() => onSelectDay(day.key)}
+                  className={chipClass(item)}
+                />
               ))}
             </div>
           ))}

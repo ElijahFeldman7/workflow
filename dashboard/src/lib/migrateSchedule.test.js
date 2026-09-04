@@ -30,6 +30,16 @@ beforeEach(() => {
   });
 });
 
+/** The rows the migration wrote to work/. */
+const writtenRows = () => {
+  const call = update.mock.calls.find(([reference]) =>
+    String(reference).endsWith("/work")
+  );
+  return call ? Object.values(call[1]) : [];
+};
+
+const byTitle = (rows, title) => rows.find((row) => row.title === title);
+
 test("turns each filled hour slot into a timed event", async () => {
   mockReads({
     schedule: {
@@ -45,14 +55,10 @@ test("turns each filled hour slot into a timed event", async () => {
   const result = await migrateSchedule(user);
   expect(result).toEqual({ status: "done", created: 3 });
 
-  const written = update.mock.calls.find(([reference]) =>
-    String(reference).endsWith("/work")
-  )[1];
-
-  const rows = Object.values(written);
+  const rows = writtenRows();
   expect(rows).toHaveLength(3);
 
-  const fair = rows.find((row) => row.title === "activity fair");
+  const fair = byTitle(rows, "activity fair");
   expect(fair.when).toEqual({
     mode: "event",
     date: "2026-09-11",
@@ -61,8 +67,8 @@ test("turns each filled hour slot into a timed event", async () => {
   });
   expect(fair.done).toBe(false);
 
-  expect(rows.find((row) => row.title === "physics lab").when.time).toBe("09:00");
-  expect(rows.find((row) => row.title === "lunch meeting").when.time).toBe("12:00");
+  expect(byTitle(rows, "physics lab").when.time).toBe("09:00");
+  expect(byTitle(rows, "lunch meeting").when.time).toBe("12:00");
 });
 
 test("midnight and noon convert the right way round", async () => {
@@ -74,13 +80,9 @@ test("midnight and noon convert the right way round", async () => {
 
   await migrateSchedule(user);
 
-  const written = update.mock.calls.find(([reference]) =>
-    String(reference).endsWith("/work")
-  )[1];
-  const rows = Object.values(written);
-
-  expect(rows.find((row) => row.title === "midnight").when.time).toBe("00:00");
-  expect(rows.find((row) => row.title === "noon").when.time).toBe("12:00");
+  const rows = writtenRows();
+  expect(byTitle(rows, "midnight").when.time).toBe("00:00");
+  expect(byTitle(rows, "noon").when.time).toBe("12:00");
 });
 
 test("ignores malformed days and hour keys", async () => {
@@ -94,13 +96,11 @@ test("ignores malformed days and hour keys", async () => {
   const result = await migrateSchedule(user);
   expect(result).toEqual({ status: "done", created: 0 });
   // Nothing to write, so only the flag is set.
-  expect(
-    update.mock.calls.some(([reference]) => String(reference).endsWith("/work"))
-  ).toBe(false);
+  expect(writtenRows()).toHaveLength(0);
 });
 
 test("does not run twice", async () => {
-  mockReads({ flag: 1757000000000, schedule: { "2026-09-11": { "9_00_AM": "x" } } });
+  mockReads({ flag: 1, schedule: { "2026-09-11": { "9_00_AM": "x" } } });
 
   const result = await migrateSchedule(user);
   expect(result).toEqual({ status: "already" });
