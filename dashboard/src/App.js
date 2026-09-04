@@ -9,7 +9,7 @@ import SignIn from "./components/SignIn";
 import TaskManager from "./components/TaskManager";
 import WorkTracker from "./components/WorkTracker";
 import KnowledgeBase from "./components/KnowledgeBase";
-import DailyScheduler from "./components/DailyScheduler";
+import CalendarView from "./components/CalendarView";
 import FocusTimer from "./components/FocusTimer";
 import HabitTracker from "./components/HabitTracker";
 import QuickLinks from "./components/QuickLinks";
@@ -39,9 +39,9 @@ function App() {
       component: <KnowledgeBase user={user} />,
     },
     {
-      id: "scheduler",
-      label: "Schedule",
-      component: <DailyScheduler user={user} />,
+      id: "calendar",
+      label: "Calendar",
+      component: <CalendarView user={user} />,
     },
     { id: "focus", label: "Focus", component: <FocusTimer /> },
     { id: "habits", label: "Habits", component: <HabitTracker user={user} /> },
