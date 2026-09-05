@@ -6,6 +6,10 @@ import { DayChip } from "./InlineFields";
 import { useWorkData } from "../lib/useWorkData";
 import { useWorkWrites } from "../lib/useWorkWrites";
 import { useWorkPrefs } from "../lib/workPrefs";
+import { useCaptureMemory } from "../lib/useCaptureMemory";
+import { useTaskData } from "../lib/useTaskData";
+import { useTaskWrites } from "../lib/useTaskWrites";
+import { useAgenda, SOURCES } from "../lib/useAgenda";
 import { useGoogleSync } from "../lib/useGoogleSync";
 import { migrateSchedule } from "../lib/migrateSchedule";
 import {
@@ -34,12 +38,35 @@ const CHIPS_PER_CELL = 3;
 const CalendarView = ({ user }) => {
   const { activeSpaces, spaceById, items, isLoading, error, setError } =
     useWorkData(user);
+  const { tasks, isLoading: tasksLoading } = useTaskData(user);
+  const [sources, setSources] = useState(["work", "task"]);
   const [prefs, setPref] = useWorkPrefs();
-  const { patch, isDone, toggleDone, deleteItem, addItem } = useWorkWrites(
-    user,
-    activeSpaces,
-    setError
-  );
+  const { memory, learn } = useCaptureMemory(user);
+  const workWrites = useWorkWrites(user, activeSpaces, setError);
+  const taskWrites = useTaskWrites(user, setError);
+  const { addItem } = workWrites;
+
+  const routed = (entry) =>
+    entry.source === "task"
+      ? { writes: taskWrites, target: { ...entry, id: entry.taskId } }
+      : { writes: workWrites, target: entry };
+
+  const isDone = (entry) => {
+    const { writes, target } = routed(entry);
+    return writes.isDone(target);
+  };
+  const toggleDone = (entry) => {
+    const { writes, target } = routed(entry);
+    return writes.toggleDone(target);
+  };
+  const patch = (entry, changes) => {
+    const { writes, target } = routed(entry);
+    return writes.patch(target, changes);
+  };
+  const deleteItem = (entry) => {
+    const { writes, target } = routed(entry);
+    return writes.deleteItem(target);
+  };
 
   const today = todayKey();
   const [anchor, setAnchor] = useState(today);
@@ -73,7 +100,8 @@ const CalendarView = ({ user }) => {
 
   const weeks = useMemo(() => monthMatrix(year, month), [year, month]);
   const weekDays = useMemo(() => weekMatrix(anchor), [anchor]);
-  const itemsByDate = useMemo(() => byDate(items), [items]);
+  const agenda = useAgenda(items, tasks, sources);
+  const itemsByDate = useMemo(() => byDate(agenda), [agenda]);
 
   const selectedItems = itemsByDate.get(selected) || [];
 
@@ -119,13 +147,13 @@ const CalendarView = ({ user }) => {
 
   const overdueByDate = useMemo(() => {
     const map = new Map();
-    items.forEach((item) => {
+    agenda.forEach((item) => {
       if (item.done || item.when.mode !== "due" || !item.when.date) return;
       if (item.when.date >= today) return;
       map.set(item.when.date, (map.get(item.when.date) || 0) + 1);
     });
     return map;
-  }, [items, today]);
+  }, [agenda, today]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -198,6 +226,28 @@ const CalendarView = ({ user }) => {
               </button>
             )}
             <div className="flex rounded overflow-hidden border border-border">
+              {SOURCES.map((source) => (
+                <button
+                  key={source.id}
+                  onClick={() =>
+                    setSources((current) =>
+                      current.includes(source.id)
+                        ? current.filter((id) => id !== source.id)
+                        : [...current, source.id]
+                    )
+                  }
+                  aria-pressed={sources.includes(source.id)}
+                  className={`px-2.5 py-1 text-xs transition-colors ${
+                    sources.includes(source.id)
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:bg-muted/60"
+                  }`}
+                >
+                  {source.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex rounded overflow-hidden border border-border">
               {["month", "week"].map((view) => (
                 <button
                   key={view}
@@ -243,7 +293,7 @@ const CalendarView = ({ user }) => {
           </div>
         )}
 
-        {!isLoading && isWeek && (
+        {!isLoading && !tasksLoading && isWeek && (
           <WeekGrid
             days={weekDays}
             itemsByDate={itemsByDate}
@@ -257,7 +307,7 @@ const CalendarView = ({ user }) => {
           />
         )}
 
-        {!isLoading && !isWeek && (
+        {!isLoading && !tasksLoading && !isWeek && (
           <>
             <div className="grid grid-cols-7 gap-px mb-px">
               {WEEKDAY_LABELS.map((label) => (
@@ -364,6 +414,8 @@ const CalendarView = ({ user }) => {
           <QuickAdd
             spaces={activeSpaces}
             onSubmit={addItem}
+            memory={memory}
+            onLearn={learn}
             defaultDate={selected}
             placeholder={`Add to ${
               selected === today ? "today" : longDayLabel(selected)

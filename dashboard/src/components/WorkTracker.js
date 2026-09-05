@@ -5,6 +5,7 @@ import { FilterChips } from "./InlineFields";
 import { useWorkData } from "../lib/useWorkData";
 import { useWorkWrites } from "../lib/useWorkWrites";
 import { useWorkPrefs } from "../lib/workPrefs";
+import { useCaptureMemory } from "../lib/useCaptureMemory";
 import {
   WORK_TYPES,
   PRIORITIES,
@@ -24,6 +25,7 @@ const WorkTracker = ({ user }) => {
   const { activeSpaces, spaceById, items, isLoading, error, setError } =
     useWorkData(user);
   const [prefs] = useWorkPrefs();
+  const { memory, learn } = useCaptureMemory(user);
   const { patch, isDone, toggleDone, deleteItem, addItem } = useWorkWrites(
     user,
     activeSpaces,
@@ -261,7 +263,12 @@ const WorkTracker = ({ user }) => {
         </div>
       </div>
 
-      <QuickAdd spaces={activeSpaces} onSubmit={addItem} />
+      <QuickAdd
+        spaces={activeSpaces}
+        onSubmit={addItem}
+        memory={memory}
+        onLearn={learn}
+      />
 
       {filterPanel}
 

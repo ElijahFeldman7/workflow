@@ -1,24 +1,22 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import {
-  parseQuick,
-  matchSpaces,
-  activeToken,
-  replaceToken,
-} from "../lib/quickParse";
-import {
-  WORK_TYPES,
-  NEUTRAL_CHIP,
-  colorOf,
-  formatWhen,
-  priorityOf,
-  typeLabel,
-} from "../constants/work";
+import { matchSpaces, activeToken, replaceToken } from "../lib/quickParse";
+import { WORK_TYPES, colorOf } from "../constants/work";
 import { useWorkPrefs } from "../lib/workPrefs";
+import { useCapture } from "../lib/useCapture";
+import CapturePreview from "./CapturePreview";
 
 const HINT = "#class   /type   !!!   fri";
 
-const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
+const QuickAdd = ({
+  spaces,
+  onSubmit,
+  defaultDate = "",
+  placeholder,
+  memory = null,
+  onLearn,
+}) => {
   const [text, setText] = useState("");
+  const [overrides, setOverrides] = useState({});
   const [caret, setCaret] = useState(0);
   const [highlight, setHighlight] = useState(0);
   const [showHint, setShowHint] = useState(false);
@@ -26,10 +24,30 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
   const pendingCaret = useRef(null);
   const [prefs] = useWorkPrefs();
 
-  const parsed = useMemo(
-    () => parseQuick(text, { spaces }),
-    [text, spaces]
-  );
+  const { parsed: captured } = useCapture(text, {
+    spaces,
+    memory,
+    neural: prefs.neuralCapture,
+  });
+
+  const parsed = useMemo(() => {
+    if (Object.keys(overrides).length === 0) return captured;
+    const next = { ...captured, filled: { ...captured.filled } };
+
+    if (overrides.space !== undefined) {
+      next.spaceId = overrides.space;
+      next.newSpaceName = "";
+      next.filled.space = overrides.space !== "";
+    }
+    if (overrides.type !== undefined) {
+      next.type = overrides.type;
+      next.filled.type = overrides.type !== "";
+    }
+    if (overrides.priority !== undefined) next.priority = overrides.priority;
+    if (overrides.mode !== undefined) next.mode = overrides.mode;
+
+    return next;
+  }, [captured, overrides]);
 
   const token = useMemo(() => activeToken(text, caret), [text, caret]);
 
@@ -81,6 +99,12 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
     inputRef.current?.focus();
   };
 
+  const correct = (field, value) => {
+    setOverrides((current) => ({ ...current, [field]: value }));
+    const phrase = (captured.phrases && captured.phrases[field]) || captured.title;
+    if (onLearn && phrase && value) onLearn(phrase, field, value);
+  };
+
   const commit = () => {
     if (!parsed.filled.title && !parsed.title) return;
     onSubmit(
@@ -90,6 +114,7 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
     );
     setText("");
     setCaret(0);
+    setOverrides({});
   };
 
   const handleKeyDown = (event) => {
@@ -121,25 +146,6 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
       commit();
     }
   };
-
-  const space =
-    spaces.find((item) => item.id === parsed.spaceId) ||
-    (parsed.newSpaceName
-      ? { name: parsed.newSpaceName, color: "slate", isNew: true }
-      : null);
-  const spaceColor = colorOf(space?.color);
-  const priority = priorityOf(parsed.priority);
-
-  const chip = "text-[11px] px-2 py-0.5 rounded-full";
-  const idle = NEUTRAL_CHIP;
-
-  const hasChips =
-    !!space ||
-    parsed.filled.type ||
-    parsed.filled.priority ||
-    parsed.filled.date ||
-    parsed.mode === "event" ||
-    !!parsed.location;
 
   return (
     <div className="relative">
@@ -204,32 +210,12 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
         </ul>
       )}
 
-      {hasChips && (
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-          {space && (
-            <span className={`${chip} ${prefs.colors ? spaceColor.chip : idle}`}>
-              {space.isNew ? `+ ${space.name}` : space.name}
-            </span>
-          )}
-          {parsed.filled.type && (
-            <span className={`${chip} ${idle}`}>{typeLabel(parsed.type)}</span>
-          )}
-          {parsed.filled.priority && (
-            <span className={`${chip} ${priority.chip}`}>{priority.label}</span>
-          )}
-          {parsed.filled.date && (
-            <span className={`${chip} ${idle}`}>
-              {formatWhen({ when: { ...parsed, mode: parsed.mode } })}
-            </span>
-          )}
-          {parsed.mode === "event" && (
-            <span className={`${chip} ${idle}`}>Event</span>
-          )}
-          {parsed.location && (
-            <span className={`${chip} ${idle}`}>@ {parsed.location}</span>
-          )}
-        </div>
-      )}
+      <CapturePreview
+        parsed={parsed}
+        spaces={spaces}
+        colors={prefs.colors}
+        onCorrect={correct}
+      />
 
       {showHint && text.trim() === "" && (
         <p className="text-xs text-muted-foreground mt-2">{HINT}</p>

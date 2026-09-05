@@ -65,15 +65,103 @@ describe("App component", () => {
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
-  test("renders sign-in page when user is not authenticated", async () => {
-    onAuthStateChanged.mockImplementation((auth, callback) => {
-      callback(null);
-      return () => {};
+  describe("routing", () => {
+    const signedOut = () =>
+      onAuthStateChanged.mockImplementation((auth, callback) => {
+        callback(null);
+        return () => {};
+      });
+
+    const at = (path) => window.history.pushState({}, "", path);
+
+    afterEach(() => at("/"));
+
+    test("a signed out visitor lands on the marketing page, not the app", async () => {
+      signedOut();
+      at("/");
+      renderApp();
+      await waitFor(() =>
+        expect(
+          screen.getByRole("heading", {
+            name: /School, in one place, without the setup/i,
+          })
+        ).toBeInTheDocument()
+      );
+      expect(screen.queryByTestId("work-tracker")).not.toBeInTheDocument();
     });
 
-    renderApp();
-    await waitFor(() => {
-      expect(screen.getByText("Sign in with Google")).toBeInTheDocument();
+    test("the app path sends a signed out visitor to the home page", async () => {
+      signedOut();
+      at("/app");
+      renderApp();
+      await waitFor(() =>
+        expect(
+          screen.getByRole("heading", {
+            name: /School, in one place, without the setup/i,
+          })
+        ).toBeInTheDocument()
+      );
+      expect(screen.queryByTestId("work-tracker")).not.toBeInTheDocument();
+      expect(window.location.pathname).toBe("/");
+    });
+
+    test("the home page is the only signed out destination", async () => {
+      signedOut();
+      ["/app", "/nope", "/settings"].forEach((path) => {
+        at(path);
+        const view = renderApp();
+        expect(
+          screen.getByRole("heading", {
+            name: /School, in one place, without the setup/i,
+          })
+        ).toBeInTheDocument();
+        view.unmount();
+      });
+    });
+
+    test("a signed in visitor at the root is sent to the app", async () => {
+      onAuthStateChanged.mockImplementation((auth, callback) => {
+        callback({ displayName: "Test User", email: "test@example.com" });
+        return () => {};
+      });
+      at("/");
+      renderApp();
+      await waitFor(() =>
+        expect(screen.getByTestId("work-tracker")).toBeInTheDocument()
+      );
+    });
+
+    test("terms and privacy are reachable without signing in", async () => {
+      signedOut();
+      at("/terms");
+      const terms = renderApp();
+      await waitFor(() =>
+        expect(
+          screen.getByRole("heading", { name: "Terms of Service" })
+        ).toBeInTheDocument()
+      );
+      terms.unmount();
+
+      at("/privacy");
+      renderApp();
+      await waitFor(() =>
+        expect(
+          screen.getByRole("heading", { name: "Privacy Policy" })
+        ).toBeInTheDocument()
+      );
+    });
+
+    test("an unknown path falls back to the landing page", async () => {
+      signedOut();
+      at("/nope");
+      renderApp();
+      await waitFor(() =>
+        expect(
+          screen.getByRole("heading", {
+            name: /School, in one place, without the setup/i,
+          })
+        ).toBeInTheDocument()
+      );
     });
   });
 

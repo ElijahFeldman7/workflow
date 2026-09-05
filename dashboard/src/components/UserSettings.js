@@ -182,6 +182,25 @@ const UserSettings = ({ user }) => {
         </div>
 
         <div className="flex items-center justify-between py-3">
+          <div className="pr-4">
+            <p className="text-sm font-medium text-foreground">
+              Smarter Capture
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Use a language model to read what you type. Downloads about 25 MB
+              the first time, then works offline.
+            </p>
+          </div>
+          <Switch
+            on={workPrefs.neuralCapture}
+            onClick={() =>
+              setWorkPref("neuralCapture", !workPrefs.neuralCapture)
+            }
+            label="Smarter capture"
+          />
+        </div>
+
+        <div className="flex items-center justify-between py-3">
           <div>
             <p className="text-sm font-medium text-foreground">
               Past Events

@@ -7,6 +7,7 @@ export const DEFAULT_PREFS = {
   colors: false,
   table: false,
   showPast: false,
+  neuralCapture: false,
   calendarView: "month",
 };
 
@@ -20,6 +21,7 @@ export function readPrefs() {
       colors: !!saved.colors,
       table: !!saved.table,
       showPast: !!saved.showPast,
+      neuralCapture: !!saved.neuralCapture,
       calendarView: CALENDAR_VIEWS.includes(saved.calendarView)
         ? saved.calendarView
         : DEFAULT_PREFS.calendarView,
