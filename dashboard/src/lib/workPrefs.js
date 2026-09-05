@@ -10,7 +10,10 @@ const EVENT = "workprefschange";
 export const DEFAULT_PREFS = {
   colors: false, // colored dots and tags
   table: false, // Notion-style table instead of the grouped list
+  calendarView: "month", // "month" | "week"
 };
+
+const CALENDAR_VIEWS = ["month", "week"];
 
 export function readPrefs() {
   try {
@@ -19,6 +22,9 @@ export function readPrefs() {
     return {
       colors: !!saved.colors,
       table: !!saved.table,
+      calendarView: CALENDAR_VIEWS.includes(saved.calendarView)
+        ? saved.calendarView
+        : DEFAULT_PREFS.calendarView,
     };
   } catch (e) {
     return { ...DEFAULT_PREFS };
@@ -39,7 +45,11 @@ export function useWorkPrefs() {
   }, []);
 
   const setPref = useCallback((key, value) => {
-    const next = { ...readPrefs(), [key]: !!value };
+    // Most prefs are switches; calendarView carries a string.
+    const next = {
+      ...readPrefs(),
+      [key]: key === "calendarView" ? value : !!value,
+    };
     localStorage.setItem(KEY, JSON.stringify(next));
     setPrefs(next);
     window.dispatchEvent(new Event(EVENT));

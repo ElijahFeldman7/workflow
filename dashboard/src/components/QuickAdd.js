@@ -7,23 +7,26 @@ import {
 } from "../lib/quickParse";
 import {
   WORK_TYPES,
+  NEUTRAL_CHIP,
   colorOf,
   formatWhen,
   priorityOf,
   typeLabel,
 } from "../constants/work";
+import { useWorkPrefs } from "../lib/workPrefs";
 
 // Only the parts worth teaching. Times, locations and bare-word matching all
 // still parse — they just don't need a legend.
 const HINT = "#class   /type   !!!   fri";
 
-const QuickAdd = ({ spaces, onSubmit }) => {
+const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
   const [text, setText] = useState("");
   const [caret, setCaret] = useState(0);
   const [highlight, setHighlight] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const inputRef = useRef(null);
   const pendingCaret = useRef(null);
+  const [prefs] = useWorkPrefs();
 
   const parsed = useMemo(
     () => parseQuick(text, { spaces }),
@@ -83,7 +86,13 @@ const QuickAdd = ({ spaces, onSubmit }) => {
 
   const commit = () => {
     if (!parsed.filled.title && !parsed.title) return;
-    onSubmit(parsed);
+    // On the calendar the selected day is the obvious default, but anything
+    // the line said explicitly still wins.
+    onSubmit(
+      defaultDate && !parsed.filled.date
+        ? { ...parsed, date: defaultDate }
+        : parsed
+    );
     setText("");
     setCaret(0);
   };
@@ -127,7 +136,7 @@ const QuickAdd = ({ spaces, onSubmit }) => {
   const priority = priorityOf(parsed.priority);
 
   const chip = "text-[11px] px-2 py-0.5 rounded-full";
-  const idle = "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
+  const idle = NEUTRAL_CHIP;
 
   const hasChips =
     !!space ||
@@ -156,7 +165,7 @@ const QuickAdd = ({ spaces, onSubmit }) => {
             setShowHint(false);
             setCaret(-1);
           }}
-          placeholder="Multi WS2 #multi /hw fri"
+          placeholder={placeholder || "Multi WS2 #multi /hw fri"}
           className="flex-grow border border-border rounded-md px-4 py-2 text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Quick add"
         />
@@ -204,7 +213,7 @@ const QuickAdd = ({ spaces, onSubmit }) => {
       {hasChips && (
         <div className="flex flex-wrap items-center gap-2 mt-2">
           {space && (
-            <span className={`${chip} ${spaceColor.chip}`}>
+            <span className={`${chip} ${prefs.colors ? spaceColor.chip : idle}`}>
               {space.isNew ? `+ ${space.name}` : space.name}
             </span>
           )}

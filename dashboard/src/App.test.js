@@ -45,8 +45,8 @@ jest.mock("./components/HabitTracker", () => () => (
 jest.mock("./components/QuickLinks", () => () => (
   <div data-testid="quick-links">QuickLinks</div>
 ));
-jest.mock("./components/DailyScheduler", () => () => (
-  <div data-testid="daily-scheduler">DailyScheduler</div>
+jest.mock("./components/CalendarView", () => () => (
+  <div data-testid="calendar-view">CalendarView</div>
 ));
 jest.mock("./components/FocusTimer", () => () => (
   <div data-testid="focus-timer">FocusTimer</div>
@@ -130,11 +130,11 @@ describe("App component", () => {
         "bg-primary/15 text-primary"
       );
 
-      fireEvent.click(screen.getByText("Schedule"));
+      fireEvent.click(screen.getByText("Calendar"));
       await waitFor(() => {
-        expect(screen.getByTestId("daily-scheduler")).toBeInTheDocument();
+        expect(screen.getByTestId("calendar-view")).toBeInTheDocument();
       });
-      expect(screen.getByText("Schedule")).toHaveClass(
+      expect(screen.getByText("Calendar")).toHaveClass(
         "bg-primary/15 text-primary"
       );
       expect(screen.getByText("Knowledge")).not.toHaveClass(
@@ -146,7 +146,7 @@ describe("App component", () => {
         expect(screen.getByTestId("focus-timer")).toBeInTheDocument();
       });
       expect(screen.getByText("Focus")).toHaveClass("bg-primary/15 text-primary");
-      expect(screen.getByText("Schedule")).not.toHaveClass(
+      expect(screen.getByText("Calendar")).not.toHaveClass(
         "bg-primary/15 text-primary"
       );
 
@@ -243,7 +243,7 @@ describe("App component", () => {
         { id: "work", label: "Work" },
         { id: "tasks", label: "Tasks" },
         { id: "notes", label: "Knowledge" },
-        { id: "scheduler", label: "Schedule" },
+        { id: "calendar", label: "Calendar" },
         { id: "focus", label: "Focus" },
         { id: "habits", label: "Habits" },
         { id: "links", label: "Links" },

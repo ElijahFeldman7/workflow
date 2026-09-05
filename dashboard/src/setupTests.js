@@ -26,6 +26,9 @@ jest.mock("firebase/database", () => ({
     callback({ val: () => null });
     return () => {};
   }),
+  get: jest.fn(() =>
+    Promise.resolve({ exists: () => false, val: () => null })
+  ),
   set: jest.fn(() => Promise.resolve()),
   push: jest.fn(() => ({ ...mockRef(), key: "new-key" })),
   remove: jest.fn(() => Promise.resolve()),
