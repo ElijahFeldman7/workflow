@@ -90,7 +90,7 @@ const WeekGrid = ({
   return (
     <div
       ref={scrollRef}
-      className="relative rounded-md bg-background/40 overflow-y-auto max-h-[34rem]"
+      className="relative border border-border rounded overflow-y-auto max-h-[34rem]"
     >
       <div className="sticky top-0 z-20 bg-card">
         <div className={COLUMNS}>

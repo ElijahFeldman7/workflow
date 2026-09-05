@@ -47,7 +47,7 @@ const Navbar = ({
     fallbackAvatar;
 
   return (
-    <header className="bg-card sticky top-0 z-50 transition-colors duration-200">
+    <header className="bg-card border-b border-border sticky top-0 z-50 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-2 sm:gap-6">
@@ -175,7 +175,7 @@ const Navbar = ({
                         onClick={() => setIsDropdownOpen(false)}
                       ></div>
 
-                      <div className="select-none origin-top-right absolute right-0 mt-1 w-48 rounded-md py-2 bg-popover shadow-lg shadow-black/20 z-20">
+                      <div className="select-none origin-top-right absolute right-0 mt-1 w-48 rounded-md py-2 bg-card ring-1 ring-border shadow-lg z-20">
                         <div className="px-4 py-2 border-b border-border">
                           <p className="text-xs text-muted-foreground">
                             Signed in as

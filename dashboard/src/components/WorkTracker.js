@@ -278,7 +278,7 @@ const WorkTracker = ({ user }) => {
       )}
 
       {!isLoading && visible.length === 0 && (
-        <div className="text-muted-foreground text-center py-8 mt-4 bg-muted/40 rounded-md text-sm">
+        <div className="text-muted-foreground text-center py-8 mt-4 bg-muted/40 rounded-md border border-dashed border-border text-sm">
           {items.length === 0
             ? "nothing tracked yet."
             : "nothing matches these filters."}

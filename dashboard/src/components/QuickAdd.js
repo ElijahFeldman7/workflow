@@ -161,7 +161,7 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
             setCaret(-1);
           }}
           placeholder={placeholder || "Multi WS2 #multi /hw fri"}
-          className="flex-grow rounded-md px-4 py-2 text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+          className="flex-grow border border-border rounded-md px-4 py-2 text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Quick add"
         />
         <button
@@ -174,7 +174,7 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
       </div>
 
       {suggestions.length > 0 && (
-        <ul className="absolute z-30 mt-1 w-64 max-w-full bg-popover rounded-md shadow-lg shadow-black/20 py-1">
+        <ul className="absolute z-30 mt-1 w-64 max-w-full bg-card border border-border rounded-md shadow-lg py-1">
           {suggestions.map((suggestion, index) => (
             <li key={suggestion.key}>
               <button

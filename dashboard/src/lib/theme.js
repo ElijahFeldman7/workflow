@@ -5,6 +5,7 @@ const EVENT = "palettechange";
 
 export const PALETTES = [
   { id: "original", label: "Original", swatch: "#2563eb" },
+  { id: "graphite", label: "Graphite", swatch: "#50a8d0" },
   { id: "catppuccin", label: "Catppuccin", swatch: "#8839ef" },
   { id: "navy", label: "Navy", swatch: "#ff6a00" },
   { id: "tokyo", label: "Tokyo Night", swatch: "#3d76e8" },

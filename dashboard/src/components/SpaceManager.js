@@ -41,7 +41,7 @@ const ColorPicker = ({ value, onChange }) => (
 );
 
 const SpaceForm = ({ draft, setDraft, onSave, onCancel, saveLabel }) => (
-  <div className="p-4 rounded-md bg-muted/40">
+  <div className="p-4 rounded-md border border-dashed border-border bg-muted/40">
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
@@ -52,7 +52,7 @@ const SpaceForm = ({ draft, setDraft, onSave, onCancel, saveLabel }) => (
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           placeholder="AP Biology, Computer Team, ..."
-          className="w-full mt-1 rounded-md px-3 py-1.5 text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+          className="w-full mt-1 border border-border rounded-md px-3 py-1.5 text-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Space name"
         />
       </div>
@@ -64,7 +64,7 @@ const SpaceForm = ({ draft, setDraft, onSave, onCancel, saveLabel }) => (
         <select
           value={draft.kind}
           onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
-          className="w-full mt-1 rounded-md px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+          className="w-full mt-1 border border-border rounded-md px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Space kind"
         >
           {SPACE_KINDS.map((kind) => (
@@ -83,7 +83,7 @@ const SpaceForm = ({ draft, setDraft, onSave, onCancel, saveLabel }) => (
           type="text"
           value={draft.teacher}
           onChange={(e) => setDraft({ ...draft, teacher: e.target.value })}
-          className="w-full mt-1 rounded-md px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+          className="w-full mt-1 border border-border rounded-md px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Teacher or lead"
         />
       </div>
@@ -96,7 +96,7 @@ const SpaceForm = ({ draft, setDraft, onSave, onCancel, saveLabel }) => (
           type="text"
           value={draft.room}
           onChange={(e) => setDraft({ ...draft, room: e.target.value })}
-          className="w-full mt-1 rounded-md px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
+          className="w-full mt-1 border border-border rounded-md px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           aria-label="Room"
         />
       </div>
@@ -291,7 +291,7 @@ const SpaceManager = ({ user }) => {
       )}
 
       {visible.length === 0 && !isAdding && (
-        <div className="text-muted-foreground text-center py-8 bg-muted/40 rounded-md text-sm">
+        <div className="text-muted-foreground text-center py-8 bg-muted/40 rounded-md border border-dashed border-border text-sm">
           No classes or activities yet. Add one to start color-coding your work.
         </div>
       )}
@@ -318,7 +318,7 @@ const SpaceManager = ({ user }) => {
           return (
             <div
               key={space.id}
-              className={`group relative border-l-4 ${color.bar} bg-muted/40 rounded-md p-3 ${
+              className={`group relative border-l-4 ${color.bar} border border-border rounded-md p-3 ${
                 space.archived ? "opacity-50" : ""
               } hover:border-muted-foreground/50 transition-colors`}
             >

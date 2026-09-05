@@ -86,7 +86,7 @@ const TaskManager = ({ user }) => {
           onChange={(e) => setNewTask(e.target.value)}
           placeholder="add a task"
           required
-          className="flex-grow rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring/40 bg-background text-foreground placeholder-muted-foreground"
+          className="flex-grow border border-border rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-ring/40 bg-background text-foreground placeholder-muted-foreground"
           aria-label="New task"
         />
         <button
@@ -110,7 +110,7 @@ const TaskManager = ({ user }) => {
       )}
 
       {!isLoading && !error && tasks.length === 0 && (
-        <div className="text-muted-foreground text-center py-8 bg-muted/40 rounded-md">
+        <div className="text-muted-foreground text-center py-8 bg-muted/40 rounded-md border border-dashed border-border">
           no tasks yet.
         </div>
       )}
