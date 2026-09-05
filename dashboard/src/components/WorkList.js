@@ -37,7 +37,7 @@ const MetaPill = ({ label, onClick, active, className, tag, muted }) => {
 };
 
 const field =
-  "w-full mt-1 border border-border rounded px-2 py-1 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40";
+  "w-full mt-1 rounded px-2 py-1 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40";
 const fieldLabel = "text-xs text-muted-foreground";
 
 const DetailsStrip = ({ item, spaces, onPatch, onClose }) => (

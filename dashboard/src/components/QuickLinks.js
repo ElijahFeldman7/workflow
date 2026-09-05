@@ -64,7 +64,7 @@ const QuickLinks = ({ user }) => {
   };
 
   return (
-    <div className="bg-card shadow rounded-lg p-6 max-w-6xl mx-auto border border-border transition-colors duration-200">
+    <div className="bg-card shadow rounded-lg p-6 max-w-6xl mx-auto transition-colors duration-200">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-foreground">
           Quick Links
@@ -126,7 +126,7 @@ const QuickLinks = ({ user }) => {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block h-full p-4 bg-background border border-border rounded hover:border-muted-foreground/60 transition-colors"
+                className="block h-full p-4 bg-muted/40 rounded-md hover:bg-muted transition-colors"
                 aria-label={`${link.title} at ${link.url}`}
               >
                 <div className="font-medium text-foreground text-base mb-1 truncate">
@@ -137,7 +137,7 @@ const QuickLinks = ({ user }) => {
                 </div>
               </a>
             ) : (
-              <div className="block h-full p-4 bg-background border border-dashed border-border rounded">
+              <div className="block h-full p-4 bg-muted/40 rounded-md">
                 <div className="mb-3">
                   <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                     Title
@@ -166,7 +166,7 @@ const QuickLinks = ({ user }) => {
                 </div>
                 <button
                   onClick={() => deleteLink(index)}
-                  className="absolute -top-2 -right-2 bg-muted text-muted-foreground border border-border p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:border-red-200 dark:hover:border-red-400"
+                  className="absolute -top-2 -right-2 bg-popover text-muted-foreground shadow-sm p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
                   aria-label={`Delete ${link.title}`}
                 >
                   <svg
@@ -191,7 +191,7 @@ const QuickLinks = ({ user }) => {
         {isEditing && (
           <button
             onClick={addNewLink}
-            className="flex flex-col items-center justify-center h-full min-h-[100px] p-4 border border-dashed border-border rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+            className="flex flex-col items-center justify-center h-full min-h-[100px] p-4 bg-muted/25 rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
             aria-label="Add new link"
           >
             <svg

@@ -48,7 +48,7 @@ export const InlineText = ({ value, onChange, className = "", label }) => {
         }
       }}
       aria-label={label}
-      className={`${HIT} w-full bg-background border border-border focus:outline-none focus:ring-2 focus:ring-ring/40 ${className}`}
+      className={`${HIT} w-full bg-background focus:outline-none focus:ring-2 focus:ring-ring/40 ${className}`}
     />
   );
 };
@@ -95,7 +95,7 @@ export const InlineDate = ({ value, display, onChange, className = "", label }) 
         if (e.key === "Enter" || e.key === "Escape") setEditing(false);
       }}
       aria-label={label}
-      className={`${HIT} bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 dark:[color-scheme:dark]`}
+      className={`${HIT} bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 dark:[color-scheme:dark]`}
     />
   );
 };

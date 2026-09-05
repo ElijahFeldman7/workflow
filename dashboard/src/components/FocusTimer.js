@@ -198,7 +198,7 @@ const FocusTimer = ({ user }) => {
 
   return (
     <div
-      className="absolute bg-card shadow-2xl rounded-2xl border border-border cursor-move select-none overflow-hidden resize-both transition-colors duration-200"
+      className="absolute bg-popover shadow-2xl shadow-black/25 rounded-2xl cursor-move select-none overflow-hidden resize-both transition-colors duration-200"
       onMouseDown={handleMouseDown}
       style={{
         left: "50%",
@@ -274,7 +274,7 @@ const FocusTimer = ({ user }) => {
               </button>
               <button
                 onClick={resetTimer}
-                className="px-8 py-3 rounded-lg bg-background border border-border text-foreground font-medium hover:bg-muted/60 transition-colors"
+                className="px-8 py-3 rounded-lg bg-muted text-foreground font-medium hover:bg-muted/70 transition-colors"
               >
                 Reset
               </button>
@@ -317,7 +317,7 @@ const FocusTimer = ({ user }) => {
                     type="number"
                     value={workDuration}
                     onChange={(e) => setWorkDuration(Number(e.target.value))}
-                    className="w-full border border-border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-ring focus:outline-none bg-background text-foreground"
+                    className="w-full rounded px-3 py-2 text-sm focus:ring-1 focus:ring-ring focus:outline-none bg-background text-foreground"
                   />
                 </div>
                 <div>
@@ -329,7 +329,7 @@ const FocusTimer = ({ user }) => {
                     type="number"
                     value={breakDuration}
                     onChange={(e) => setBreakDuration(Number(e.target.value))}
-                    className="w-full border border-border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-ring focus:outline-none bg-background text-foreground"
+                    className="w-full rounded px-3 py-2 text-sm focus:ring-1 focus:ring-ring focus:outline-none bg-background text-foreground"
                   />
                 </div>
               </div>

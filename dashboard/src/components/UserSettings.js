@@ -269,7 +269,7 @@ const UserSettings = ({ user }) => {
               onChange={(e) =>
                 handleFocusDurationChange(parseInt(e.target.value, 10))
               }
-              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="rounded-md bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value={15}>15 min</option>
               <option value={20}>20 min</option>
@@ -293,7 +293,7 @@ const UserSettings = ({ user }) => {
               onChange={(e) =>
                 handleBreakDurationChange(parseInt(e.target.value, 10))
               }
-              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="rounded-md bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value={3}>3 min</option>
               <option value={5}>5 min</option>

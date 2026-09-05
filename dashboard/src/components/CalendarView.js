@@ -197,16 +197,16 @@ const CalendarView = ({ user }) => {
                 today
               </button>
             )}
-            <div className="flex rounded overflow-hidden border border-border">
+            <div className="flex rounded-md overflow-hidden bg-muted/50 p-0.5 gap-0.5">
               {["month", "week"].map((view) => (
                 <button
                   key={view}
                   onClick={() => setPref("calendarView", view)}
                   aria-pressed={prefs.calendarView === view}
-                  className={`px-2.5 py-1 text-xs transition-colors ${
+                  className={`px-2.5 py-1 text-xs rounded transition-colors ${
                     prefs.calendarView === view
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground hover:bg-muted/60"
+                      ? "bg-popover text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {view}
@@ -371,7 +371,7 @@ const CalendarView = ({ user }) => {
           />
 
           {selectedItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 mt-4 text-center bg-muted/40 rounded-md border border-dashed border-border">
+            <p className="text-sm text-muted-foreground py-8 mt-4 text-center bg-muted/40 rounded-md">
               nothing on this day.
             </p>
           ) : (

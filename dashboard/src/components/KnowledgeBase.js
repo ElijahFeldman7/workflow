@@ -111,10 +111,10 @@ const KnowledgeBase = ({ user }) => {
   };
 
   return (
-    <div className="bg-card shadow rounded-lg overflow-hidden max-w-6xl mx-auto flex h-[600px] border border-border relative transition-colors duration-200">
+    <div className="bg-card shadow rounded-lg overflow-hidden max-w-6xl mx-auto flex h-[600px] relative transition-colors duration-200">
       <div
         className={`
-            bg-muted/30 border-r border-border flex flex-col transition-all duration-300 ease-in-out
+            bg-muted/30 flex flex-col transition-all duration-300 ease-in-out
             ${
               showSidebar ? "w-80 opacity-100" : "w-0 opacity-0 overflow-hidden"
             }
@@ -161,7 +161,7 @@ const KnowledgeBase = ({ user }) => {
                 group p-3 rounded-md cursor-pointer transition-all duration-200 relative
                 ${
                   activeNoteId === note.id
-                    ? "bg-card shadow-sm ring-1 ring-border"
+                    ? "bg-popover shadow-sm"
                     : "hover:bg-muted/60"
                 }
               `}
