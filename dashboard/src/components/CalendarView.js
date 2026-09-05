@@ -6,6 +6,7 @@ import { DayChip } from "./InlineFields";
 import { useWorkData } from "../lib/useWorkData";
 import { useWorkWrites } from "../lib/useWorkWrites";
 import { useWorkPrefs } from "../lib/workPrefs";
+import { useGoogleSync } from "../lib/useGoogleSync";
 import { migrateSchedule } from "../lib/migrateSchedule";
 import {
   WEEKDAY_LABELS,
@@ -41,7 +42,6 @@ const CalendarView = ({ user }) => {
   );
 
   const today = todayKey();
-  // One anchor drives both views, so switching keeps you where you were.
   const [anchor, setAnchor] = useState(today);
   const [selected, setSelected] = useState(today);
   const [expandedId, setExpandedId] = useState(null);
@@ -49,8 +49,8 @@ const CalendarView = ({ user }) => {
 
   const isWeek = prefs.calendarView === "week";
 
-  // One-shot move of the old free-text hour slots into real events. Leaves
-  // schedule/ in place, so this is safe to have run automatically.
+  const gcal = useGoogleSync(user, items, !isLoading);
+
   useEffect(() => {
     if (!user) return undefined;
     let alive = true;
@@ -61,7 +61,6 @@ const CalendarView = ({ user }) => {
         }
       })
       .catch(() => {
-        /* the calendar still works without it */
       });
     return () => {
       alive = false;
@@ -78,8 +77,6 @@ const CalendarView = ({ user }) => {
 
   const selectedItems = itemsByDate.get(selected) || [];
 
-  // The day panel renders through the same list as the Work tab, so it picks
-  // up the table setting, the colors setting, and inline editing.
   const dayGroups = useMemo(
     () => [{ id: "day", label: "", tone: "", items: selectedItems }],
     [selectedItems]
@@ -93,7 +90,6 @@ const CalendarView = ({ user }) => {
     setAnchor((prev) => {
       const date = fromDateKey(prev);
       const next = addMonths(date.getFullYear(), date.getMonth(), delta);
-      // Anchor on the 1st so stepping from the 31st can't skip a month.
       return toDateKey(new Date(next.year, next.month, 1));
     });
   };
@@ -121,8 +117,6 @@ const CalendarView = ({ user }) => {
     return NEUTRAL_CHIP;
   };
 
-  // Unfinished deadlines that have already passed, so a busy month still
-  // flags what's slipping.
   const overdueByDate = useMemo(() => {
     const map = new Map();
     items.forEach((item) => {
@@ -162,6 +156,39 @@ const CalendarView = ({ user }) => {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {gcal.connected && (
+              <button
+                onClick={gcal.needsAuth ? gcal.connectGoogle : gcal.syncNow}
+                disabled={gcal.status === "syncing"}
+                title={
+                  gcal.needsAuth
+                    ? "Reconnect Google Calendar"
+                    : `Sync with ${gcal.config.calendarName || "Google Calendar"}`
+                }
+                aria-label="Sync with Google Calendar"
+                className={`p-1.5 rounded transition-colors ${
+                  gcal.status === "error"
+                    ? "text-destructive hover:bg-muted/60"
+                    : "text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                <svg
+                  className={`w-4 h-4 ${
+                    gcal.status === "syncing" ? "animate-spin" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+            )}
             {!onToday && (
               <button
                 onClick={goToToday}
@@ -253,9 +280,6 @@ const CalendarView = ({ user }) => {
                 const overdue = overdueByDate.get(day.key) || 0;
 
                 return (
-                  // A div rather than a button: the chips inside are
-                  // interactive, and nesting buttons isn't valid. The day
-                  // number carries the accessible name and keyboard focus.
                   <div
                     key={day.key}
                     onClick={() => pickDay(day.key)}
@@ -323,7 +347,6 @@ const CalendarView = ({ user }) => {
         )}
       </div>
 
-      {/* Selected day: add, edit and delete, same as the work list */}
       {!isLoading && (
         <div className="bg-card shadow rounded-md p-6 transition-colors duration-200">
           <div className="flex items-baseline justify-between pb-4">

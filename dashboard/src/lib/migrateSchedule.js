@@ -2,17 +2,8 @@ import { ref, get, push, update } from "firebase/database";
 import { database } from "../firebase";
 import { isDateKey } from "../constants/work";
 
-// The old scheduler stored one free-text string per hour, per day:
-//
-//   users/{uid}/schedule/2026-09-11/3_00_PM  ->  "activity fair"
-//
-// The calendar reads work items instead, so those strings need to become
-// events. This runs once and leaves the original schedule/ node untouched, so
-// nothing is lost if the result looks wrong.
-
 const MIGRATED_FLAG = "scheduleMigratedAt";
 
-// "3_00_PM" -> "15:00"
 function hourKeyToTime(key) {
   const match = /^(\d{1,2})_00_(AM|PM)$/.exec(key);
   if (!match) return null;
@@ -25,11 +16,6 @@ function hourKeyToTime(key) {
   return `${String(hour).padStart(2, "0")}:00`;
 }
 
-/**
- * @returns {Promise<{status: string, created?: number}>}
- *   "done" once it has run, "empty" if there was nothing to move,
- *   "already" if a previous run finished, "skipped" without a user.
- */
 export async function migrateSchedule(user) {
   if (!user) return { status: "skipped" };
 
@@ -42,7 +28,6 @@ export async function migrateSchedule(user) {
   const schedule = scheduleSnap.val();
 
   if (!schedule) {
-    // Nothing to move, but still flag it so this doesn't re-read every load.
     await update(ref(database, `users/${user.uid}`), {
       [MIGRATED_FLAG]: Date.now(),
     });

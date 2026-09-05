@@ -1,9 +1,5 @@
 import React from "react";
 
-// Shared icon paths. These were duplicated across the work list, the class
-// manager and the calendar; keeping one copy means the pencil and the bin
-// always look the same wherever they appear.
-
 const Icon = ({ path, className = "w-4 h-4" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
@@ -42,7 +38,6 @@ export const ChevronRightIcon = (props) => (
 export const FunnelIcon = (props) => <Icon path={PATHS.funnel} {...props} />;
 export const CalendarIcon = (props) => <Icon path={PATHS.calendar} {...props} />;
 
-/** A muted icon button, the shape used for row and header actions. */
 export const IconButton = ({
   onClick,
   title,

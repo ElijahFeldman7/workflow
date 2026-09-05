@@ -45,15 +45,13 @@ const WorkTracker = ({ user }) => {
     [items]
   );
 
-  /* ----------------------------- filtering ------------------------------- */
-
-  // Only offer filters that would actually match something.
   const filterOptions = useMemo(() => {
     const usedSpaces = new Set();
     const usedTypes = new Set();
     const usedPriorities = new Set();
     items.forEach((item) => {
       if (item.done) return;
+      if (!prefs.showPast && bucketFor(item) === "past") return;
       if (item.spaceId) usedSpaces.add(item.spaceId);
       if (item.type) usedTypes.add(item.type);
       usedPriorities.add(item.priority);
@@ -79,7 +77,7 @@ const WorkTracker = ({ user }) => {
         className: p.chip,
       })),
     };
-  }, [items, activeSpaces, prefs.colors]);
+  }, [items, activeSpaces, prefs.colors, prefs.showPast]);
 
   const hasAnyFilterOption =
     filterOptions.spaces.length > 0 ||
@@ -89,8 +87,6 @@ const WorkTracker = ({ user }) => {
   const activeFilterCount =
     filters.spaces.length + filters.types.length + filters.priorities.length;
 
-  // Written out per kind rather than with a computed key, so an unexpected
-  // `kind` is a no-op instead of writing a new property onto the state.
   const toggleFilter = (kind, value) =>
     setFilters((prev) => ({
       spaces: kind === "spaces" ? toggle(prev.spaces, value) : prev.spaces,
@@ -105,6 +101,8 @@ const WorkTracker = ({ user }) => {
   const visible = useMemo(
     () =>
       items.filter((item) => {
+        if (!prefs.showPast && !isDone(item) && bucketFor(item) === "past")
+          return false;
         if (filters.spaces.length && !filters.spaces.includes(item.spaceId))
           return false;
         if (filters.types.length && !filters.types.includes(item.type))
@@ -116,10 +114,8 @@ const WorkTracker = ({ user }) => {
           return false;
         return true;
       }),
-    [items, filters]
+    [items, filters, prefs.showPast, isDone]
   );
-
-  /* ------------------------------ grouping ------------------------------- */
 
   const groups = useMemo(() => {
     const byBucket = new Map();
@@ -134,7 +130,13 @@ const WorkTracker = ({ user }) => {
     BUCKETS.forEach((bucket) => {
       const list = byBucket.get(bucket.id);
       if (list && list.length)
-        ordered.push({ ...bucket, items: [...list].sort(sortByDate) });
+        ordered.push({
+          ...bucket,
+          collapsible: bucket.id === "past",
+          items: [...list].sort(
+            bucket.id === "past" ? (a, b) => sortByDate(b, a) : sortByDate
+          ),
+        });
     });
 
     const done = byBucket.get("done");
@@ -156,8 +158,6 @@ const WorkTracker = ({ user }) => {
     () => visible.filter(isDone).length,
     [visible, isDone]
   );
-
-  /* -------------------------------- render ------------------------------- */
 
   const filterPanel = showFilters && (
     <div className="mt-3 p-3 bg-muted/40 rounded-md">

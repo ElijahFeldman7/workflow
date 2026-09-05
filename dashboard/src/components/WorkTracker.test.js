@@ -42,6 +42,15 @@ const WORK = {
     createdAt: 3,
   },
   w4: { title: "junk row with no fields" },
+  w5: {
+    title: "Club fair yesterday",
+    spaceId: "s2",
+    type: "other",
+    priority: "low",
+    done: false,
+    when: { mode: "event", date: addDaysKey(todayKey(), -1) },
+    createdAt: 5,
+  },
 };
 
 const mockData = (path) => {
@@ -51,7 +60,6 @@ const mockData = (path) => {
 };
 
 beforeEach(() => {
-  // CRA's jest config sets resetMocks, so setupTests' implementations are gone.
   ref.mockImplementation((db, path) => ({ toString: () => path }));
   onValue.mockImplementation((reference, callback) => {
     callback({ val: () => mockData(String(reference)) });
@@ -61,7 +69,6 @@ beforeEach(() => {
   update.mockResolvedValue(undefined);
 });
 
-// The group a row is rendered under, found by walking up to the group wrapper.
 const groupOf = (title) => {
   const row = screen.getByText(title).closest("li");
   const list = row.closest("ul");
@@ -70,12 +77,10 @@ const groupOf = (title) => {
 
 test("WorkTracker renders items grouped and color-coded", () => {
   render(<WorkTracker user={user} />);
-  expect(screen.getByText("Overdue")).toBeInTheDocument(); // group heading
+  expect(screen.getByText("Overdue")).toBeInTheDocument();
   expect(screen.getByText("Cell lab writeup")).toBeInTheDocument();
   expect(screen.getByText("Activity Fair")).toBeInTheDocument();
-  // Row with no class, type, priority or date falls back to defaults.
   expect(screen.getByText("junk row with no fields")).toBeInTheDocument();
-  // Group heading plus the row's own date cell.
   expect(screen.getAllByText("No date").length).toBeGreaterThan(0);
 });
 
@@ -91,8 +96,6 @@ test("ticking an item moves it to Done without waiting on the server", () => {
     expect.anything(),
     expect.objectContaining({ done: true })
   );
-  // Moved and struck through straight away — the Firebase mock never echoes
-  // the write back, so this can only come from the optimistic state.
   expect(groupOf("Cell lab writeup")).toBe("Done");
   expect(screen.getByText("Cell lab writeup").className).toMatch("line-through");
 });
@@ -130,7 +133,6 @@ test("clicking a row's pill filters by it, clicking again clears it", () => {
   render(<WorkTracker user={user} />);
   expect(screen.getByText("Activity Fair")).toBeInTheDocument();
 
-  // INSANE only matches the lab writeup.
   fireEvent.click(screen.getByRole("button", { name: "INSANE" }));
   expect(screen.getByText("Cell lab writeup")).toBeInTheDocument();
   expect(screen.queryByText("Activity Fair")).not.toBeInTheDocument();
@@ -142,7 +144,6 @@ test("clicking a row's pill filters by it, clicking again clears it", () => {
 test("the filter panel is behind an icon and offers only what matches", () => {
   render(<WorkTracker user={user} />);
 
-  // Collapsed by default — no headings on the page.
   expect(screen.queryByText("Priority")).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Filters" }));
@@ -150,7 +151,6 @@ test("the filter panel is behind an icon and offers only what matches", () => {
 
   expect(within(panel).getByText("Class")).toBeInTheDocument();
   expect(within(panel).getByText("Type")).toBeInTheDocument();
-  // "Lab" is in use; "Final" is not, so it never appears as a chip.
   expect(within(panel).getByRole("button", { name: "Lab" })).toBeInTheDocument();
   expect(
     within(panel).queryByRole("button", { name: "Final" })
@@ -180,10 +180,8 @@ test("details strip exposes notes without a modal", () => {
 test("the calendar's day panel can add, edit and delete", () => {
   render(<CalendarView user={user} />);
 
-  // Adding defaults to the selected day rather than needing a date typed in.
   expect(screen.getByPlaceholderText(/Add to today/i)).toBeInTheDocument();
 
-  // Same pencil and bin as the work list.
   fireEvent.click(screen.getByRole("button", { name: /Edit Activity Fair/i }));
   fireEvent.change(screen.getByLabelText("Priority"), {
     target: { value: "high" },
@@ -194,7 +192,6 @@ test("the calendar's day panel can add, edit and delete", () => {
     screen.getByRole("button", { name: /Delete Activity Fair/i })
   ).toBeInTheDocument();
 
-  // Both of today's items are events, which have no done state to tick.
   expect(
     screen.queryByRole("checkbox", { name: /Activity Fair/i })
   ).not.toBeInTheDocument();
@@ -206,7 +203,6 @@ test("the calendar's day panel can add, edit and delete", () => {
 test("calendar chips tick off deadlines and open events", () => {
   render(<CalendarView user={user} />);
 
-  // A deadline in a month cell gets its own checkbox.
   fireEvent.click(
     screen.getByRole("checkbox", { name: /Mark Cell lab writeup as done/i })
   );
@@ -215,12 +211,10 @@ test("calendar chips tick off deadlines and open events", () => {
     expect.objectContaining({ done: true })
   );
 
-  // Events are moments with no done state, so they get no checkbox...
   expect(
     screen.queryByRole("checkbox", { name: /Mark Activity Fair/i })
   ).not.toBeInTheDocument();
 
-  // ...but the label still opens the day, which is where editing happens.
   const chip = screen.getAllByRole("button", { name: /Open Activity Fair/i })[0];
   expect(chip).toBeInTheDocument();
   fireEvent.click(chip);
@@ -231,7 +225,6 @@ test("the calendar follows the table setting like the work list", () => {
   localStorage.setItem("workPrefs", JSON.stringify({ table: true }));
   render(<CalendarView user={user} />);
 
-  // Column headers only exist in the table renderer.
   expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
   expect(screen.getByRole("columnheader", { name: "Priority" })).toBeInTheDocument();
 
@@ -242,14 +235,11 @@ test("the week view splits deadlines from timed blocks", () => {
   localStorage.setItem("workPrefs", JSON.stringify({ calendarView: "week" }));
   render(<CalendarView user={user} />);
 
-  // Deadlines are moments, so they sit in the all-day row rather than the grid.
   expect(screen.getByText("all day")).toBeInTheDocument();
 
-  // The hour window fits the 3-5pm event.
   expect(screen.getByText("3 PM")).toBeInTheDocument();
   expect(screen.getByText("5 PM")).toBeInTheDocument();
 
-  // Activity Fair is timed, so it renders as a positioned block with a height.
   const block = screen
     .getAllByTitle(/Activity Fair/)
     .find((node) => node.tagName === "BUTTON");
@@ -263,14 +253,12 @@ test("every week row scrolls together so the columns stay aligned", () => {
   localStorage.setItem("workPrefs", JSON.stringify({ calendarView: "week" }));
   const { container } = render(<CalendarView user={user} />);
 
-  // A scrollbar on the timed area alone would make its columns narrower than
-  // the header rows above it. One scroller around all of them can't drift.
   const scrollers = container.querySelectorAll(".overflow-y-auto");
   expect(scrollers).toHaveLength(1);
 
   const scroller = scrollers[0];
   const rows = scroller.querySelectorAll(":scope > * > .grid, :scope > .grid");
-  expect(rows.length).toBe(3); // day headers, all day, timed
+  expect(rows.length).toBe(3);
 
   rows.forEach((row) =>
     expect(row.className).toContain("grid-cols-[3.25rem_repeat(7,minmax(0,1fr))]")
@@ -282,12 +270,69 @@ test("every week row scrolls together so the columns stay aligned", () => {
 test("the calendar renders a month grid of the same work items", () => {
   render(<CalendarView user={user} />);
 
-  // Weekday headers prove the grid rendered.
   expect(screen.getByText("Sun")).toBeInTheDocument();
   expect(screen.getByText("Sat")).toBeInTheDocument();
 
-  // Today is selected on mount, so its items are listed under the grid.
   expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
   expect(screen.getAllByText("Activity Fair").length).toBeGreaterThan(0);
   expect(screen.getAllByText(/Orientation/).length).toBeGreaterThan(0);
+});
+
+test("past events are hidden entirely until the setting is on", () => {
+  render(<WorkTracker user={user} />);
+
+  expect(screen.queryByText("Club fair yesterday")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Past/ })).not.toBeInTheDocument();
+  expect(screen.queryByText("Past")).not.toBeInTheDocument();
+  expect(screen.getByText("Cell lab writeup")).toBeInTheDocument();
+});
+
+test("with the setting on, past events start closed and open on click", () => {
+  localStorage.setItem("workPrefs", JSON.stringify({ showPast: true }));
+  render(<WorkTracker user={user} />);
+
+  const heading = screen.getByRole("button", { name: /Past/ });
+  expect(heading).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByText("Club fair yesterday")).not.toBeInTheDocument();
+
+  fireEvent.click(heading);
+  expect(heading).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByText("Club fair yesterday")).toBeInTheDocument();
+
+  fireEvent.click(heading);
+  expect(screen.queryByText("Club fair yesterday")).not.toBeInTheDocument();
+
+  localStorage.clear();
+});
+
+test("the table view hides past events too, and keeps the same toggle", () => {
+  localStorage.setItem("workPrefs", JSON.stringify({ table: true }));
+  const { unmount } = render(<WorkTracker user={user} />);
+  expect(screen.queryByText("Club fair yesterday")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Past/ })).not.toBeInTheDocument();
+  unmount();
+
+  localStorage.setItem(
+    "workPrefs",
+    JSON.stringify({ table: true, showPast: true })
+  );
+  render(<WorkTracker user={user} />);
+  expect(screen.queryByText("Club fair yesterday")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Past/ }));
+  expect(screen.getByText("Club fair yesterday")).toBeInTheDocument();
+
+  localStorage.clear();
+});
+
+test("other groups stay open and unclickable", () => {
+  render(<WorkTracker user={user} />);
+
+  expect(screen.getByText("Cell lab writeup")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^Overdue/ })).not.toBeInTheDocument();
+  expect(screen.getByText("Overdue")).toBeInTheDocument();
+});
+
+test("the calendar still shows an event that has already happened", () => {
+  render(<CalendarView user={user} />);
+  expect(screen.getAllByText("Club fair yesterday").length).toBeGreaterThan(0);
 });

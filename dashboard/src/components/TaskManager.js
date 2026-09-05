@@ -126,7 +126,7 @@ const TaskManager = ({ user }) => {
                 type="checkbox"
                 checked={!!task.completed}
                 onChange={() => handleToggleTask(task)}
-                className="h-4 w-4 text-primary focus:ring-ring border-border rounded cursor-pointer dark:bg-gray-700"
+                className="h-4 w-4 text-primary focus:ring-ring border-border rounded cursor-pointer"
                 aria-label={`Mark task ${task.text} as ${
                   task.completed ? "incomplete" : "complete"
                 }`}
@@ -144,7 +144,7 @@ const TaskManager = ({ user }) => {
 
             <button
               onClick={() => handleDeleteTask(task.id)}
-              className="text-gray-400 hover:text-destructive p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-muted-foreground hover:text-destructive p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Delete task"
               aria-label={`Delete task ${task.text}`}
             >

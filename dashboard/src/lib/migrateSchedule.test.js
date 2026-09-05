@@ -8,7 +8,6 @@ const snapshot = (value) => ({
   val: () => value,
 });
 
-// get() is called twice: once for the migrated flag, once for schedule/.
 const mockReads = ({ flag = null, schedule = null }) => {
   get.mockImplementation((reference) =>
     Promise.resolve(
@@ -30,7 +29,6 @@ beforeEach(() => {
   });
 });
 
-/** The rows the migration wrote to work/. */
 const writtenRows = () => {
   const call = update.mock.calls.find(([reference]) =>
     String(reference).endsWith("/work")
@@ -46,7 +44,7 @@ test("turns each filled hour slot into a timed event", async () => {
       "2026-09-11": {
         "9_00_AM": "physics lab",
         "3_00_PM": "activity fair",
-        "4_00_PM": "   ", // blank after trimming, skipped
+        "4_00_PM": "   ",
       },
       "2026-09-12": { "12_00_PM": "lunch meeting" },
     },
@@ -95,7 +93,6 @@ test("ignores malformed days and hour keys", async () => {
 
   const result = await migrateSchedule(user);
   expect(result).toEqual({ status: "done", created: 0 });
-  // Nothing to write, so only the flag is set.
   expect(writtenRows()).toHaveLength(0);
 });
 

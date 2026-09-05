@@ -1,6 +1,5 @@
 import { parseQuick, activeToken, replaceToken } from "./quickParse";
 
-// Monday, August 31 2026.
 const now = new Date(2026, 7, 31);
 const spaces = [
   { id: "s1", name: "AP Bio", color: "emerald" },
@@ -46,9 +45,8 @@ test("a class named in the title tags the item but stays in the title", () => {
   expect(event.title).toBe("Scioly Orientation");
   expect(event.spaceId).toBe("s4");
   expect(event.mode).toBe("event");
-  expect(event.type).toBe(""); // no type unless the line said one
+  expect(event.type).toBe("");
 
-  // Never strips the only word there is.
   expect(parseQuick("bio", { spaces, now }).title).toBe("bio");
 });
 
@@ -80,7 +78,6 @@ test("relative and calendar dates", () => {
   expect(parse("essay sep 12").date).toBe("2026-09-12");
   expect(parse("essay next fri").date).toBe("2026-09-04");
   expect(parse("essay today").date).toBe("2026-08-31");
-  // A bare weekday never means today.
   expect(parse("essay mon").date).toBe("2026-09-07");
 });
 

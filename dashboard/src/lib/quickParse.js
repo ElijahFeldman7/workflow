@@ -1,13 +1,3 @@
-// Parses a typed line into a work item.
-//
-// Two layers:
-//   1. Sigils (#class /type @time *place !!!) match anywhere in the line.
-//   2. Bare words (fri, quiz, insane, bio) match only as a SUFFIX — scanning
-//      right to left, stopping at the first token that isn't vocabulary.
-//
-// The suffix rule keeps titles intact: "Read chapter 4 bio quiz fri" keeps
-// "Read chapter 4" as the title even though "read" is a type alias.
-
 import {
   WORK_TYPE_IDS,
   PRIORITY_IDS,
@@ -51,8 +41,6 @@ const PRIORITY_ALIASES = {
 
 const MODE_WORDS = { event: "event", meeting: "meeting", mtg: "meeting" };
 
-// Words not worth leaving dangling once the fields behind them are stripped
-// ("Study for bio test friday" -> "Study").
 const TRAILING_STOPWORDS = new Set([
   "for",
   "on",
@@ -121,10 +109,6 @@ const normalize = (text) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
-/* ------------------------------- spaces ---------------------------------- */
-
-// Ranked: exact, then prefix, then word-prefix ("comp" -> "Computer Team"),
-// then initials, then subsequence. Ties break on name so results are stable.
 export function matchSpaces(query, spaces, maxScore = 4) {
   const q = normalize(query);
   if (!q) return [];
@@ -165,8 +149,6 @@ function isSubsequence(needle, haystack) {
   return false;
 }
 
-/* -------------------------------- time ----------------------------------- */
-
 function parseClock(text) {
   const match = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(String(text).trim());
   if (!match) return null;
@@ -181,14 +163,12 @@ function parseClock(text) {
     if (meridiem === "pm" && hour !== 12) hour += 12;
     if (meridiem === "am" && hour === 12) hour = 0;
   } else {
-    // A bare number is not a time — "3" stays in the title, "3:00" doesn't.
     if (!match[2] || hour > 23) return null;
   }
 
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-// "3pm", "15:00", "3-5pm", "9am-12pm". A meridiem on the right carries left.
 export function parseTimeToken(text) {
   const value = String(text || "").trim().toLowerCase();
   if (!value) return null;
@@ -209,15 +189,13 @@ export function parseTimeToken(text) {
   return single ? { time: single, endTime: "", isRange: false } : null;
 }
 
-/* -------------------------------- dates ---------------------------------- */
-
 const startOfDay = (date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
 function upcomingWeekday(from, weekday) {
   const date = startOfDay(from);
   let delta = (weekday - date.getDay() + 7) % 7;
-  if (delta === 0) delta = 7; // a bare weekday never means today
+  if (delta === 0) delta = 7;
   date.setDate(date.getDate() + delta);
   return date;
 }
@@ -226,14 +204,11 @@ function monthDay(month, day, now) {
   if (day < 1 || day > 31) return null;
   const date = new Date(now.getFullYear(), month, day);
   if (date.getMonth() !== month) return null;
-  // More than six months back almost certainly means next year.
   if (startOfDay(now) - date > 182 * MS_PER_DAY)
     date.setFullYear(date.getFullYear() + 1);
   return date;
 }
 
-// Tries the 3-, 2-, then 1-token window ending at `end`. Returns the date and
-// how many tokens it consumed.
 export function matchDate(tokens, end, now) {
   for (let size = 3; size >= 1; size -= 1) {
     const start = end - size + 1;
@@ -315,17 +290,10 @@ function matchDateWindow(words, now) {
   return null;
 }
 
-/* -------------------------------- parse ---------------------------------- */
-
 const SIGIL_RE = /(^|\s)([#/@*])("[^"]*"|[^\s]+)/g;
 const BANG_RE = /(^|\s)(!{1,4})(?=\s|$)/g;
 const BANG_PRIORITY = ["low", "medium", "high", "insane"];
 
-/**
- * @param {string} input raw text from the quick-add box
- * @param {{spaces?: Array, now?: Date}} options
- * @returns parsed fields, plus `filled` marking what the text actually set
- */
 export function parseQuick(input, options = {}) {
   const spaces = options.spaces || [];
   const now = options.now || new Date();
@@ -359,7 +327,7 @@ export function parseQuick(input, options = {}) {
       else found.newSpaceName = value;
     } else if (sigil === "/") {
       const type = TYPE_ALIASES[clean(value)];
-      if (!type) return match; // unknown /token stays in the title
+      if (!type) return match;
       found.type = type;
     } else if (sigil === "@") {
       const time = parseTimeToken(value);
@@ -373,7 +341,6 @@ export function parseQuick(input, options = {}) {
     return lead;
   });
 
-  // Suffix scan, right to left, stopping at the first non-vocabulary token.
   const tokens = text.split(/\s+/).filter(Boolean);
   let end = tokens.length - 1;
 
@@ -419,7 +386,6 @@ export function parseQuick(input, options = {}) {
       continue;
     }
 
-    // `end > 0` keeps a lone "bio" as a title rather than an empty item.
     if (!found.spaceId && !found.newSpaceName && end > 0) {
       const space = matchSpaces(token, spaces)[0];
       if (space) {
@@ -434,10 +400,6 @@ export function parseQuick(input, options = {}) {
 
   const titleTokens = tokens.slice(0, end + 1);
 
-  // A class named inside the title tags the item but stays in the title:
-  // "Scioly Orientation" is still called "Scioly Orientation". Only trailing
-  // tags (handled by the suffix scan above) get consumed. Confident matches
-  // only — exact, prefix or word-prefix.
   if (!found.spaceId && !found.newSpaceName) {
     for (const raw of titleTokens) {
       const token = clean(raw);
@@ -472,7 +434,6 @@ export function parseQuick(input, options = {}) {
   return {
     ...found,
     title,
-    // No type unless the line said one — better blank than a wrong guess.
     type: WORK_TYPE_IDS.includes(found.type) ? found.type : DEFAULT_TYPE,
     priority: PRIORITY_IDS.includes(found.priority)
       ? found.priority
@@ -482,9 +443,6 @@ export function parseQuick(input, options = {}) {
   };
 }
 
-/* ----------------------------- autocomplete ------------------------------ */
-
-// Which sigil token the caret sits inside, or null.
 export function activeToken(text, caret) {
   const match = /(^|\s)([#/])([^\s]*)$/.exec(text.slice(0, caret));
   if (!match) return null;

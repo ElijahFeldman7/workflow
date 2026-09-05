@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 
-// View preferences for the Work tab. Local to the device, like the other
-// settings in this app. Settings and Work live on different tabs, so a custom
-// event keeps them in sync without a provider.
-
 const KEY = "workPrefs";
 const EVENT = "workprefschange";
 
 export const DEFAULT_PREFS = {
-  colors: false, // colored dots and tags
-  table: false, // Notion-style table instead of the grouped list
-  calendarView: "month", // "month" | "week"
+  colors: false,
+  table: false,
+  showPast: false,
+  calendarView: "month",
 };
 
 const CALENDAR_VIEWS = ["month", "week"];
@@ -22,6 +19,7 @@ export function readPrefs() {
     return {
       colors: !!saved.colors,
       table: !!saved.table,
+      showPast: !!saved.showPast,
       calendarView: CALENDAR_VIEWS.includes(saved.calendarView)
         ? saved.calendarView
         : DEFAULT_PREFS.calendarView,
@@ -45,7 +43,6 @@ export function useWorkPrefs() {
   }, []);
 
   const setPref = useCallback((key, value) => {
-    // Most prefs are switches; calendarView carries a string.
     const next = {
       ...readPrefs(),
       [key]: key === "calendarView" ? value : !!value,

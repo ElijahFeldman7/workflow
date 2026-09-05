@@ -3,13 +3,6 @@ import { ref, push, set, update, remove, child } from "firebase/database";
 import { database } from "../firebase";
 import { PALETTE_KEYS } from "../constants/work";
 
-/**
- * Every write the work items need, shared by the work list and the calendar so
- * the two behave identically.
- *
- * `isDone` reads through an optimistic map so a ticked row flips the moment
- * you click it rather than after the Firebase round-trip.
- */
 export function useWorkWrites(user, spaces, onError) {
   const [pending, setPending] = useState(() => new Map());
 
@@ -51,8 +44,6 @@ export function useWorkWrites(user, spaces, onError) {
         completedAt: next ? Date.now() : 0,
       });
 
-      // Drop the optimistic value if the write didn't land, so the row goes
-      // back to whatever Firebase actually holds.
       if (!saved) {
         setPending((prev) => {
           const rest = new Map(prev);
@@ -76,8 +67,6 @@ export function useWorkWrites(user, spaces, onError) {
     [user, itemsPath, fail]
   );
 
-  // A #name the parser couldn't match becomes a new class, colored with the
-  // first palette entry nothing else is using.
   const createSpace = useCallback(
     async (name) => {
       const used = new Set(spaces.map((space) => space.color));

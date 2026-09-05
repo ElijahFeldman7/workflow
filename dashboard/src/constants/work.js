@@ -1,9 +1,3 @@
-// Shared vocabulary for the Work tab (classes, clubs, assignments, events).
-//
-// Every Tailwind class in PALETTE is written out in full on purpose. Tailwind
-// scans source text, so a template string like `bg-${color}-500` compiles to
-// nothing. Adding a color means adding a whole entry here.
-
 export const PALETTE = {
   rose: {
     label: "Rose",
@@ -107,15 +101,12 @@ export const PALETTE_ENTRIES = Object.entries(PALETTE);
 export const PALETTE_KEYS = PALETTE_ENTRIES.map(([key]) => key);
 export const DEFAULT_COLOR = "blue";
 
-// A Map keeps lookups of stored (i.e. untrusted) color names off the object.
 const PALETTE_BY_KEY = new Map(PALETTE_ENTRIES);
 
 export function colorOf(key) {
   return PALETTE_BY_KEY.get(key) || PALETTE_BY_KEY.get(DEFAULT_COLOR);
 }
 
-// A "space" is a class, a club, or a personal bucket. Same entity, same color
-// picker, same filters — only the label differs.
 export const SPACE_KINDS = [
   { id: "class", label: "Class" },
   { id: "club", label: "Club" },
@@ -138,11 +129,8 @@ export const WORK_TYPES = [
 ];
 export const WORK_TYPE_IDS = WORK_TYPES.map((t) => t.id);
 
-// Blank. A type is only set when something actually said one — guessing
-// "Homework" for a club orientation is worse than showing nothing.
 export const DEFAULT_TYPE = "";
 
-// Tag colors for the table view, only used when the color setting is on.
 export const TYPE_CHIPS = {
   hw: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300",
   quiz: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
@@ -203,15 +191,11 @@ export function priorityOf(id) {
   return PRIORITIES.find((p) => p.id === id) || PRIORITIES[1];
 }
 
-// "due" = a deadline you check off. "event" = something that happens at a time
-// and then is simply over (orientation, activity fair, a club meeting).
 export const MODES = [
   { id: "due", label: "Due" },
   { id: "event", label: "Event" },
 ];
 export const DEFAULT_MODE = "due";
-
-/* ------------------------------- dates ---------------------------------- */
 
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -224,8 +208,6 @@ export function isTimeValue(value) {
   return typeof value === "string" && TIME_RE.test(value);
 }
 
-// Local date key. Deliberately not toISOString() — that converts to UTC and
-// shifts the day for anyone editing in the evening.
 export function toDateKey(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -250,7 +232,6 @@ export function addDaysKey(key, days) {
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Whole days from today to the given key. Negative means the past.
 export function daysUntil(key, from = new Date()) {
   if (!isDateKey(key)) return null;
   const target = fromDateKey(key);
@@ -266,7 +247,6 @@ export function formatTime(value) {
   return `${hour12}:${String(minute).padStart(2, "0")} ${ampm}`;
 }
 
-// The hour label DailyScheduler uses for its rows, e.g. "3:00 PM".
 export function hourLabelFor(value) {
   if (!isTimeValue(value)) return "";
   const hour = Number(value.split(":")[0]);
@@ -307,8 +287,6 @@ export function formatWhen(item) {
   return day;
 }
 
-/* ------------------------------ buckets --------------------------------- */
-
 export const BUCKETS = [
   { id: "overdue", label: "Overdue", tone: "text-destructive" },
   { id: "today", label: "Today", tone: "text-primary" },
@@ -327,19 +305,12 @@ export function bucketFor(item) {
   return "later";
 }
 
-// Higher = do it sooner. Priority scaled by how close the deadline is, so an
-// INSANE item three days out still outranks a low-priority one due tomorrow.
 export function urgency(item) {
   const weight = priorityOf(item.priority).weight;
   const diff = daysUntil(item.when.date);
   if (diff === null) return weight * 0.1;
   return weight * (10 / (Math.max(diff, 0) + 1));
 }
-
-/* ---------------------------- normalization ------------------------------ */
-
-// Firebase hands back whatever was written, including rows from older versions
-// of the schema. Everything that reaches the UI goes through these first.
 
 export function normalizeSpace(id, raw) {
   const data = raw || {};
@@ -384,7 +355,6 @@ export function normalizeItem(id, raw) {
 }
 
 export function sortByDate(a, b) {
-  // Undated items sink to the bottom of whatever group they land in.
   if (!a.when.date && !b.when.date) return a.createdAt - b.createdAt;
   if (!a.when.date) return 1;
   if (!b.when.date) return -1;

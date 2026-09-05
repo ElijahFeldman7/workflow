@@ -1,15 +1,7 @@
 import { toDateKey, fromDateKey, isTimeValue } from "../constants/work";
 
-// Grid helpers for the calendar views. Everything works in local time and
-// speaks the same YYYY-MM-DD keys as the work items.
-
 export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/**
- * Six weeks of day keys covering the given month, padded out with the tail of
- * the previous month and the head of the next so the grid is always 6x7. A
- * fixed height means the page doesn't jump as you page through months.
- */
 export function monthMatrix(year, month) {
   const first = new Date(year, month, 1);
   const start = new Date(year, month, 1 - first.getDay());
@@ -52,9 +44,6 @@ export function longDayLabel(key) {
   });
 }
 
-/* --------------------------------- week ---------------------------------- */
-
-/** The seven days of the week containing `key`, Sunday first. */
 export function weekMatrix(key) {
   const date = fromDateKey(key);
   const sunday = new Date(date);
@@ -106,23 +95,9 @@ export const minutesOf = (time) => {
 const DEFAULT_BLOCK_MINUTES = 60;
 const MIN_BLOCK_MINUTES = 30;
 
-/**
- * Only timed events belong in the hour grid. A deadline is a moment rather
- * than a block, so it goes in the row above it even when it has a time.
- */
 export const isTimedBlock = (item) =>
   item.when.mode === "event" && isTimeValue(item.when.time);
 
-/**
- * Assigns each timed event a column so overlapping events sit side by side
- * instead of on top of each other.
- *
- * Events are clustered into runs that overlap, then greedily packed into the
- * leftmost free column within their cluster. Every event in a cluster reports
- * the same `columns` total so they split the day's width evenly.
- *
- * @returns [{ item, start, end, column, columns }] with minutes from midnight
- */
 export function layoutTimed(items) {
   const blocks = items
     .filter(isTimedBlock)
@@ -142,7 +117,6 @@ export function layoutTimed(items) {
   const flush = () => {
     if (cluster.length === 0) return;
 
-    // columnEnds[k] is when the last block in column k finishes.
     const columnEnds = [];
     cluster.forEach((block) => {
       let index = columnEnds.findIndex((end) => end <= block.start);
@@ -169,10 +143,6 @@ export function layoutTimed(items) {
   return laid;
 }
 
-/**
- * Hour window wide enough to hold everything in view, so nothing is hidden
- * off the top or bottom the way the old fixed 8am-7pm grid hid it.
- */
 export function hourRange(blocks, fallbackStart = 8, fallbackEnd = 20) {
   let start = fallbackStart;
   let end = fallbackEnd;
@@ -185,7 +155,6 @@ export function hourRange(blocks, fallbackStart = 8, fallbackEnd = 20) {
   return { start: Math.max(0, start), end: Math.min(24, Math.max(end, start + 1)) };
 }
 
-/** Groups items by their date key, so each grid cell is one map lookup. */
 export function byDate(items) {
   const map = new Map();
   items.forEach((item) => {
@@ -194,7 +163,6 @@ export function byDate(items) {
     list.push(item);
     map.set(item.when.date, list);
   });
-  // Timed things first, in clock order; undated-within-the-day after.
   map.forEach((list) =>
     list.sort((a, b) => (a.when.time || "99:99").localeCompare(b.when.time || "99:99"))
   );

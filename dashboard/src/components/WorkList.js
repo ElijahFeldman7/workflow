@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { InlineText, InlineDate, DoneBox, EventMark } from "./InlineFields";
 import { IconButton, PencilIcon, TrashIcon } from "./Icons";
 import {
@@ -14,16 +14,6 @@ import {
   typeLabel,
 } from "../constants/work";
 
-// The one place a work item is drawn. The work list and the calendar's day
-// panel both render through this, so they can't drift apart in styling or in
-// which prefs they honor.
-
-/* --------------------------------- pills --------------------------------- */
-
-/**
- * A bit of row metadata. Clicking filters by it where a handler is given;
- * otherwise it's plain text with identical styling.
- */
 const MetaPill = ({ label, onClick, active, className, tag, muted }) => {
   if (!label) return null;
 
@@ -46,14 +36,10 @@ const MetaPill = ({ label, onClick, active, className, tag, muted }) => {
   );
 };
 
-/* ----------------------------- details strip ----------------------------- */
-
 const field =
   "w-full mt-1 border border-border rounded px-2 py-1 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40";
 const fieldLabel = "text-xs text-muted-foreground";
 
-// Only the fields with nowhere to live on a row. A strip under the item, not
-// a modal.
 const DetailsStrip = ({ item, spaces, onPatch, onClose }) => (
   <div className="px-3 py-3 mb-1 bg-muted/40 rounded-md">
     <div className="grid gap-3 sm:grid-cols-4">
@@ -213,12 +199,10 @@ const RowActions = ({ item, expanded, onExpand, onDelete }) => (
   </span>
 );
 
-/* --------------------------------- list ---------------------------------- */
-
 const noFilters = { spaces: [], types: [], priorities: [] };
 
 const WorkList = ({
-  groups, // [{ id, label, tone, items, hidden }] — one group renders flat
+  groups,
   spaces,
   spaceById,
   prefs,
@@ -229,9 +213,49 @@ const WorkList = ({
   expandedId,
   onExpand,
   activeFilters = noFilters,
-  onToggleFilter, // (kind, value) => void, omit for read-only pills
+  onToggleFilter,
   footer,
 }) => {
+  const [openGroups, setOpenGroups] = useState({});
+
+  const isGroupOpen = (group) =>
+    !group.collapsible || !!openGroups[group.id];
+
+  const toggleGroup = (id) =>
+    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const groupHeading = (group) => {
+    if (!group.label) return null;
+    const tone = group.tone || "text-muted-foreground";
+    if (!group.collapsible)
+      return <div className={`text-xs ${tone}`}>{group.label}</div>;
+
+    const open = isGroupOpen(group);
+    return (
+      <button
+        onClick={() => toggleGroup(group.id)}
+        aria-expanded={open}
+        className={`flex items-center gap-1 text-xs ${tone} hover:text-foreground transition-colors`}
+      >
+        <svg
+          className={`w-3 h-3 transition-transform ${open ? "rotate-90" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+        {group.label}
+        <span className="text-muted-foreground">({group.items.length})</span>
+      </button>
+    );
+  };
+
   const filterHandler = (kind, value) =>
     onToggleFilter && value ? () => onToggleFilter(kind, value) : undefined;
 
@@ -290,10 +314,10 @@ const WorkList = ({
     />
   );
 
-  /* -------------------------------- table -------------------------------- */
-
   if (prefs.table) {
-    const rows = groups.flatMap((group) => group.items);
+    const shownGroups = groups.filter(isGroupOpen);
+    const rows = shownGroups.flatMap((group) => group.items);
+    const collapsed = groups.filter((group) => !isGroupOpen(group));
 
     return (
       <div className="overflow-x-auto">
@@ -369,12 +393,17 @@ const WorkList = ({
             })}
           </tbody>
         </table>
+        {collapsed.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-3">
+            {collapsed.map((group) => (
+              <React.Fragment key={group.id}>{groupHeading(group)}</React.Fragment>
+            ))}
+          </div>
+        )}
         {footer}
       </div>
     );
   }
-
-  /* --------------------------------- rows -------------------------------- */
 
   const showHeadings = groups.length > 1 || !!groups[0]?.label;
 
@@ -382,12 +411,9 @@ const WorkList = ({
     <div>
       {groups.map((group) => (
         <div key={group.id} className="mt-5 first:mt-3">
-          {showHeadings && group.label && (
-            <div className={`text-xs ${group.tone || "text-muted-foreground"}`}>
-              {group.label}
-            </div>
-          )}
+          {showHeadings && groupHeading(group)}
 
+          {isGroupOpen(group) && (
           <ul className="divide-y divide-border">
             {group.items.map((item) => {
               const space = spaceById.get(item.spaceId);
@@ -397,7 +423,7 @@ const WorkList = ({
               return (
                 <li key={item.id}>
                   <div className="group flex items-center justify-between gap-3 py-3 px-2 -mx-2 rounded hover:bg-muted/40 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       {box(item)}
 
                       {prefs.colors && space && (
@@ -448,8 +474,9 @@ const WorkList = ({
               );
             })}
           </ul>
+          )}
 
-          {group.id === "done" && group.hidden > 0 && footer}
+          {group.id === "done" && group.hidden > 0 && isGroupOpen(group) && footer}
         </div>
       ))}
 

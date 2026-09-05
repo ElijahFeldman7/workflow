@@ -4,7 +4,6 @@ import { DarkModeProvider } from "./context/DarkModeContext";
 import { onAuthStateChanged } from "firebase/auth";
 import { logout } from "./firebase";
 
-// Helper function to render App with providers
 const renderApp = () => {
   return render(
     <DarkModeProvider>
@@ -218,7 +217,6 @@ describe("App component", () => {
         expect(screen.getByTestId("work-tracker")).toBeInTheDocument();
       });
 
-      // First switch to another tab
       fireEvent.click(screen.getByText("Knowledge"));
       await waitFor(() => {
         expect(screen.getByTestId("knowledge-base")).toBeInTheDocument();
@@ -227,7 +225,6 @@ describe("App component", () => {
         "bg-primary/15 text-primary"
       );
 
-      // Then click the logo
       fireEvent.click(screen.getByAltText("Workflow Logo"));
       await waitFor(() => {
         expect(screen.getByTestId("work-tracker")).toBeInTheDocument();

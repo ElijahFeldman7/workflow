@@ -39,7 +39,6 @@ test("overlapping events split into side-by-side columns", () => {
   ]);
 
   const columns = columnsOf(laid);
-  // All three overlap at 10:30, so the cluster is three wide.
   expect(columns.a).toEqual([0, 3]);
   expect(columns.b).toEqual([1, 3]);
   expect(columns.c).toEqual([2, 3]);
@@ -49,7 +48,7 @@ test("a freed column is reused rather than widening the cluster", () => {
   const laid = layoutTimed([
     event("a", "09:00", "10:00"),
     event("b", "09:30", "11:00"),
-    event("c", "10:00", "11:00"), // a has ended, so c takes a's column
+    event("c", "10:00", "11:00"),
   ]);
 
   const columns = columnsOf(laid);
@@ -68,7 +67,6 @@ test("a gap starts a fresh cluster", () => {
   const columns = columnsOf(laid);
   expect(columns.a[1]).toBe(2);
   expect(columns.b[1]).toBe(2);
-  // Separate cluster, so it is not squeezed by the earlier pair.
   expect(columns.late).toEqual([0, 1]);
 });
 
@@ -77,7 +75,6 @@ test("an event with no end time gets a default block, with a floor on length", (
   expect(open.start).toBe(540);
   expect(open.end).toBe(600);
 
-  // An end at or before the start would render as a zero-height sliver.
   const [backwards] = layoutTimed([event("backwards", "09:00", "08:00")]);
   expect(backwards.end).toBeGreaterThan(backwards.start);
 });
@@ -102,7 +99,6 @@ test("the hour window widens to fit anything outside the default", () => {
 });
 
 test("a week runs Sunday to Saturday around the given day", () => {
-  // 2026-09-09 is a Wednesday.
   const days = weekMatrix("2026-09-09");
   expect(days).toHaveLength(7);
   expect(days[0].key).toBe("2026-09-06");
@@ -127,7 +123,6 @@ test("a month is always six full weeks", () => {
   const weeks = monthMatrix(2026, 8);
   expect(weeks).toHaveLength(6);
   weeks.forEach((week) => expect(week).toHaveLength(7));
-  // September 2026 starts on a Tuesday, so the grid opens on Aug 30.
   expect(weeks[0][0].key).toBe("2026-08-30");
   expect(weeks[0][0].inMonth).toBe(false);
   expect(weeks[0][2].key).toBe("2026-09-01");

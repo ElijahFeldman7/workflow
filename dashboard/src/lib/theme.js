@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 
-// Color palettes. Each one redefines the CSS variables in index.css; the
-// dark-mode toggle still chooses light or dark within the chosen palette.
-
 const KEY = "palette";
 const EVENT = "palettechange";
 
@@ -14,8 +11,6 @@ export const PALETTES = [
   { id: "matcha", label: "Matcha", swatch: "#5a8f47" },
 ];
 
-// Original is defined on :root / .dark in index.css, so it's both the default
-// and the palette that carries no data-palette attribute.
 export const DEFAULT_PALETTE = "original";
 
 const isValid = (id) => PALETTES.some((palette) => palette.id === id);

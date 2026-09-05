@@ -3,12 +3,13 @@ import { useDarkMode } from "../context/DarkModeContext";
 import { PALETTES, usePalette } from "../lib/theme";
 import { useWorkPrefs } from "../lib/workPrefs";
 import SpaceManager from "./SpaceManager";
+import GoogleCalendarSync from "./GoogleCalendarSync";
 
 const Switch = ({ on, onClick, label }) => (
   <button
     onClick={onClick}
     className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
-      on ? "bg-blue-600" : "bg-muted-foreground/40"
+      on ? "bg-primary" : "bg-muted-foreground/40"
     }`}
     role="switch"
     aria-checked={on}
@@ -74,14 +75,13 @@ const UserSettings = ({ user }) => {
         Settings
       </h2>
 
-      {/* Profile Section */}
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Profile
         </h3>
         <div className="flex items-center gap-4">
           <img
-            className="h-16 w-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+            className="h-16 w-16 rounded-full object-cover border-2 border-border"
             src={profileSrc}
             alt={user?.displayName || "User avatar"}
             referrerPolicy="no-referrer"
@@ -101,7 +101,6 @@ const UserSettings = ({ user }) => {
         </div>
       </section>
 
-      {/* Appearance Section */}
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Appearance
@@ -118,7 +117,7 @@ const UserSettings = ({ user }) => {
           <button
             onClick={toggleDarkMode}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              isDarkMode ? "bg-blue-600" : "bg-muted-foreground/40"
+              isDarkMode ? "bg-primary" : "bg-muted-foreground/40"
             }`}
             role="switch"
             aria-checked={isDarkMode}
@@ -146,8 +145,8 @@ const UserSettings = ({ user }) => {
                 aria-pressed={palette === option.id}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
                   palette === option.id
-                    ? "border-gray-400 dark:border-gray-400 text-foreground"
-                    : "border-border text-muted-foreground hover:border-gray-300 dark:hover:border-gray-600"
+                    ? "border-primary text-foreground"
+                    : "border-border text-muted-foreground hover:border-muted-foreground"
                 }`}
               >
                 <span
@@ -161,7 +160,6 @@ const UserSettings = ({ user }) => {
         </div>
       </section>
 
-      {/* Work Section */}
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Work
@@ -186,6 +184,22 @@ const UserSettings = ({ user }) => {
         <div className="flex items-center justify-between py-3">
           <div>
             <p className="text-sm font-medium text-foreground">
+              Past Events
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Keep events that have already happened in the list
+            </p>
+          </div>
+          <Switch
+            on={workPrefs.showPast}
+            onClick={() => setWorkPref("showPast", !workPrefs.showPast)}
+            label="Past events"
+          />
+        </div>
+
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">
               Class Colors
             </p>
             <p className="text-sm text-muted-foreground">
@@ -204,7 +218,6 @@ const UserSettings = ({ user }) => {
         </div>
       </section>
 
-      {/* Notifications Section */}
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Notifications
@@ -221,7 +234,7 @@ const UserSettings = ({ user }) => {
           <button
             onClick={() => handleNotificationsChange(!notifications)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              notifications ? "bg-blue-600" : "bg-muted-foreground/40"
+              notifications ? "bg-primary" : "bg-muted-foreground/40"
             }`}
             role="switch"
             aria-checked={notifications}
@@ -235,7 +248,8 @@ const UserSettings = ({ user }) => {
         </div>
       </section>
 
-      {/* Focus Timer Settings */}
+      <GoogleCalendarSync user={user} />
+
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Focus Timer
@@ -255,7 +269,7 @@ const UserSettings = ({ user }) => {
               onChange={(e) =>
                 handleFocusDurationChange(parseInt(e.target.value, 10))
               }
-              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value={15}>15 min</option>
               <option value={20}>20 min</option>
@@ -279,7 +293,7 @@ const UserSettings = ({ user }) => {
               onChange={(e) =>
                 handleBreakDurationChange(parseInt(e.target.value, 10))
               }
-              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value={3}>3 min</option>
               <option value={5}>5 min</option>
@@ -290,7 +304,6 @@ const UserSettings = ({ user }) => {
         </div>
       </section>
 
-      {/* About Section */}
       <section>
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           About

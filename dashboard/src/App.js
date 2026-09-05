@@ -60,7 +60,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background dark:text-white">
+      <div className="h-screen flex items-center justify-center bg-background text-foreground">
         Loading...
       </div>
     );

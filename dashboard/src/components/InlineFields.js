@@ -1,12 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 
-// Edit-in-place controls for the work table. These are real <select> and
-// <input> elements styled to look like plain text, so keyboard navigation,
-// mobile pickers and accessibility all come for free — no popover code.
-
 const HIT = "rounded px-1.5 py-0.5 -mx-1.5 text-left";
 
-/** Click to edit text, commit on blur or Enter, discard on Escape. */
 export const InlineText = ({ value, onChange, className = "", label }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -58,10 +53,6 @@ export const InlineText = ({ value, onChange, className = "", label }) => {
   );
 };
 
-/**
- * Shows a friendly date ("Wednesday", "Sep 14") and swaps to a real date
- * picker on click, so the column stays readable while staying editable.
- */
 export const InlineDate = ({ value, display, onChange, className = "", label }) => {
   const [editing, setEditing] = useState(false);
   const inputRef = useRef(null);
@@ -71,12 +62,10 @@ export const InlineDate = ({ value, display, onChange, className = "", label }) 
     const input = inputRef.current;
     if (!input) return;
     input.focus();
-    // Opens the native calendar where the browser supports it.
     if (typeof input.showPicker === "function") {
       try {
         input.showPicker();
       } catch (e) {
-        /* not allowed without a user gesture in some browsers */
       }
     }
   }, [editing]);
@@ -111,10 +100,6 @@ export const InlineDate = ({ value, display, onChange, className = "", label }) 
   );
 };
 
-/**
- * Checkbox that stays put after it's ticked. The row doesn't move, so the
- * click has a visible result and stays reversible.
- */
 export const DoneBox = ({ done, onToggle, label, small = false }) => (
   <button
     onClick={onToggle}
@@ -143,14 +128,6 @@ export const DoneBox = ({ done, onToggle, label, small = false }) => (
   </button>
 );
 
-/**
- * One item as it appears inside a calendar cell — the month grid and the
- * week's all-day row share this, so they stay interactive in the same way.
- *
- * The checkbox ticks in place; the label selects the day so the panel below
- * can rename, reschedule, edit or delete. Events get no checkbox, since they
- * have no done state.
- */
 export const DayChip = ({
   label,
   time,
@@ -160,7 +137,7 @@ export const DayChip = ({
   className = "",
 }) => (
   <div
-    className={`flex items-center gap-1 px-1 py-0.5 rounded text-[11px] leading-tight ${className}`}
+    className={`flex items-start gap-1 px-1 py-0.5 rounded text-[11px] leading-snug ${className}`}
     title={label}
   >
     {onToggle && (
@@ -179,7 +156,7 @@ export const DayChip = ({
         event.stopPropagation();
         onSelect();
       }}
-      className="min-w-0 flex-grow truncate text-left"
+      className="min-w-0 flex-grow text-left break-words line-clamp-2"
       aria-label={`Open ${label}`}
     >
       {time && <span className="opacity-70 mr-1">{time}</span>}
@@ -188,7 +165,6 @@ export const DayChip = ({
   </div>
 );
 
-/** Non-interactive marker for events, which have no done state. */
 export const EventMark = () => (
   <span
     className="h-[18px] w-[18px] flex-shrink-0 flex items-center justify-center text-muted-foreground/50"
@@ -205,7 +181,6 @@ export const EventMark = () => (
   </span>
 );
 
-/** One row of toggleable filter chips. */
 export const FilterChips = ({ options, active, onToggle }) => (
   <>
     {options.map((option) => {

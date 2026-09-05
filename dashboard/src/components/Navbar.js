@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { logout } from "../firebase";
 import { useDarkMode } from "../context/DarkModeContext";
 
@@ -10,7 +10,27 @@ const Navbar = ({
   onOpenSettings,
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+
+  useEffect(() => {
+    if (!isMenuOpen) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setIsMenuOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const pickTab = (id) => {
+    setActiveTab(id);
+    setIsMenuOpen(false);
+  };
 
   const fallbackAvatar =
     typeof user?.displayName === "string"
@@ -30,10 +50,31 @@ const Navbar = ({
     <header className="bg-card border-b border-border sticky top-0 z-50 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 sm:gap-6">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={isMenuOpen}
+              className="sm:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                />
+              </svg>
+            </button>
+
             <div
               className="flex-shrink-0 flex items-center cursor-pointer gap-3"
-              onClick={() => setActiveTab("work")}
+              onClick={() => pickTab("work")}
             >
               <img className="h-8 w-8" src="/logo.png" alt="Workflow Logo" />
               <span className="text-xl font-bold text-foreground tracking-tight">
@@ -45,7 +86,7 @@ const Navbar = ({
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => pickTab(item.id)}
                   className={`
                     px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
                     ${
@@ -62,7 +103,6 @@ const Navbar = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Dark Mode Toggle */}
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
@@ -108,12 +148,12 @@ const Navbar = ({
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className={`flex items-center gap-3 max-w-xs p-1 pr-3 rounded-lg transition-colors duration-200 ease-in-out ${
                       isDropdownOpen
-                        ? "bg-gray-200 dark:bg-gray-700"
+                        ? "bg-muted"
                         : "hover:bg-muted/60"
                     }`}
                   >
                     <img
-                      className="h-8 w-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                      className="h-8 w-8 rounded-full object-cover border border-border"
                       src={profileSrc}
                       alt={user.displayName || "User avatar"}
                       referrerPolicy="no-referrer"
@@ -135,7 +175,7 @@ const Navbar = ({
                         onClick={() => setIsDropdownOpen(false)}
                       ></div>
 
-                      <div className="select-none origin-top-right absolute right-0 mt-1 w-48 rounded-md py-2 bg-card ring-1 ring-black ring-opacity-5 dark:ring-gray-700 shadow-lg z-20">
+                      <div className="select-none origin-top-right absolute right-0 mt-1 w-48 rounded-md py-2 bg-card ring-1 ring-border shadow-lg z-20">
                         <div className="px-4 py-2 border-b border-border">
                           <p className="text-xs text-muted-foreground">
                             Signed in as
@@ -194,6 +234,49 @@ const Navbar = ({
           </div>
         </div>
       </div>
+
+      {isMenuOpen && (
+        <div className="sm:hidden fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col bg-card">
+          <nav className="flex-1 overflow-y-auto flex flex-col p-3 gap-1">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => pickTab(item.id)}
+                aria-current={activeTab === item.id ? "page" : undefined}
+                className={`w-full text-left px-4 py-4 rounded-md text-lg font-medium transition-colors duration-200 ${
+                  activeTab === item.id
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="border-t border-border p-3 flex-shrink-0">
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                onOpenSettings();
+              }}
+              className="w-full text-left px-4 py-3 rounded-md text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors duration-200"
+            >
+              Settings
+            </button>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                logout();
+              }}
+              className="w-full text-left px-4 py-3 rounded-md text-base font-medium text-red-500 dark:text-red-400 hover:bg-muted/40 transition-colors duration-200"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
     </header>
   );
 };

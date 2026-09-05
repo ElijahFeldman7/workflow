@@ -3,17 +3,17 @@ import { signInWithGoogle } from "../firebase";
 
 const SignIn = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-200 dark:bg-gray-900 transition-colors duration-200">
-      <div className="p-8 shadow-lg max-w-md w-full text-center bg-blue-100 dark:bg-gray-800 rounded-lg">
+    <div className="min-h-screen flex items-center justify-center bg-background transition-colors duration-200">
+      <div className="p-8 shadow-lg max-w-md w-full text-center bg-card rounded-lg">
         <div className="mb-6">
           <img className="w-20 h-20 mx-auto" src="/logo.png"></img>
-          <h1 className="text-3xl text-neutral-900 dark:text-white">
+          <h1 className="text-3xl text-foreground">
             Workflow
           </h1>
         </div>
         <button
           onClick={signInWithGoogle}
-          className="w-full bg-neutral-100 dark:bg-gray-700 flex justify-center gap-3 px-6 py-3 border-border border text-sm text-neutral-700 dark:text-gray-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+          className="w-full bg-muted flex justify-center gap-3 px-6 py-3 border-border border text-sm text-foreground hover:bg-muted/70 rounded-md transition-colors"
         >
           <img
             src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"

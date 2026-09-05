@@ -32,7 +32,7 @@ const ColorPicker = ({ value, onChange }) => (
         aria-pressed={value === key}
         className={`h-6 w-6 rounded-full ${color.swatch} transition-transform hover:scale-110 ${
           value === key
-            ? "ring-2 ring-offset-2 ring-gray-500 dark:ring-gray-300 dark:ring-offset-gray-800"
+            ? "ring-2 ring-offset-2 ring-muted-foreground ring-offset-card"
             : ""
         }`}
       />
@@ -139,7 +139,6 @@ const SpaceManager = ({ user }) => {
 
   const spacesPath = user ? `users/${user.uid}/spaces` : null;
 
-  // Item counts per class, for the "3 open · 1 overdue" line on each card.
   const counts = useMemo(() => {
     const map = new Map();
     items.forEach((item) => {
@@ -321,7 +320,7 @@ const SpaceManager = ({ user }) => {
               key={space.id}
               className={`group relative border-l-4 ${color.bar} border border-border rounded-md p-3 ${
                 space.archived ? "opacity-50" : ""
-              } hover:border-gray-300 dark:hover:border-gray-600 transition-colors`}
+              } hover:border-muted-foreground/50 transition-colors`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

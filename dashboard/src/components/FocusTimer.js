@@ -198,7 +198,7 @@ const FocusTimer = ({ user }) => {
 
   return (
     <div
-      className="absolute bg-card shadow-2xl rounded-2xl border border-neutral-200 dark:border-gray-700 cursor-move select-none overflow-hidden resize-both transition-colors duration-200"
+      className="absolute bg-card shadow-2xl rounded-2xl border border-border cursor-move select-none overflow-hidden resize-both transition-colors duration-200"
       onMouseDown={handleMouseDown}
       style={{
         left: "50%",
@@ -218,7 +218,7 @@ const FocusTimer = ({ user }) => {
               e.stopPropagation();
               setShowSettings(!showSettings);
             }}
-            className="text-neutral-300 dark:text-gray-500 hover:text-neutral-500 dark:hover:text-gray-300 transition-colors p-2 hover:bg-neutral-50 dark:hover:bg-gray-700 rounded"
+            className="text-muted-foreground/60 hover:text-foreground transition-colors p-2 hover:bg-muted/60 rounded"
             aria-label={
               showSettings ? "Close settings M10.325" : "Open settings M10.325"
             }
@@ -250,7 +250,7 @@ const FocusTimer = ({ user }) => {
             <span
               className={`inline-block px-3 py-1 text-sm font-medium mb-6 rounded ${
                 mode === "work"
-                  ? "bg-blue-50 dark:bg-blue-900/50 text-primary"
+                  ? "bg-primary/15 text-primary"
                   : "bg-green-50 dark:bg-green-900/50 text-green-600 dark:text-green-400"
               }`}
             >
@@ -264,17 +264,17 @@ const FocusTimer = ({ user }) => {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={toggleTimer}
-                className={`px-8 py-3 rounded-lg text-white font-medium transition-colors shadow-sm ${
+                className={`px-8 py-3 rounded-lg text-primary-foreground font-medium transition-colors shadow-sm ${
                   isRunning
                     ? "bg-amber-300 hover:bg-amber-400 dark:bg-amber-500 dark:hover:bg-amber-400"
-                    : "bg-blue-300 hover:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400"
+                    : "bg-primary hover:bg-primary/85"
                 }`}
               >
                 {isRunning ? "Pause" : "Start"}
               </button>
               <button
                 onClick={resetTimer}
-                className="px-8 py-3 rounded-lg bg-background border border-neutral-200 dark:border-gray-600 text-neutral-600 dark:text-gray-200 font-medium hover:bg-neutral-50 dark:hover:bg-gray-600 transition-colors"
+                className="px-8 py-3 rounded-lg bg-background border border-border text-foreground font-medium hover:bg-muted/60 transition-colors"
               >
                 Reset
               </button>
@@ -284,15 +284,15 @@ const FocusTimer = ({ user }) => {
 
         {showSettings && (
           <div
-            className="absolute inset-0 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md z-30 flex flex-col items-center justify-center p-8 cursor-default"
+            className="absolute inset-0 bg-card/90 backdrop-blur-md z-30 flex flex-col items-center justify-center p-8 cursor-default"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="grid grid-cols-2 gap-4 w-full mb-6 max-w-sm">
-              <div className="p-4 rounded-lg text-center bg-blue-50/50 dark:bg-blue-900/30">
+              <div className="p-4 rounded-lg text-center bg-primary/10">
                 <div className="text-xs text-primary font-medium uppercase tracking-wider mb-1">
                   Study Time
                 </div>
-                <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                <div className="text-xl font-bold text-primary">
                   {formatStats(stats.work)}
                 </div>
               </div>
@@ -309,7 +309,7 @@ const FocusTimer = ({ user }) => {
             <div className="w-full max-w-sm space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-gray-400 mb-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Work (min)
                   </label>
                   <input
@@ -317,11 +317,11 @@ const FocusTimer = ({ user }) => {
                     type="number"
                     value={workDuration}
                     onChange={(e) => setWorkDuration(Number(e.target.value))}
-                    className="w-full border border-neutral-200 dark:border-gray-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none bg-background text-foreground"
+                    className="w-full border border-border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-ring focus:outline-none bg-background text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-gray-400 mb-1">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">
                     Break (min)
                   </label>
                   <input
@@ -329,20 +329,20 @@ const FocusTimer = ({ user }) => {
                     type="number"
                     value={breakDuration}
                     onChange={(e) => setBreakDuration(Number(e.target.value))}
-                    className="w-full border border-neutral-200 dark:border-gray-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none bg-background text-foreground"
+                    className="w-full border border-border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-ring focus:outline-none bg-background text-foreground"
                   />
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={saveSettings}
-                  className="flex-1 bg-blue-300 dark:bg-blue-500 text-white py-2 rounded text-sm hover:bg-blue-400 dark:hover:bg-blue-400 font-medium"
+                  className="flex-1 bg-primary text-primary-foreground py-2 rounded text-sm hover:bg-primary/85 font-medium"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="flex-1 bg-neutral-100 dark:bg-gray-700 text-neutral-600 dark:text-gray-200 py-2 rounded text-sm hover:bg-neutral-200 dark:hover:bg-gray-600 font-medium"
+                  className="flex-1 bg-muted text-foreground py-2 rounded text-sm hover:bg-muted/70 font-medium"
                 >
                   Cancel
                 </button>

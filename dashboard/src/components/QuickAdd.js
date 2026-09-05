@@ -15,8 +15,6 @@ import {
 } from "../constants/work";
 import { useWorkPrefs } from "../lib/workPrefs";
 
-// Only the parts worth teaching. Times, locations and bare-word matching all
-// still parse — they just don't need a legend.
 const HINT = "#class   /type   !!!   fri";
 
 const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
@@ -62,7 +60,6 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
 
   useEffect(() => setHighlight(0), [text, caret]);
 
-  // Caret placement after an autocomplete has to wait for the re-render.
   useEffect(() => {
     if (pendingCaret.current === null || !inputRef.current) return;
     inputRef.current.setSelectionRange(
@@ -86,8 +83,6 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
 
   const commit = () => {
     if (!parsed.filled.title && !parsed.title) return;
-    // On the calendar the selected day is the obvious default, but anything
-    // the line said explicitly still wins.
     onSubmit(
       defaultDate && !parsed.filled.date
         ? { ...parsed, date: defaultDate }
@@ -116,7 +111,7 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
       }
       if (event.key === "Escape") {
         event.preventDefault();
-        setCaret(-1); // closes the dropdown until the caret moves again
+        setCaret(-1);
         return;
       }
     }
@@ -209,7 +204,6 @@ const QuickAdd = ({ spaces, onSubmit, defaultDate = "", placeholder }) => {
         </ul>
       )}
 
-      {/* Only what the line actually set — defaults stay invisible. */}
       {hasChips && (
         <div className="flex flex-wrap items-center gap-2 mt-2">
           {space && (

@@ -1,8 +1,3 @@
-/** @type {import('tailwindcss').Config} */
-
-// Theme tokens are defined as HSL triplets in index.css. This builds the
-// color value for one of them, honoring Tailwind's opacity modifiers
-// (bg-card/40) without the <alpha-value> placeholder string.
 const token =
   (name) =>
   ({ opacityValue }) =>
@@ -15,8 +10,6 @@ module.exports = {
   darkMode: "class",
   theme: {
     extend: {
-      // Every palette redefines the same variables, so these class names stay
-      // valid across all of them.
       colors: {
         border: token("--border"),
         input: token("--input"),

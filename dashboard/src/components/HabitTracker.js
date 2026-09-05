@@ -53,11 +53,9 @@ const HabitTracker = ({ user }) => {
   const toggleHabit = (habitIndex, dateStr) => {
     if (!user || isEditing) return;
 
-    // Validate habitIndex is a safe integer to prevent prototype pollution
     const safeHabitIndex = Number(habitIndex);
     if (!Number.isInteger(safeHabitIndex) || safeHabitIndex < 0) return;
 
-    // Validate dateStr is a valid date format to prevent injection
     if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
 
     const newHistory = { ...history };
@@ -139,7 +137,7 @@ const HabitTracker = ({ user }) => {
   return (
     <div className="bg-card shadow rounded-lg p-6 max-w-4xl mx-auto relative transition-colors duration-200">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+        <h2 className="text-xl font-semibold text-foreground">
           Habit Tracker
         </h2>
         <div className="flex gap-2">
@@ -149,8 +147,8 @@ const HabitTracker = ({ user }) => {
                 onClick={() => setShowHeatmap(!showHeatmap)}
                 className={`p-2 rounded-full transition-colors ${
                   showHeatmap
-                    ? "bg-blue-100 dark:bg-blue-900/50 text-primary"
-                    : "text-gray-400 hover:bg-muted/60 hover:text-foreground"
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                 }`}
                 title="Yearly View"
                 aria-label="Toggle yearly view"
@@ -171,7 +169,7 @@ const HabitTracker = ({ user }) => {
               </button>
               <button
                 onClick={startEditing}
-                className="text-gray-400 hover:text-foreground p-2 rounded-full hover:bg-muted/60 transition-colors"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-muted/60 transition-colors"
                 title="Edit Habits"
                 aria-label="Edit habits"
               >
@@ -210,7 +208,7 @@ const HabitTracker = ({ user }) => {
             className="flex flex-col items-center gap-1 h-8 justify-end"
           >
             {i === currentDayIndex && (
-              <div className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 mb-0.5"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mb-0.5"></div>
             )}
             <div
               className={`text-sm font-medium ${
@@ -236,7 +234,7 @@ const HabitTracker = ({ user }) => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => deleteHabit(hIndex)}
-                    className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                    className="text-muted-foreground/50 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                     aria-label={`Delete ${habit} habit`}
                   >
                     <svg
@@ -259,7 +257,7 @@ const HabitTracker = ({ user }) => {
                     onChange={(e) =>
                       handleHabitNameChange(hIndex, e.target.value)
                     }
-                    className="w-full text-sm border-b border-border focus:border-blue-500 outline-none py-1 bg-transparent text-gray-800 dark:text-white"
+                    className="w-full text-sm border-b border-border focus:border-primary outline-none py-1 bg-transparent text-foreground"
                     placeholder="Habit name..."
                     autoFocus={isEditing && habit === ""}
                     aria-label={`Habit name for ${habit}`}
@@ -273,9 +271,9 @@ const HabitTracker = ({ user }) => {
             </div>
 
             {weekDates.map((dateStr, dIndex) => {
-              const isChecked = (Object.prototype.hasOwnProperty.call(history, hIndex) && 
-                Object.prototype.hasOwnProperty.call(history[hIndex] || {}, dateStr)) 
-                ? history[hIndex][dateStr] 
+              const isChecked = (Object.prototype.hasOwnProperty.call(history, hIndex) &&
+                Object.prototype.hasOwnProperty.call(history[hIndex] || {}, dateStr))
+                ? history[hIndex][dateStr]
                 : false;
 
               return (
@@ -287,7 +285,7 @@ const HabitTracker = ({ user }) => {
                                 w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200
                                 ${
                                   isChecked
-                                    ? "bg-blue-500 dark:bg-primary text-primary-foreground"
+                                    ? "bg-primary text-primary-foreground"
                                     : "bg-muted text-transparent hover:bg-muted"
                                 }
                                 ${
@@ -332,13 +330,13 @@ const HabitTracker = ({ user }) => {
             <div className="flex gap-3">
               <button
                 onClick={saveChanges}
-                className="bg-blue-500 dark:bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-blue-600 dark:hover:bg-blue-500 font-medium text-sm transition-colors"
+                className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/85 font-medium text-sm transition-colors"
               >
                 Save
               </button>
               <button
                 onClick={cancelChanges}
-                className="bg-muted text-gray-600 dark:text-gray-200 px-6 py-2 rounded-md hover:bg-muted font-medium text-sm transition-colors"
+                className="bg-muted text-foreground px-6 py-2 rounded-md hover:bg-muted font-medium text-sm transition-colors"
               >
                 Cancel
               </button>
@@ -356,12 +354,12 @@ const HabitTracker = ({ user }) => {
       {showHeatmap && (
         <div className="absolute inset-0 bg-card z-20 flex flex-col p-6 rounded-lg overflow-hidden">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+            <h3 className="text-lg font-bold text-foreground">
               Yearly Progress
             </h3>
             <button
               onClick={() => setShowHeatmap(false)}
-              className="text-gray-400 hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
               aria-label="Close yearly progress view"
             >
               <svg
@@ -387,7 +385,7 @@ const HabitTracker = ({ user }) => {
                 </div>
                 <div className="flex flex-wrap gap-1">
                     {yearDays.map((dateStr) => {
-                      const hasHistory = Object.prototype.hasOwnProperty.call(history, hIndex) && 
+                      const hasHistory = Object.prototype.hasOwnProperty.call(history, hIndex) &&
                         Object.prototype.hasOwnProperty.call(history[hIndex] || {}, dateStr) &&
                         history[hIndex][dateStr];
                       return (

@@ -114,7 +114,7 @@ const KnowledgeBase = ({ user }) => {
     <div className="bg-card shadow rounded-lg overflow-hidden max-w-6xl mx-auto flex h-[600px] border border-border relative transition-colors duration-200">
       <div
         className={`
-            bg-gray-50 dark:bg-gray-900 border-r border-border flex flex-col transition-all duration-300 ease-in-out
+            bg-muted/30 border-r border-border flex flex-col transition-all duration-300 ease-in-out
             ${
               showSidebar ? "w-80 opacity-100" : "w-0 opacity-0 overflow-hidden"
             }
@@ -161,8 +161,8 @@ const KnowledgeBase = ({ user }) => {
                 group p-3 rounded-md cursor-pointer transition-all duration-200 relative
                 ${
                   activeNoteId === note.id
-                    ? "bg-card shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                    ? "bg-card shadow-sm ring-1 ring-border"
+                    : "hover:bg-muted/60"
                 }
               `}
               aria-label={`Select note ${note.title || "Untitled Note"}`}
@@ -182,7 +182,7 @@ const KnowledgeBase = ({ user }) => {
 
               <button
                 onClick={(e) => handleDeleteNote(e, note.id)}
-                className="absolute top-3 right-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-opacity p-1"
+                className="absolute top-3 right-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-opacity p-1"
                 aria-label={`Delete note ${note.title || "Untitled Note"}`}
               >
                 <svg
@@ -208,7 +208,7 @@ const KnowledgeBase = ({ user }) => {
         <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-card z-10">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="text-gray-400 hover:text-foreground p-1.5 rounded-md hover:bg-muted/60 transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-muted/60 transition-colors"
             aria-label={showSidebar ? "Close sidebar" : "Open sidebar"}
           >
             <svg
@@ -241,7 +241,7 @@ const KnowledgeBase = ({ user }) => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled Note"
-            className="text-3xl font-bold text-foreground placeholder-neutral-300 dark:placeholder-gray-600 p-0 mb-4 bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent"
+            className="text-3xl font-bold text-foreground placeholder-muted-foreground/60 p-0 mb-4 bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent"
             style={{ boxShadow: "none", outline: "none" }}
             aria-label="Note title"
           />
@@ -249,7 +249,7 @@ const KnowledgeBase = ({ user }) => {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="type..."
-            className="flex-1 resize-none p-0 text-neutral-600 dark:text-gray-300 leading-relaxed text-lg bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent placeholder-gray-400 dark:placeholder-gray-600"
+            className="flex-1 resize-none p-0 text-foreground leading-relaxed text-lg bg-transparent w-full border-none focus:ring-0 focus:outline-none !shadow-none !ring-transparent placeholder-muted-foreground/60"
             style={{ boxShadow: "none", outline: "none" }}
             aria-label="Note content"
           ></textarea>

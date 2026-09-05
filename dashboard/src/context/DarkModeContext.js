@@ -12,12 +12,10 @@ export const useDarkMode = () => {
 
 export const DarkModeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check localStorage first
     const saved = localStorage.getItem("darkMode");
     if (saved !== null) {
       return JSON.parse(saved);
     }
-    // Fall back to system preference (with safe check for test environment)
     if (typeof window !== "undefined" && window.matchMedia) {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       return mediaQuery?.matches ?? false;
@@ -26,10 +24,8 @@ export const DarkModeProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    // Update localStorage
     localStorage.setItem("darkMode", JSON.stringify(isDarkMode));
 
-    // Update document class
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
@@ -37,7 +33,6 @@ export const DarkModeProvider = ({ children }) => {
     }
   }, [isDarkMode]);
 
-  // Listen for system preference changes
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) {
       return;

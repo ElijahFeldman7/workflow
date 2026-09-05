@@ -3,9 +3,8 @@ import { layoutTimed, hourRange, isTimedBlock } from "../lib/calendar";
 import { DayChip } from "./InlineFields";
 import { NEUTRAL_CHIP, colorOf, formatTime, priorityOf } from "../constants/work";
 
-const PX_PER_MINUTE = 0.8; // 48px per hour
-// Breathing room so the first and last hour labels aren't clipped in half by
-// the edge of the grid.
+const PX_PER_MINUTE = 0.8;
+const MIN_BLOCK_HEIGHT = 22;
 const EDGE_PAD = 10;
 
 const COLUMNS = "grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))]";
@@ -29,8 +28,6 @@ const WeekGrid = ({
   const scrollRef = useRef(null);
   const timedRef = useRef(null);
 
-  // Lay every day out first: the hour window is shared across all seven so
-  // the rows line up, and it has to fit the widest day.
   const perDay = useMemo(
     () =>
       days.map((day) => {
@@ -68,9 +65,6 @@ const WeekGrid = ({
   const nowVisible =
     showsToday && nowMinutes >= gridTop && nowMinutes <= range.end * 60;
 
-  // Open on the current time when the week includes today, otherwise at the
-  // top of the window. The offset is measured from the timed area's position
-  // inside the scroller, since the header rows sit above it.
   const nowTarget = useMemo(
     () =>
       nowVisible ? (nowMinutes - gridTop) * PX_PER_MINUTE + EDGE_PAD : null,
@@ -94,9 +88,6 @@ const WeekGrid = ({
   };
 
   return (
-    // One scroll container around every row, so the scrollbar takes width from
-    // all of them equally and the columns stay aligned. Header rows are sticky
-    // rather than outside the scroller, which is what used to misalign them.
     <div
       ref={scrollRef}
       className="relative border border-border rounded overflow-y-auto max-h-[34rem]"
@@ -132,7 +123,6 @@ const WeekGrid = ({
           })}
         </div>
 
-        {/* Deadlines and untimed events: moments rather than blocks. */}
         <div className={`${COLUMNS} border-t border-border bg-muted/20`}>
           <div className="text-[10px] text-muted-foreground text-right pr-2 py-1.5">
             all day
@@ -161,7 +151,6 @@ const WeekGrid = ({
         </div>
       </div>
 
-      {/* Timed events, positioned by clock time. */}
       <div ref={timedRef} className={`${COLUMNS} border-t border-border`}>
         <div className="relative" style={{ height }}>
           {hours.map((hour) => (
@@ -213,13 +202,13 @@ const WeekGrid = ({
                   className={`absolute overflow-hidden text-left text-[11px] leading-tight px-1 py-0.5 rounded border border-card ${chipClass(item)}`}
                   style={{
                     top: offset(start),
-                    height: Math.max(blockHeight, 16),
+                    height: Math.max(blockHeight, MIN_BLOCK_HEIGHT),
                     left: `${(column / columns) * 100}%`,
                     width: `${(1 / columns) * 100}%`,
                   }}
                 >
                   <span className="block truncate font-medium">{item.title}</span>
-                  {blockHeight > 32 && start12 && (
+                  {blockHeight > MIN_BLOCK_HEIGHT + 14 && start12 && (
                     <span className="block truncate opacity-70">
                       {start12}
                       {end12 ? `–${end12}` : ""}

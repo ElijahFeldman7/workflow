@@ -3,10 +3,6 @@ import { ref, onValue } from "firebase/database";
 import { database } from "../firebase";
 import { normalizeItem, normalizeSpace } from "../constants/work";
 
-/**
- * Live work items and classes for a user. Shared by the work list, the
- * calendar and the class manager so they can't drift apart.
- */
 export function useWorkData(user) {
   const [spaces, setSpaces] = useState([]);
   const [items, setItems] = useState([]);
