@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useWorkData } from "../lib/useWorkData";
 import { useGoogleSync } from "../lib/useGoogleSync";
+import { previewCleanup, runCleanup } from "../lib/cleanupSynced";
 import { parseIcs, fetchIcs } from "../lib/googleCalendar";
 
 const looksLikeUrl = (value) => /^https?:\/\//i.test(value.trim());
@@ -35,6 +36,34 @@ const Switch = ({ on, onClick, label }) => (
 const GoogleCalendarSync = ({ user }) => {
   const { items, isLoading } = useWorkData(user);
   const sync = useGoogleSync(user, items, !isLoading);
+
+  const [preview, setPreview] = useState(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanMessage, setCleanMessage] = useState("");
+
+  const checkCleanup = async () => {
+    setCleanMessage("");
+    try {
+      setPreview(await previewCleanup(user));
+    } catch (err) {
+      setCleanMessage(err?.message || "Could not read the work list");
+    }
+  };
+
+  const confirmCleanup = async () => {
+    setCleaning(true);
+    try {
+      const result = await runCleanup(user);
+      setPreview(null);
+      setCleanMessage(
+        `Removed ${result.removed}. Kept ${result.kept} assignments. Nothing was deleted from Google.`
+      );
+    } catch (err) {
+      setCleanMessage(err?.message || "Cleanup failed");
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   const [paste, setPaste] = useState("");
   const [importing, setImporting] = useState(false);
@@ -93,13 +122,23 @@ const GoogleCalendarSync = ({ user }) => {
 
           <div className="flex-shrink-0 flex gap-2">
             {sync.connected && !sync.needsAuth && (
-              <button
-                onClick={sync.syncNow}
-                disabled={sync.status === "syncing"}
-                className={`${button} bg-muted text-foreground hover:bg-muted/70`}
-              >
-                {sync.status === "syncing" ? "Syncing..." : "Sync now"}
-              </button>
+              <>
+                <button
+                  onClick={sync.syncNow}
+                  disabled={sync.status === "syncing"}
+                  className={`${button} bg-muted text-foreground hover:bg-muted/70`}
+                >
+                  {sync.status === "syncing" ? "Syncing..." : "Sync now"}
+                </button>
+                <button
+                  onClick={sync.resync}
+                  disabled={sync.status === "syncing"}
+                  title="Re-read the whole calendar: clears duplicates and events deleted in Google"
+                  className={`${button} text-muted-foreground hover:bg-muted/40`}
+                >
+                  Full resync
+                </button>
+              </>
             )}
             {sync.connected && !sync.needsAuth ? (
               <button
@@ -215,6 +254,55 @@ const GoogleCalendarSync = ({ user }) => {
                   </span>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-sm font-medium text-foreground">
+            Clean up synced events
+          </p>
+          <p className="text-sm text-muted-foreground mb-3">
+            Removes calendar events and duplicate copies from the work list.
+            Your assignments stay, and nothing is deleted from Google.
+          </p>
+
+          {preview ? (
+            <div className="rounded-md bg-muted/40 p-3 text-sm">
+              <p className="text-foreground">
+                {preview.noise + preview.copies} of {preview.total} rows would
+                go: {preview.noise} calendar events and {preview.copies}{" "}
+                duplicates. {preview.keep} assignments stay.
+              </p>
+              <div className="flex items-center gap-3 mt-3">
+                <button
+                  onClick={confirmCleanup}
+                  disabled={cleaning || preview.noise + preview.copies === 0}
+                  className={`${button} bg-destructive text-destructive-foreground hover:opacity-90`}
+                >
+                  {cleaning ? "Removing..." : "Remove them"}
+                </button>
+                <button
+                  onClick={() => setPreview(null)}
+                  className={`${button} text-muted-foreground hover:bg-muted/40`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={checkCleanup}
+                className={`${button} bg-muted text-foreground hover:bg-muted/70`}
+              >
+                Check what would be removed
+              </button>
+              {cleanMessage && (
+                <span className="text-sm text-muted-foreground">
+                  {cleanMessage}
+                </span>
+              )}
             </div>
           )}
         </div>

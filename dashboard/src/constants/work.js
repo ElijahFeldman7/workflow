@@ -336,6 +336,9 @@ export function normalizeItem(id, raw) {
     id,
     title: typeof data.title === "string" ? data.title : "Untitled",
     spaceId: typeof data.spaceId === "string" ? data.spaceId : "",
+    // "google" means the calendar sync made this row, so the work list leaves
+    // it out. Rows written before this existed have no marker.
+    origin: data.origin === "google" ? "google" : "workflow",
     type: WORK_TYPE_IDS.includes(data.type) ? data.type : "",
     priority: PRIORITY_IDS.includes(data.priority)
       ? data.priority

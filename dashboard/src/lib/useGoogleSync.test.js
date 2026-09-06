@@ -253,3 +253,176 @@ describe("events are never inserted twice", () => {
     expect(mergedWrite("/work").new1).toMatchObject({ title: "Assembly" });
   });
 });
+
+describe("two runs at once cannot both act on the same thing", () => {
+  it("ignores a second run that starts while one is going", async () => {
+    const { result } = setup([item()]);
+
+    await act(async () => {
+      await Promise.all([result.current.syncNow(), result.current.syncNow()]);
+    });
+
+    // Both used to get past the guard, because it was only claimed after an
+    // await, and both inserted the item.
+    expect(insertEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("frees the claim once a run fails, so the next one still works", async () => {
+    listEvents.mockRejectedValueOnce(new Error("network"));
+
+    const { result } = setup([item()]);
+    await act(() => result.current.syncNow());
+    expect(insertEvent).not.toHaveBeenCalled();
+
+    listEvents.mockResolvedValue({ events: [], nextSyncToken: "tok2" });
+    await act(() => result.current.syncNow());
+    expect(insertEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("clearing up duplicates a previous overlap left behind", () => {
+  it("collapses items that ended up pointing at one event", async () => {
+    config.links = {
+      w1: { eventId: "e1", fingerprint: "x", syncedAt: 1 },
+      w2: { eventId: "e1", fingerprint: "x", syncedAt: 2 },
+    };
+
+    getEvent.mockResolvedValue(googleEvent());
+
+    const { result } = setup([
+      item({ id: "w1", createdAt: 1 }),
+      item({ id: "w2", createdAt: 2 }),
+    ]);
+    await act(() => result.current.syncNow());
+
+    // The older item keeps the event; the copy goes.
+    expect(mergedWrite("/work").w2).toBeNull();
+    expect(mergedWrite("/links").w2).toBeNull();
+    expect(mergedWrite("/work").w1).toBeUndefined();
+    // Collapsing a local copy must not take the shared event down with it.
+    expect(deleteEvent).not.toHaveBeenCalled();
+  });
+
+  it("ignores the surplus copy when one item reached Google twice", async () => {
+    config.links = { w1: { eventId: "e1", fingerprint: "x", syncedAt: 1 } };
+    const stamped = (id) =>
+      googleEvent({
+        id,
+        extendedProperties: { private: { workflowItemId: "w1" } },
+      });
+    listEvents.mockResolvedValue({
+      events: [stamped("e1"), stamped("e2")],
+      nextSyncToken: "tok2",
+    });
+
+    const { result } = setup([item()]);
+    await act(() => result.current.syncNow());
+
+    // Skipped on the way in rather than removed remotely: this app never
+    // deletes from a calendar whose other contents are not its own.
+    expect(deleteEvent).not.toHaveBeenCalled();
+    // The surplus copy must not come back as another row either.
+    expect(mergedWrite("/work").new1).toBeUndefined();
+  });
+
+  it("leaves a single event for an item alone", async () => {
+    config.links = { w1: { eventId: "e1", fingerprint: "x", syncedAt: 1 } };
+    listEvents.mockResolvedValue({
+      events: [
+        googleEvent({
+          id: "e1",
+          extendedProperties: { private: { workflowItemId: "w1" } },
+        }),
+      ],
+      nextSyncToken: "tok2",
+    });
+
+    const { result } = setup([item()]);
+    await act(() => result.current.syncNow());
+
+    expect(deleteEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("deletions Google no longer reports still get noticed", () => {
+  it("re-lists in full when the last full pass is old", async () => {
+    config.syncToken = "tok1";
+    config.lastFullSyncAt = Date.now() - 7 * 60 * 60 * 1000;
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    expect(listEvents).toHaveBeenCalledWith(
+      "cal1",
+      expect.objectContaining({ syncToken: "" })
+    );
+  });
+
+  it("stays incremental when the last full pass is recent", async () => {
+    config.syncToken = "tok1";
+    config.lastFullSyncAt = Date.now() - 60 * 1000;
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    expect(listEvents).toHaveBeenCalledWith(
+      "cal1",
+      expect.objectContaining({ syncToken: "tok1" })
+    );
+  });
+
+  it("resync drops the token so the next run re-lists everything", async () => {
+    config.syncToken = "tok1";
+    config.lastFullSyncAt = Date.now();
+
+    const { result } = setup([]);
+    await act(() => result.current.resync());
+
+    expect(writesTo("/googleCalendar")[0]).toMatchObject({
+      syncToken: "",
+      lastFullSyncAt: 0,
+    });
+  });
+});
+
+describe("the calendar is never written away from", () => {
+  it("does not delete when an item vanishes from the work list", async () => {
+    // The link survives a purge that already removed the item.
+    config.links = { gone: { eventId: "e9", fingerprint: "x", syncedAt: 1 } };
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    expect(deleteEvent).not.toHaveBeenCalled();
+    // The dangling link is dropped, but the event stays where it is.
+    expect(mergedWrite("/links")).toEqual({ gone: null });
+  });
+
+  it("leaves repeating series out of the work list entirely", async () => {
+    listEvents.mockResolvedValue({
+      events: [
+        googleEvent({ id: "r1", recurringEventId: "series1" }),
+        googleEvent({ id: "r2", recurringEventId: "series1" }),
+        googleEvent({ id: "one", summary: "Assembly" }),
+      ],
+      nextSyncToken: "tok2",
+    });
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    // One row for the standalone event, none for the series.
+    const written = mergedWrite("/work");
+    expect(Object.keys(written)).toHaveLength(1);
+    expect(written.new1).toMatchObject({ title: "Assembly", origin: "google" });
+  });
+
+  it("asks Google for a bounded window", async () => {
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    const [, params] = listEvents.mock.calls[0];
+    expect(params.timeMax).toBeTruthy();
+    expect(new Date(params.timeMax).getTime()).toBeGreaterThan(Date.now());
+  });
+});
