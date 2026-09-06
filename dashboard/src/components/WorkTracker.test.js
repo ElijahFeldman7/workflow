@@ -53,7 +53,24 @@ const WORK = {
   },
 };
 
+// Google's events live in their own node and are read straight from it.
+const GOOGLE_EVENTS = {
+  g1: {
+    title: "Private Lesson",
+    location: "Room 4",
+    allDay: false,
+    recurring: true,
+    when: {
+      mode: "event",
+      date: todayKey(),
+      time: "17:00",
+      endTime: "18:00",
+    },
+  },
+};
+
 const mockData = (path) => {
+  if (path.includes("/googleEvents")) return GOOGLE_EVENTS;
   if (path.includes("/spaces")) return SPACES;
   if (path.includes("/work")) return WORK;
   return null;
@@ -335,4 +352,37 @@ test("other groups stay open and unclickable", () => {
 test("the calendar still shows an event that has already happened", () => {
   render(<CalendarView user={user} />);
   expect(screen.getAllByText("Club fair yesterday").length).toBeGreaterThan(0);
+});
+
+describe("google events sit beside your work without joining it", () => {
+  // The day panel lists them under a heading naming the calendar.
+  const googleSection = () =>
+    screen.getByText(/^From /).closest("div");
+
+  test("they show on the calendar's day panel", () => {
+    render(<CalendarView user={user} />);
+
+    const section = googleSection();
+    expect(within(section).getByText("Private Lesson")).toBeInTheDocument();
+    expect(within(section).getByText(/Room 4/)).toBeInTheDocument();
+    expect(within(section).getByText(/5:00 PM–6:00 PM/)).toBeInTheDocument();
+  });
+
+  test("nothing about them can be edited or ticked", () => {
+    render(<CalendarView user={user} />);
+
+    const row = within(googleSection()).getByText("Private Lesson").closest("li");
+    // No checkbox, no rename, no pencil, no bin: it is not yours to change.
+    expect(within(row).queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(within(row).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(row).queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  test("they never appear in the work list", () => {
+    render(<WorkTracker user={user} />);
+
+    // The work list is things you have to do. A lesson someone else booked
+    // is not one of them.
+    expect(screen.queryByText("Private Lesson")).not.toBeInTheDocument();
+  });
 });

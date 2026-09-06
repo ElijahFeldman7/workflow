@@ -11,6 +11,7 @@ import { useTaskData } from "../lib/useTaskData";
 import { useTaskWrites } from "../lib/useTaskWrites";
 import { useAgenda, SOURCES } from "../lib/useAgenda";
 import { useGoogleSync } from "../lib/useGoogleSync";
+import { useGoogleEvents } from "../lib/googleEvents";
 import { migrateSchedule } from "../lib/migrateSchedule";
 import {
   WEEKDAY_LABELS,
@@ -39,7 +40,8 @@ const CalendarView = ({ user }) => {
   const { activeSpaces, spaceById, items, isLoading, error, setError } =
     useWorkData(user);
   const { tasks, isLoading: tasksLoading } = useTaskData(user);
-  const [sources, setSources] = useState(["work", "task"]);
+  // Every source on by default. The chips above the grid turn them off.
+  const [sources, setSources] = useState(SOURCES.map((entry) => entry.id));
   const [prefs, setPref] = useWorkPrefs();
   const { memory, learn } = useCaptureMemory(user);
   const workWrites = useWorkWrites(user, activeSpaces, setError);
@@ -76,7 +78,8 @@ const CalendarView = ({ user }) => {
 
   const isWeek = prefs.calendarView === "week";
 
-  const gcal = useGoogleSync(user, items, !isLoading);
+  const gcal = useGoogleSync(user);
+  const googleEvents = useGoogleEvents(user);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -100,14 +103,28 @@ const CalendarView = ({ user }) => {
 
   const weeks = useMemo(() => monthMatrix(year, month), [year, month]);
   const weekDays = useMemo(() => weekMatrix(anchor), [anchor]);
-  const agenda = useAgenda(items, tasks, sources);
+  const agenda = useAgenda(items, tasks, sources, googleEvents);
   const itemsByDate = useMemo(() => byDate(agenda), [agenda]);
 
-  const selectedItems = itemsByDate.get(selected) || [];
+  // Memoised because the empty fallback would otherwise be a fresh array on
+  // every render, recomputing everything downstream of it.
+  const selectedItems = useMemo(
+    () => itemsByDate.get(selected) || [],
+    [itemsByDate, selected]
+  );
+
+  const editableItems = useMemo(
+    () => selectedItems.filter((entry) => entry.source !== "google"),
+    [selectedItems]
+  );
+  const googleForDay = useMemo(
+    () => selectedItems.filter((entry) => entry.source === "google"),
+    [selectedItems]
+  );
 
   const dayGroups = useMemo(
-    () => [{ id: "day", label: "", tone: "", items: selectedItems }],
-    [selectedItems]
+    () => [{ id: "day", label: "", tone: "", items: editableItems }],
+    [editableItems]
   );
 
   const step = (delta) => {
@@ -422,11 +439,13 @@ const CalendarView = ({ user }) => {
             }`}
           />
 
-          {selectedItems.length === 0 ? (
+          {selectedItems.length === 0 && (
             <p className="text-sm text-muted-foreground py-8 mt-4 text-center bg-muted/40 rounded-md border border-dashed border-border">
               nothing on this day.
             </p>
-          ) : (
+          )}
+
+          {editableItems.length > 0 && (
             <div className={prefs.table ? "mt-6" : "mt-2"}>
               <WorkList
                 groups={dayGroups}
@@ -440,6 +459,37 @@ const CalendarView = ({ user }) => {
                 expandedId={expandedId}
                 onExpand={setExpandedId}
               />
+            </div>
+          )}
+
+          {/* Google's events, listed apart because nothing here can edit them. */}
+          {googleForDay.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground mb-2">
+                From {gcal.config.calendarName || "Google Calendar"}
+              </p>
+              <ul className="space-y-1">
+                {googleForDay.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex items-baseline gap-3 text-sm text-muted-foreground"
+                  >
+                    <span className="tabular-nums text-xs w-24 flex-shrink-0">
+                      {entry.when.time
+                        ? `${formatTime(entry.when.time)}${
+                            entry.when.endTime
+                              ? `–${formatTime(entry.when.endTime)}`
+                              : ""
+                          }`
+                        : "all day"}
+                    </span>
+                    <span className="truncate">{entry.title}</span>
+                    {entry.location && (
+                      <span className="text-xs truncate">@ {entry.location}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

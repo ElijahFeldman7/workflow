@@ -327,6 +327,45 @@ export function itemToEvent(item, timeZone) {
   return resource;
 }
 
+/**
+ * A Google event as the calendar cache stores it. Deliberately not a work
+ * item: these are somebody else's rows, shown for context and never edited,
+ * so they carry no class, type, priority or done state.
+ *
+ * @returns {null|{title,notes,location,allDay,recurring,when}}
+ */
+export function eventToCache(event) {
+  if (!event || event.status === "cancelled") return null;
+
+  const when = { mode: "event", date: "", time: "", endTime: "" };
+  let allDay = false;
+
+  if (event.start?.date) {
+    when.date = event.start.date;
+    allDay = true;
+  } else if (event.start?.dateTime) {
+    const start = new Date(event.start.dateTime);
+    if (Number.isNaN(start.getTime())) return null;
+    when.date = toDateKey(start);
+    when.time = timeOf(start);
+    if (event.end?.dateTime) {
+      const end = new Date(event.end.dateTime);
+      if (!Number.isNaN(end.getTime())) when.endTime = timeOf(end);
+    }
+  } else {
+    return null;
+  }
+
+  return {
+    title: event.summary || "Untitled",
+    notes: event.description || "",
+    location: event.location || "",
+    allDay,
+    recurring: !!event.recurringEventId,
+    when,
+  };
+}
+
 export function workflowIdOf(event) {
   const stored = event?.extendedProperties?.private || {};
   return typeof stored.workflowItemId === "string" ? stored.workflowItemId : "";

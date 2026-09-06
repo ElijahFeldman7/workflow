@@ -10,8 +10,8 @@ const tasks = [
   { id: "t2", title: "No date task", when: { mode: "due", date: "", time: "" } },
 ];
 
-test("both sources are offered", () => {
-  expect(SOURCES.map((s) => s.id)).toEqual(["work", "task"]);
+test("every source is offered", () => {
+  expect(SOURCES.map((s) => s.id)).toEqual(["work", "task", "google"]);
 });
 
 test("merging tags every entry with where it came from", () => {
@@ -47,4 +47,42 @@ test("merging does not mutate either input", () => {
   const originalItems = JSON.parse(JSON.stringify(items));
   mergeAgenda(items, tasks);
   expect(items).toEqual(originalItems);
+});
+
+describe("google events ride alongside without becoming work", () => {
+  const googleEvents = [
+    {
+      id: "gcal:e1",
+      title: "Private Lesson",
+      when: { mode: "event", date: "2026-09-09", time: "17:00", endTime: "" },
+    },
+  ];
+
+  test("they are tagged as google, never as work", () => {
+    const merged = mergeAgenda(items, tasks, undefined, googleEvents);
+
+    expect(merged.filter((e) => e.source === "google")).toHaveLength(1);
+    // The tag is what keeps them out of anything that edits.
+    expect(merged.find((e) => e.title === "Private Lesson").source).toBe("google");
+  });
+
+  test("hiding the calendar leaves your own rows alone", () => {
+    const merged = mergeAgenda(items, tasks, ["work", "task"], googleEvents);
+
+    expect(merged.some((e) => e.source === "google")).toBe(false);
+    expect(merged).toHaveLength(items.length + tasks.length);
+  });
+
+  test("showing only the calendar hides work and tasks", () => {
+    const merged = mergeAgenda(items, tasks, ["google"], googleEvents);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].source).toBe("google");
+  });
+
+  test("no calendar events is simply nothing extra", () => {
+    expect(mergeAgenda(items, tasks, undefined)).toHaveLength(
+      items.length + tasks.length
+    );
+  });
 });

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useWorkData } from "../lib/useWorkData";
 import { useGoogleSync } from "../lib/useGoogleSync";
+import { useIcsImport } from "../lib/useIcsImport";
 import { previewCleanup, runCleanup } from "../lib/cleanupSynced";
 import { parseIcs, fetchIcs } from "../lib/googleCalendar";
 
@@ -34,8 +34,8 @@ const Switch = ({ on, onClick, label }) => (
 );
 
 const GoogleCalendarSync = ({ user }) => {
-  const { items, isLoading } = useWorkData(user);
-  const sync = useGoogleSync(user, items, !isLoading);
+  const sync = useGoogleSync(user);
+  const importItems = useIcsImport(user);
 
   const [preview, setPreview] = useState(null);
   const [cleaning, setCleaning] = useState(false);
@@ -81,7 +81,7 @@ const GoogleCalendarSync = ({ user }) => {
       if (parsed.length === 0) {
         setImportMessage("No events found in that calendar file.");
       } else {
-        const count = await sync.importItems(parsed);
+        const count = await importItems(parsed);
         setImportMessage(`Imported ${count} event${count === 1 ? "" : "s"}.`);
         setPaste("");
       }
@@ -113,7 +113,7 @@ const GoogleCalendarSync = ({ user }) => {
             </p>
             <p className="text-sm text-muted-foreground">
               {sync.connected
-                ? `Reading ${sync.config.calendarName || sync.config.calendarId} · last synced ${relative(
+                ? `Reading ${sync.config.calendarName || sync.config.calendarId} · last read ${relative(
                     sync.config.lastSyncedAt
                   )}`
                 : "Sign in with Google to see this calendar here. Read-only unless you turn writing on."}
@@ -129,14 +129,6 @@ const GoogleCalendarSync = ({ user }) => {
                   className={`${button} bg-muted text-foreground hover:bg-muted/70`}
                 >
                   {sync.status === "syncing" ? "Syncing..." : "Sync now"}
-                </button>
-                <button
-                  onClick={sync.resync}
-                  disabled={sync.status === "syncing"}
-                  title="Re-read the whole calendar: clears duplicates and events deleted in Google"
-                  className={`${button} text-muted-foreground hover:bg-muted/40`}
-                >
-                  Full resync
                 </button>
               </>
             )}
