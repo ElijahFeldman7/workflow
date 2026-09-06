@@ -103,6 +103,9 @@ const WorkTracker = ({ user }) => {
   const visible = useMemo(
     () =>
       items.filter((item) => {
+        // Events pulled from Google belong on the calendar, not in the work
+        // list. This is a list of things you have to do.
+        if (item.origin === "google") return false;
         if (!prefs.showPast && !isDone(item) && bucketFor(item) === "past")
           return false;
         if (filters.spaces.length && !filters.spaces.includes(item.spaceId))

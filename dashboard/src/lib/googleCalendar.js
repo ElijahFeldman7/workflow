@@ -220,7 +220,10 @@ export async function listCalendars() {
   }));
 }
 
-export async function listEvents(calendarId, { syncToken, timeMin } = {}) {
+export async function listEvents(
+  calendarId,
+  { syncToken, timeMin, timeMax } = {}
+) {
   const events = [];
   let pageToken;
   let nextSyncToken;
@@ -228,12 +231,17 @@ export async function listEvents(calendarId, { syncToken, timeMin } = {}) {
   do {
     // A sync token is only valid for the exact query that produced it, so both
     // paths must match. showDeleted is what carries a deletion back to us.
+    //
+    // timeMax is not optional. singleEvents expands every repeating series into
+    // separate instances, so an unbounded query asks Google for every instance
+    // of every recurring event it can generate -- a yearly birthday runs to
+    // 2056, a daily event is ~700 rows a year.
     const params = {
       maxResults: 250,
       pageToken,
       singleEvents: true,
       showDeleted: true,
-      ...(syncToken ? { syncToken } : { timeMin }),
+      ...(syncToken ? { syncToken } : { timeMin, timeMax }),
     };
     const data = await api(
       `/calendars/${encodeURIComponent(calendarId)}/events`,

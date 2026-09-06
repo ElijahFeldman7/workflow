@@ -23,6 +23,9 @@ import {
 } from "./googleCalendar";
 
 const PULL_WINDOW_DAYS = 90;
+// How far ahead to read. Without an end bound, singleEvents expansion returns
+// every instance of every repeating series Google can generate.
+const PULL_AHEAD_DAYS = 120;
 const AUTO_SYNC_MS = 5 * 60 * 1000;
 // How many vanished links one full sync will check with Google.
 const MAX_VERIFY = 60;
@@ -263,6 +266,9 @@ export function useGoogleSync(user, items, ready) {
     };
 
     const windowStart = addDaysKey(todayKey(), -PULL_WINDOW_DAYS);
+    const windowEnd = addDaysKey(todayKey(), PULL_AHEAD_DAYS);
+    const timeMin = fromDateKey(windowStart).toISOString();
+    const timeMax = fromDateKey(windowEnd).toISOString();
     // A token only reports changes, so an event Google pruned before we last
     // asked would never be mentioned again. Re-list everything periodically so
     // those deletions still get noticed.
@@ -275,13 +281,15 @@ export function useGoogleSync(user, items, ready) {
       try {
         pull = await listEvents(calendarId, {
           syncToken: incremental ? saved.syncToken : "",
-          timeMin: fromDateKey(windowStart).toISOString(),
+          timeMin,
+          timeMax,
         });
       } catch (err) {
         if (!(err instanceof SyncTokenExpired)) throw err;
         incremental = false;
         pull = await listEvents(calendarId, {
-          timeMin: fromDateKey(windowStart).toISOString(),
+          timeMin,
+          timeMax,
         });
       }
 
@@ -346,6 +354,9 @@ export function useGoogleSync(user, items, ready) {
         // Google below rather than pulled in as another row here.
         if (staleEventIds.has(event.id)) return;
 
+        // A repeating series would otherwise land one row per instance.
+        if (event.recurringEventId) return;
+
         const mapped = eventToItem(event);
         if (!mapped) return;
 
@@ -408,6 +419,7 @@ export function useGoogleSync(user, items, ready) {
         itemUpdates[newRef.key] = {
           title: record.title,
           spaceId: "",
+          origin: "google",
           type: record.type,
           priority: record.priority,
           location: record.location,
@@ -489,16 +501,16 @@ export function useGoogleSync(user, items, ready) {
         }
       }
 
-      // Surplus copies in Google, from a run that inserted the same item twice.
-      for (const eventId of staleEventIds) {
-        await deleteEvent(calendarId, eventId);
-        deduped += 1;
-      }
+      // Surplus copies are left in Google too. They are skipped on the way in,
+      // so they stop producing rows without anything being removed remotely.
+      deduped += staleEventIds.size;
 
+      // An item disappearing here only means it is gone from the work list.
+      // The event in Google stays: this app is not allowed to delete from a
+      // calendar it does not own the contents of.
       for (const [itemId, link] of links) {
         if (working.has(itemId) || !link || !link.eventId) continue;
         if (linkUpdates[itemId] === null) continue;
-        await deleteEvent(calendarId, link.eventId);
         linkUpdates[itemId] = null;
       }
 

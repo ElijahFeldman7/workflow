@@ -303,7 +303,7 @@ describe("clearing up duplicates a previous overlap left behind", () => {
     expect(deleteEvent).not.toHaveBeenCalled();
   });
 
-  it("deletes the surplus copy when one item reached Google twice", async () => {
+  it("ignores the surplus copy when one item reached Google twice", async () => {
     config.links = { w1: { eventId: "e1", fingerprint: "x", syncedAt: 1 } };
     const stamped = (id) =>
       googleEvent({
@@ -318,8 +318,9 @@ describe("clearing up duplicates a previous overlap left behind", () => {
     const { result } = setup([item()]);
     await act(() => result.current.syncNow());
 
-    expect(deleteEvent).toHaveBeenCalledWith("cal1", "e2");
-    expect(deleteEvent).not.toHaveBeenCalledWith("cal1", "e1");
+    // Skipped on the way in rather than removed remotely: this app never
+    // deletes from a calendar whose other contents are not its own.
+    expect(deleteEvent).not.toHaveBeenCalled();
     // The surplus copy must not come back as another row either.
     expect(mergedWrite("/work").new1).toBeUndefined();
   });
@@ -381,5 +382,47 @@ describe("deletions Google no longer reports still get noticed", () => {
       syncToken: "",
       lastFullSyncAt: 0,
     });
+  });
+});
+
+describe("the calendar is never written away from", () => {
+  it("does not delete when an item vanishes from the work list", async () => {
+    // The link survives a purge that already removed the item.
+    config.links = { gone: { eventId: "e9", fingerprint: "x", syncedAt: 1 } };
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    expect(deleteEvent).not.toHaveBeenCalled();
+    // The dangling link is dropped, but the event stays where it is.
+    expect(mergedWrite("/links")).toEqual({ gone: null });
+  });
+
+  it("leaves repeating series out of the work list entirely", async () => {
+    listEvents.mockResolvedValue({
+      events: [
+        googleEvent({ id: "r1", recurringEventId: "series1" }),
+        googleEvent({ id: "r2", recurringEventId: "series1" }),
+        googleEvent({ id: "one", summary: "Assembly" }),
+      ],
+      nextSyncToken: "tok2",
+    });
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    // One row for the standalone event, none for the series.
+    const written = mergedWrite("/work");
+    expect(Object.keys(written)).toHaveLength(1);
+    expect(written.new1).toMatchObject({ title: "Assembly", origin: "google" });
+  });
+
+  it("asks Google for a bounded window", async () => {
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    const [, params] = listEvents.mock.calls[0];
+    expect(params.timeMax).toBeTruthy();
+    expect(new Date(params.timeMax).getTime()).toBeGreaterThan(Date.now());
   });
 });
