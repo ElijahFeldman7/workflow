@@ -39,6 +39,8 @@ const TRAILING_STOPWORDS = new Set([
 
 const ANYWHERE_FIELDS = new Set(["date", "time", "duration"]);
 
+const SITTING_TYPES = new Set(["quiz", "test"]);
+
 function memorySpans(tokens, memory) {
   if (!memory) return [];
   const found = [];
@@ -236,6 +238,9 @@ export function captureText(input, options = {}) {
   if (location) setField("location", location, found.location.confidence);
 
   let mode = "";
+  // A quiz or a test is a thing you sit at a time, not a thing you hand in, so
+  // it is an event by default. Anything the text actually says still wins.
+  if (SITTING_TYPES.has(type)) mode = "event";
   if (found.mode) mode = found.mode.value;
   if (endTime) mode = "event";
   if (found.mode && found.mode.value === "due" && !endTime) mode = "due";

@@ -252,6 +252,33 @@ describe("the title is distilled down to the thing itself", () => {
   });
 });
 
+describe("a quiz or a test is something you sit, not something you hand in", () => {
+  test("they come out as events without being told", () => {
+    expect(run("bio quiz tomorrow")).toMatchObject({ type: "quiz", mode: "event" });
+    expect(run("i have a bio test on friday")).toMatchObject({
+      type: "test",
+      mode: "event",
+    });
+    expect(run("unit 3 test 9/14")).toMatchObject({ type: "test", mode: "event" });
+  });
+
+  test("saying it is due still means due", () => {
+    expect(run("bio test due friday")).toMatchObject({
+      type: "test",
+      mode: "due",
+    });
+    expect(run("turn in the physics quiz corrections friday")).toMatchObject({
+      mode: "due",
+    });
+  });
+
+  test("work you hand in is untouched", () => {
+    expect(run("bio homework friday").mode).toBe("due");
+    expect(run("lab report due friday").mode).toBe("due");
+    expect(run("read chapter 7 bio by tomorrow").mode).toBe("due");
+  });
+});
+
 test("an unmatched #name is offered as a new class", () => {
   const result = run("essay #Ceramics fri");
   expect(result.spaceId).toBe("");
