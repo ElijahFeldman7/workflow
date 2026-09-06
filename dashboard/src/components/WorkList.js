@@ -341,7 +341,7 @@ const WorkList = ({
               return (
                 <React.Fragment key={item.id}>
                   <tr className="group border-b border-border hover:bg-muted/40 transition-colors">
-                    <td className="py-2 align-middle">{box(item)}</td>
+                    <td className="py-2 pr-2 align-middle">{box(item)}</td>
                     <td className="py-2 pr-3 max-w-0 w-full">{title(item)}</td>
                     <td className="py-2 px-3 whitespace-nowrap">{dateCell(item)}</td>
                     <td className="py-2 px-3 whitespace-nowrap">
@@ -423,7 +423,7 @@ const WorkList = ({
               return (
                 <li key={item.id}>
                   <div className="group flex items-center justify-between gap-3 py-3 px-2 -mx-2 rounded hover:bg-muted/40 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
                       {box(item)}
 
                       {prefs.colors && space && (
