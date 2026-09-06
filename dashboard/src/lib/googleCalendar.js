@@ -156,7 +156,7 @@ function isScopeProblem(payload) {
   );
 }
 
-async function api(path, { method = "GET", params, body } = {}) {
+async function api(path, { method = "GET", params, body, goneIsNull } = {}) {
   const token = await getToken();
   const url = new URL(`${API_BASE}${path}`);
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -177,13 +177,21 @@ async function api(path, { method = "GET", params, body } = {}) {
     clearToken();
     throw new GoogleAuthRequired();
   }
-  if (response.status === 410) throw new SyncTokenExpired();
+  if (response.status === 410) {
+    if (goneIsNull) return null;
+    throw new SyncTokenExpired();
+  }
   if (response.status === 404) return null;
   if (response.status === 204) return {};
 
   if (!response.ok) {
     const payload = await readError(response);
     const detail = payload?.error?.message || "";
+
+    // Google rejects a sync token whose query no longer matches with a 400,
+    // not a 410. Both mean the same thing: start over with a full sync.
+    if (response.status === 400 && /sync ?token/i.test(detail))
+      throw new SyncTokenExpired();
 
     if (response.status === 403) {
       if (isScopeProblem(payload)) {
@@ -218,15 +226,15 @@ export async function listEvents(calendarId, { syncToken, timeMin } = {}) {
   let nextSyncToken;
 
   do {
-    const params = syncToken
-      ? { syncToken, maxResults: 250, pageToken }
-      : {
-          maxResults: 250,
-          pageToken,
-          singleEvents: true,
-          showDeleted: false,
-          timeMin,
-        };
+    // A sync token is only valid for the exact query that produced it, so both
+    // paths must match. showDeleted is what carries a deletion back to us.
+    const params = {
+      maxResults: 250,
+      pageToken,
+      singleEvents: true,
+      showDeleted: true,
+      ...(syncToken ? { syncToken } : { timeMin }),
+    };
     const data = await api(
       `/calendars/${encodeURIComponent(calendarId)}/events`,
       { params }
@@ -237,6 +245,15 @@ export async function listEvents(calendarId, { syncToken, timeMin } = {}) {
   } while (pageToken);
 
   return { events, nextSyncToken };
+}
+
+export function getEvent(calendarId, eventId) {
+  return api(
+    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(
+      eventId
+    )}`,
+    { goneIsNull: true }
+  );
 }
 
 export function insertEvent(calendarId, resource) {
@@ -287,6 +304,9 @@ export function itemToEvent(item, timeZone) {
         workflowPriority: item.priority || "",
         workflowDone: item.done ? "1" : "0",
         workflowSpaceId: item.spaceId || "",
+        // Lets a sync re-adopt this event when the local link record is gone,
+        // instead of inserting a second copy of it.
+        workflowItemId: item.id || "",
       },
     },
   };
@@ -319,6 +339,11 @@ export function itemToEvent(item, timeZone) {
   resource.start = { dateTime: stamp(start), timeZone };
   resource.end = { dateTime: stamp(end), timeZone };
   return resource;
+}
+
+export function workflowIdOf(event) {
+  const stored = event?.extendedProperties?.private || {};
+  return typeof stored.workflowItemId === "string" ? stored.workflowItemId : "";
 }
 
 export function eventToItem(event) {

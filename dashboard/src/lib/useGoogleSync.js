@@ -11,6 +11,7 @@ import {
   deleteEvent,
   eventToItem,
   fingerprint,
+  getEvent,
   hasToken,
   insertEvent,
   itemToEvent,
@@ -18,10 +19,13 @@ import {
   listEvents,
   localTimeZone,
   patchEvent,
+  workflowIdOf,
 } from "./googleCalendar";
 
 const PULL_WINDOW_DAYS = 90;
 const AUTO_SYNC_MS = 5 * 60 * 1000;
+// How many vanished links one full sync will check with Google.
+const MAX_VERIFY = 60;
 
 const QUIET_POPUP_CODES = new Set([
   "auth/popup-closed-by-user",
@@ -37,6 +41,14 @@ const POPUP_MESSAGES = {
     "This address is not on the Google sign-in allow list for this project yet.",
   "auth/operation-not-allowed":
     "Google sign-in is switched off for this project.",
+};
+
+// What an event and an item have to share to be considered the same thing.
+const contentKey = (entry) => {
+  const title = String(entry.title || "").trim().toLowerCase();
+  const when = entry.when || {};
+  if (!title || !when.date) return "";
+  return [title, when.date, when.time || "", when.endTime || ""].join("|");
 };
 
 const configPath = (uid) => `users/${uid}/googleCalendar`;
@@ -172,6 +184,8 @@ export function useGoogleSync(user, items, ready) {
         calendarId,
         calendarName: found ? found.name : calendarId,
         syncToken: "",
+        // The old links name events in a calendar we no longer follow.
+        links: null,
       });
     },
     [calendars, saveConfig]
@@ -204,43 +218,74 @@ export function useGoogleSync(user, items, ready) {
     let created = 0;
     let updated = 0;
     let pushed = 0;
+    let removed = 0;
+
+    // Every event we create is recorded here the moment we know its id. If the
+    // run dies later, flushing this is what stops the next run inserting the
+    // same events all over again.
+    const flush = async () => {
+      if (Object.keys(itemUpdates).length > 0)
+        await update(ref(database, workPath(user.uid)), itemUpdates);
+      if (Object.keys(linkUpdates).length > 0)
+        await update(ref(database, linksPath(user.uid)), linkUpdates);
+    };
+
+    const windowStart = addDaysKey(todayKey(), -PULL_WINDOW_DAYS);
+    let incremental = !!saved.syncToken;
 
     try {
       let pull;
       try {
         pull = await listEvents(calendarId, {
           syncToken: saved.syncToken || "",
-          timeMin: fromDateKey(
-            addDaysKey(todayKey(), -PULL_WINDOW_DAYS)
-          ).toISOString(),
+          timeMin: fromDateKey(windowStart).toISOString(),
         });
       } catch (err) {
         if (!(err instanceof SyncTokenExpired)) throw err;
+        incremental = false;
         pull = await listEvents(calendarId, {
-          timeMin: fromDateKey(
-            addDaysKey(todayKey(), -PULL_WINDOW_DAYS)
-          ).toISOString(),
+          timeMin: fromDateKey(windowStart).toISOString(),
         });
       }
+
+      // An event carries the id of the item it came from, so a link lost to a
+      // failed sync, a disconnect, or a wiped config can be picked back up.
+      pull.events.forEach((event) => {
+        if (byEventId.has(event.id)) return;
+        const itemId = workflowIdOf(event);
+        if (itemId && working.has(itemId)) byEventId.set(event.id, itemId);
+      });
+
+      // Items with no link of their own, indexed by what they look like.
+      const orphans = new Map();
+      working.forEach((candidate, id) => {
+        if (links[id] && links[id].eventId) return;
+        const key = contentKey(candidate);
+        if (key && !orphans.has(key)) orphans.set(key, id);
+      });
+
+      // A deletion in Google is a deletion here.
+      const drop = (itemId) => {
+        itemUpdates[itemId] = null;
+        linkUpdates[itemId] = null;
+        working.delete(itemId);
+        removed += 1;
+      };
 
       pull.events.forEach((event) => {
         const itemId = byEventId.get(event.id);
 
         if (event.status === "cancelled") {
-          if (itemId) {
-            itemUpdates[itemId] = null;
-            linkUpdates[itemId] = null;
-            working.delete(itemId);
-          }
+          if (itemId && working.has(itemId)) drop(itemId);
           return;
         }
 
         const mapped = eventToItem(event);
         if (!mapped) return;
 
-        if (itemId && working.has(itemId)) {
-          const existing = working.get(itemId);
-          const merged = normalizeItem(itemId, {
+        const absorb = (id) => {
+          const existing = working.get(id);
+          const merged = normalizeItem(id, {
             ...existing,
             ...mapped,
             spaceId: existing.spaceId,
@@ -248,7 +293,7 @@ export function useGoogleSync(user, items, ready) {
             completedAt: mapped.done ? existing.completedAt || Date.now() : 0,
           });
           if (fingerprint(merged) !== fingerprint(existing)) {
-            itemUpdates[itemId] = {
+            itemUpdates[id] = {
               title: merged.title,
               notes: merged.notes,
               location: merged.location,
@@ -260,16 +305,32 @@ export function useGoogleSync(user, items, ready) {
             };
             updated += 1;
           }
-          working.set(itemId, merged);
-          linkUpdates[itemId] = {
+          working.set(id, merged);
+          byEventId.set(event.id, id);
+          linkUpdates[id] = {
             eventId: event.id,
             fingerprint: fingerprint(merged),
             syncedAt: Date.now(),
           };
+        };
+
+        if (itemId && working.has(itemId)) {
+          absorb(itemId);
           return;
         }
 
         if (itemId) return;
+
+        // An event that matches an unlinked item to the letter is that item --
+        // the leftover of an earlier sync, not something new. Claim it rather
+        // than making a second copy. Each item can only be claimed once, so
+        // genuinely repeated events still come through separately.
+        const twin = orphans.get(contentKey(mapped));
+        if (twin) {
+          orphans.delete(contentKey(mapped));
+          absorb(twin);
+          return;
+        }
 
         const newRef = push(ref(database, workPath(user.uid)));
         const record = normalizeItem(newRef.key, {
@@ -302,6 +363,32 @@ export function useGoogleSync(user, items, ready) {
 
       const linkFor = (itemId) =>
         linkUpdates[itemId] !== undefined ? linkUpdates[itemId] : links[itemId];
+
+      // A full sync gets no cancellation rows for events Google has already
+      // pruned, so anything linked but absent from the pull gets asked about
+      // directly. Only inside the window we actually pulled.
+      if (!incremental) {
+        const seen = new Set(pull.events.map((event) => event.id));
+        const missing = [...working.values()].filter((item) => {
+          const link = linkFor(item.id);
+          return (
+            link &&
+            link.eventId &&
+            !seen.has(link.eventId) &&
+            item.when.date &&
+            item.when.date >= windowStart
+          );
+        });
+
+        for (const item of missing.slice(0, MAX_VERIFY)) {
+          const remote = await getEvent(calendarId, linkFor(item.id).eventId);
+          if (remote === null || remote.status === "cancelled") drop(item.id);
+        }
+      }
+
+      // Whatever we have learned so far is safe on disk before we start
+      // writing to Google.
+      await flush();
 
       for (const item of working.values()) {
         if (!item.when.date) continue;
@@ -341,10 +428,7 @@ export function useGoogleSync(user, items, ready) {
         linkUpdates[itemId] = null;
       }
 
-      if (Object.keys(itemUpdates).length > 0)
-        await update(ref(database, workPath(user.uid)), itemUpdates);
-      if (Object.keys(linkUpdates).length > 0)
-        await update(ref(database, linksPath(user.uid)), linkUpdates);
+      await flush();
 
       await saveConfig({
         syncToken: pull.nextSyncToken || "",
@@ -354,11 +438,18 @@ export function useGoogleSync(user, items, ready) {
       setStatus("idle");
       setNeedsAuth(false);
       setMessage(
-        created + updated + pushed === 0
+        created + updated + pushed + removed === 0
           ? "Already up to date."
-          : `Pulled ${created} new and ${updated} changed, pushed ${pushed}.`
+          : `Pulled ${created} new, ${updated} changed and ${removed} removed; pushed ${pushed}.`
       );
     } catch (err) {
+      // Save the links for events we already created. Losing them here is what
+      // makes the next sync insert a second copy of everything.
+      try {
+        await flush();
+      } catch (writeError) {
+        /* the original failure is the one worth reporting */
+      }
       fail(err);
     } finally {
       running.current = false;

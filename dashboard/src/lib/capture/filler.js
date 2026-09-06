@@ -94,9 +94,8 @@ export function fillerBoundary(tokens) {
   while (moved && start < tokens.length) {
     moved = false;
 
-    const phrase = PREFIXES.find((candidate) =>
-      matchesAt(tokens, start, candidate)
-    );
+    const at = start;
+    const phrase = PREFIXES.find((candidate) => matchesAt(tokens, at, candidate));
     if (phrase) {
       start += phrase.length;
       moved = true;

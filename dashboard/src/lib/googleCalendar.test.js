@@ -347,3 +347,90 @@ describe("what the calendar API refuses", () => {
     expect(hasToken()).toBe(true);
   });
 });
+
+describe("asking Google what changed", () => {
+  const {
+    SyncTokenExpired,
+    getEvent,
+    listEvents,
+  } = require("./googleCalendar");
+
+  const params = (call) => new URL(call[0]).searchParams;
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    sessionStorage.setItem(
+      "googleCalendarToken",
+      JSON.stringify({ token: "tok", expiresAt: Date.now() + 60_000 })
+    );
+    global.fetch = jest.fn();
+  });
+
+  it("asks for deleted events, or a deletion can never reach us", async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], nextSyncToken: "tok2" }),
+    });
+
+    await listEvents("cal1", { timeMin: "2026-01-01T00:00:00.000Z" });
+
+    const query = params(global.fetch.mock.calls[0]);
+    expect(query.get("showDeleted")).toBe("true");
+    expect(query.get("singleEvents")).toBe("true");
+    expect(query.get("timeMin")).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("repeats the same question when following a sync token", async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ items: [], nextSyncToken: "tok3" }),
+    });
+
+    await listEvents("cal1", {
+      syncToken: "tok2",
+      timeMin: "2026-01-01T00:00:00.000Z",
+    });
+
+    const query = params(global.fetch.mock.calls[0]);
+    // Google rejects a sync token whose query differs from the one that made it.
+    expect(query.get("singleEvents")).toBe("true");
+    expect(query.get("showDeleted")).toBe("true");
+    expect(query.get("syncToken")).toBe("tok2");
+    expect(query.get("timeMin")).toBeNull();
+  });
+
+  it("treats a rejected sync token as a call for a full sync", async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () =>
+        Promise.resolve({
+          error: {
+            message: "Sync token is no longer valid, a full sync is required.",
+          },
+        }),
+    });
+
+    await expect(listEvents("cal1", { syncToken: "stale" })).rejects.toBeInstanceOf(
+      SyncTokenExpired
+    );
+  });
+
+  it("reports a vanished event as gone rather than as a stale token", async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 410,
+      json: () => Promise.resolve({}),
+    });
+    await expect(getEvent("cal1", "e1")).resolves.toBeNull();
+
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({}),
+    });
+    await expect(getEvent("cal1", "e1")).resolves.toBeNull();
+  });
+});
