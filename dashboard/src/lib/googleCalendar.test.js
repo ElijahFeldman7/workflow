@@ -1,3 +1,20 @@
+jest.mock("firebase/auth", () => ({
+  signInWithPopup: jest.fn(),
+  GoogleAuthProvider: class {
+    constructor() {
+      this.scopes = [];
+      this.params = null;
+    }
+    addScope(scope) {
+      this.scopes.push(scope);
+    }
+    setCustomParameters(params) {
+      this.params = params;
+    }
+    static credentialFromResult = jest.fn();
+  },
+}));
+
 import {
   eventToItem,
   fingerprint,
@@ -203,5 +220,130 @@ describe("parseIcs", () => {
 
   it("returns nothing for text that is not a calendar", () => {
     expect(parseIcs("hello there")).toEqual([]);
+  });
+});
+
+describe("connecting when the app is not yet verified", () => {
+  const { GoogleAuthProvider, signInWithPopup } = require("firebase/auth");
+  const {
+    CALENDAR_SCOPE,
+    GoogleScopeDenied,
+    connect,
+    grantedScopes,
+    hasToken,
+  } = require("./googleCalendar");
+
+  const jsonResponse = (status, body) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: () => Promise.resolve(body),
+  });
+
+  let provider;
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    global.fetch = jest.fn();
+    signInWithPopup.mockImplementation((authArg, given) => {
+      provider = given;
+      return Promise.resolve({});
+    });
+    GoogleAuthProvider.credentialFromResult.mockReturnValue({
+      accessToken: "tok",
+    });
+  });
+
+  it("forces the consent screen so a missed checkbox can be ticked", async () => {
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, { scope: `openid ${CALENDAR_SCOPE}` })
+    );
+
+    await connect();
+
+    expect(provider.params.prompt).toBe("consent");
+    expect(provider.scopes).toContain(CALENDAR_SCOPE);
+    expect(hasToken()).toBe(true);
+  });
+
+  it("says so plainly when calendar access was not granted", async () => {
+    global.fetch.mockResolvedValue(jsonResponse(200, { scope: "openid email" }));
+
+    await expect(connect()).rejects.toBeInstanceOf(GoogleScopeDenied);
+    expect(hasToken()).toBe(false);
+  });
+
+  it("connects anyway when the scope check itself cannot be reached", async () => {
+    global.fetch.mockRejectedValue(new Error("offline"));
+    await expect(connect()).resolves.toBe("tok");
+    expect(hasToken()).toBe(true);
+  });
+
+  it("reads the scopes off a token", async () => {
+    global.fetch.mockResolvedValue(jsonResponse(200, { scope: "a b" }));
+    await expect(grantedScopes("tok")).resolves.toEqual(["a", "b"]);
+
+    global.fetch.mockResolvedValue(jsonResponse(400, {}));
+    await expect(grantedScopes("tok")).resolves.toBeNull();
+  });
+});
+
+describe("what the calendar API refuses", () => {
+  const {
+    GoogleAuthRequired,
+    GoogleScopeDenied,
+    hasToken,
+    listCalendars,
+  } = require("./googleCalendar");
+
+  const seedToken = () =>
+    sessionStorage.setItem(
+      "googleCalendarToken",
+      JSON.stringify({ token: "tok", expiresAt: Date.now() + 60_000 })
+    );
+
+  const errorResponse = (status, body) => ({
+    ok: false,
+    status,
+    json: () => Promise.resolve(body),
+  });
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    seedToken();
+    global.fetch = jest.fn();
+  });
+
+  it("treats an expired token as needing a reconnect", async () => {
+    global.fetch.mockResolvedValue(errorResponse(401, {}));
+    await expect(listCalendars()).rejects.toBeInstanceOf(GoogleAuthRequired);
+    expect(hasToken()).toBe(false);
+  });
+
+  it("treats a 403 about scope as a missing permission", async () => {
+    global.fetch.mockResolvedValue(
+      errorResponse(403, {
+        error: {
+          message: "Request had insufficient authentication scopes.",
+          errors: [{ reason: "insufficientPermissions" }],
+        },
+      })
+    );
+
+    await expect(listCalendars()).rejects.toBeInstanceOf(GoogleScopeDenied);
+    expect(hasToken()).toBe(false);
+  });
+
+  it("keeps the session for a 403 that is not about scope", async () => {
+    global.fetch.mockResolvedValue(
+      errorResponse(403, {
+        error: {
+          message: "Rate Limit Exceeded",
+          errors: [{ reason: "rateLimitExceeded" }],
+        },
+      })
+    );
+
+    await expect(listCalendars()).rejects.toThrow("Rate Limit Exceeded");
+    expect(hasToken()).toBe(true);
   });
 });

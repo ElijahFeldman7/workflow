@@ -342,9 +342,9 @@ const WorkList = ({
                 <React.Fragment key={item.id}>
                   <tr className="group border-b border-border hover:bg-muted/40 transition-colors">
                     <td className="py-2 align-middle">{box(item)}</td>
-                    <td className="py-2 pr-3 max-w-xs">{title(item)}</td>
-                    <td className="py-2 px-3">{dateCell(item)}</td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 pr-3 max-w-0 w-full">{title(item)}</td>
+                    <td className="py-2 px-3 whitespace-nowrap">{dateCell(item)}</td>
+                    <td className="py-2 px-3 whitespace-nowrap">
                       <MetaPill
                         tag
                         label={typeLabel(item.type)}
@@ -353,7 +353,7 @@ const WorkList = ({
                         onClick={filterHandler("types", item.type)}
                       />
                     </td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 px-3 whitespace-nowrap">
                       <MetaPill
                         tag
                         label={space?.name}
@@ -366,7 +366,7 @@ const WorkList = ({
                         onClick={filterHandler("spaces", item.spaceId)}
                       />
                     </td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 px-3 whitespace-nowrap">
                       <MetaPill
                         tag
                         label={priority.label}
@@ -435,7 +435,7 @@ const WorkList = ({
                         />
                       )}
 
-                      <div className="min-w-0">{title(item)}</div>
+                      <div className="min-w-0 flex-1">{title(item)}</div>
                     </div>
 
                     <div className="flex items-center gap-3 flex-shrink-0">

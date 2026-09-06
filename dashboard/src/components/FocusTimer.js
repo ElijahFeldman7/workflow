@@ -1,39 +1,156 @@
-import React, { useState, useEffect, useRef } from "react";
-import { database } from "../firebase";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { dbRef, onValueRef, updateData } from "../firebaseHelpers";
+import {
+  durationOf,
+  emptyTimer,
+  foldTimer,
+  normalizeTimer,
+  remainingOf,
+  statsOf,
+} from "../lib/timerState";
+
+const TICK_MS = 500;
+const AUTOSAVE_MS = 20 * 1000;
 
 const FocusTimer = ({ user }) => {
-  const [time, setTime] = useState(25 * 60);
-  const [isRunning, setIsRunning] = useState(false);
-  const [mode, setMode] = useState("work");
-
-  const [workDuration, setWorkDuration] = useState(25);
-  const [breakDuration, setBreakDuration] = useState(5);
+  const [state, setState] = useState(emptyTimer);
   const [showSettings, setShowSettings] = useState(false);
+  const [draft, setDraft] = useState({ work: state.workDuration, break: state.breakDuration });
+  const [, setTick] = useState(0);
 
-  const [stats, setStats] = useState({ work: 0, break: 0 });
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const completing = useRef(false);
 
-  const audioRef = useRef(
-    new Audio(
-      "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-    )
+  const audioRef = useRef(null);
+  if (audioRef.current === null) {
+    try {
+      audioRef.current = new Audio(
+        "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+      );
+    } catch (e) {
+      audioRef.current = undefined;
+    }
+  }
+
+  const persist = useCallback(
+    (next) => {
+      if (!user) return;
+      const reference = dbRef(`users/${user.uid}/timer`);
+      if (!reference) return;
+      updateData(reference, {
+        mode: next.mode,
+        remaining: next.remaining,
+        running: next.running,
+        startedAt: next.startedAt,
+        workDuration: next.workDuration,
+        breakDuration: next.breakDuration,
+        stats: next.stats,
+        position: next.position,
+        updatedAt: next.updatedAt,
+      });
+    },
+    [user]
   );
+
+  // Every change banks the time already run, then writes the whole truth.
+  const apply = useCallback(
+    (changes) => {
+      const at = Date.now();
+      const next = {
+        ...foldTimer(stateRef.current, at),
+        ...changes,
+        updatedAt: at,
+      };
+      stateRef.current = next;
+      setState(next);
+      persist(next);
+      return next;
+    },
+    [persist]
+  );
+
+  useEffect(() => {
+    if (!user) {
+      setState(emptyTimer());
+      return undefined;
+    }
+
+    const reference = dbRef(`users/${user.uid}/timer`);
+    if (!reference) return undefined;
+
+    const unsubscribe = onValueRef(reference, (snapshot) => {
+      const saved = normalizeTimer(snapshot && snapshot.val());
+      // Ignore the echo of a write we already hold, and anything older than it.
+      if (saved.updatedAt < stateRef.current.updatedAt) return;
+      stateRef.current = saved;
+      setState(saved);
+      setDraft({ work: saved.workDuration, break: saved.breakDuration });
+    });
+
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission === "default" && Notification.requestPermission) {
+      try {
+        Notification.requestPermission();
+      } catch (e) {
+        /* older browsers reject the promise form */
+      }
+    }
+  }, []);
+
+  // The clock is derived from timestamps, so this only forces a repaint.
+  useEffect(() => {
+    if (!state.running) return undefined;
+    const interval = setInterval(() => setTick((value) => value + 1), TICK_MS);
+    return () => clearInterval(interval);
+  }, [state.running]);
+
+  // Keep a running session durable even if the tab never gets closed cleanly.
+  useEffect(() => {
+    if (!state.running || !user) return undefined;
+    const interval = setInterval(() => apply({}), AUTOSAVE_MS);
+    return () => clearInterval(interval);
+  }, [state.running, user, apply]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const save = () => {
+      if (stateRef.current.running) apply({});
+    };
+    window.addEventListener("pagehide", save);
+    document.addEventListener("visibilitychange", save);
+    return () => {
+      window.removeEventListener("pagehide", save);
+      document.removeEventListener("visibilitychange", save);
+      save();
+    };
+  }, [user, apply]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
-      setPosition({
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      });
+      setState((prev) => ({
+        ...prev,
+        position: {
+          x: e.clientX - dragOffset.current.x,
+          y: e.clientY - dragOffset.current.y,
+        },
+      }));
     };
 
     const handleMouseUp = () => {
+      if (!isDragging.current) return;
       isDragging.current = false;
+      apply({ position: stateRef.current.position });
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -43,7 +160,7 @@ const FocusTimer = ({ user }) => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
+  }, [apply]);
 
   const handleMouseDown = (e) => {
     if (
@@ -60,128 +177,95 @@ const FocusTimer = ({ user }) => {
 
     isDragging.current = true;
     dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: e.clientX - state.position.x,
+      y: e.clientY - state.position.y,
     };
   };
 
-  useEffect(() => {
-    if (!user) return;
-
-    if (Notification && Notification.permission !== "granted") {
-      if (Notification.requestPermission) Notification.requestPermission();
-    }
-
-    const timerRef = dbRef(`users/${user.uid}/timer`);
-    const handleSnapshot = (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        if (!isRunning) {
-          setTime(
-            data.timeRemaining ||
-              (data.mode === "work" ? workDuration * 60 : breakDuration * 60)
-          );
-          setMode(data.mode || "work");
-        }
-        if (data.stats) {
-          setStats({
-            work: data.stats.work || 0,
-            break: data.stats.break || 0,
-          });
-        }
-      }
-    };
-    const unsubscribe = onValueRef(timerRef, handleSnapshot);
-
-    return () => {
-      if (typeof unsubscribe === "function") unsubscribe();
-    };
-  }, [user, isRunning, workDuration, breakDuration]);
-
-  useEffect(() => {
-    let interval = null;
-
-    if (isRunning && time > 0) {
-      interval = setInterval(() => {
-        setTime((prevTime) => prevTime - 1);
-        setStats((prevStats) => ({
-          ...prevStats,
-          [mode]: prevStats[mode] + 1,
-        }));
-      }, 1000);
-    } else if (time === 0) {
-      handleTimerComplete();
-    }
-
-    return () => clearInterval(interval);
-  }, [isRunning, time, mode]);
-
-  const updateDb = (newMode, newTime, newStats) => {
-    if (!user) return;
-    updateData(dbRef(`users/${user.uid}/timer`), {
-      mode: newMode !== undefined ? newMode : mode,
-      timeRemaining: newTime !== undefined ? newTime : time,
-      stats: newStats || stats,
-    });
-  };
-
-  const handleTimerComplete = () => {
-    setIsRunning(false);
-
+  const handleTimerComplete = useCallback(() => {
     try {
       const playResult =
         audioRef.current && audioRef.current.play && audioRef.current.play();
-      if (playResult && typeof playResult.catch === "function") {
+      if (playResult && typeof playResult.catch === "function")
         playResult.catch(() => {});
-      }
-    } catch (e) {}
+    } catch (e) {
+      /* autoplay policy */
+    }
 
+    const finished = stateRef.current.mode;
     if (
-      Notification &&
-      Notification.permission === "granted" &&
-      typeof Notification === "function"
+      typeof Notification === "function" &&
+      Notification.permission === "granted"
     ) {
       try {
-        new Notification(mode === "work" ? "Great job!" : "Break over!", {
+        new Notification(finished === "work" ? "Great job!" : "Break over!", {
           body:
-            mode === "work"
+            finished === "work"
               ? "Time to take a break."
               : "Time to get back to work.",
           icon: "/logo.png",
         });
-      } catch (e) {}
+      } catch (e) {
+        /* notification constructor can throw on mobile */
+      }
     }
 
-    const newMode = mode === "work" ? "break" : "work";
-    const newTime = newMode === "work" ? workDuration * 60 : breakDuration * 60;
+    const nextMode = finished === "work" ? "break" : "work";
+    apply({
+      mode: nextMode,
+      remaining: durationOf(stateRef.current, nextMode),
+      running: false,
+      startedAt: 0,
+    });
+  }, [apply]);
 
-    setMode(newMode);
-    setTime(newTime);
-    updateDb(newMode, newTime, stats);
-  };
+  const remaining = remainingOf(state);
+  const stats = statsOf(state);
+
+  useEffect(() => {
+    if (!state.running || remaining > 0) {
+      completing.current = false;
+      return;
+    }
+    if (completing.current) return;
+    completing.current = true;
+    handleTimerComplete();
+  }, [state.running, remaining, handleTimerComplete]);
 
   const toggleTimer = (e) => {
     e.stopPropagation();
-    if (isRunning) {
-      updateDb(mode, time, stats);
+    if (state.running) {
+      apply({ running: false, startedAt: 0 });
+      return;
     }
-    setIsRunning(!isRunning);
+    // Starting from a spent clock rolls it back to a full interval.
+    const current = stateRef.current;
+    const changes = { running: true, startedAt: Date.now() };
+    if (current.remaining <= 0) changes.remaining = durationOf(current);
+    apply(changes);
   };
 
   const resetTimer = (e) => {
     e.stopPropagation();
-    setIsRunning(false);
-    const resetTime = mode === "work" ? workDuration * 60 : breakDuration * 60;
-    setTime(resetTime);
-    updateDb(mode, resetTime, stats);
+    apply({
+      running: false,
+      startedAt: 0,
+      remaining: durationOf(stateRef.current),
+    });
   };
 
   const saveSettings = () => {
     setShowSettings(false);
-    setIsRunning(false);
-    setMode("work");
-    setTime(workDuration * 60);
-    updateDb("work", workDuration * 60, stats);
+    const workDuration = Math.max(1, Math.round(draft.work) || 1);
+    const breakDuration = Math.max(1, Math.round(draft.break) || 1);
+    apply({
+      workDuration,
+      breakDuration,
+      mode: "work",
+      remaining: workDuration * 60,
+      running: false,
+      startedAt: 0,
+    });
   };
 
   const formatTime = (seconds) => {
@@ -195,6 +279,14 @@ const FocusTimer = ({ user }) => {
     const mins = Math.floor((totalSeconds % 3600) / 60);
     return `${hrs}h ${mins}m`;
   };
+
+  const { mode, position } = state;
+  const isRunning = state.running;
+  const time = remaining;
+  const workDuration = draft.work;
+  const breakDuration = draft.break;
+  const setWorkDuration = (value) => setDraft((prev) => ({ ...prev, work: value }));
+  const setBreakDuration = (value) => setDraft((prev) => ({ ...prev, break: value }));
 
   return (
     <div

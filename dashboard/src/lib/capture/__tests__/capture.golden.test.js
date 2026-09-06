@@ -220,6 +220,38 @@ test("a duration only applies when there is a start time", () => {
   expect(run("essay 3pm for 2 hours").endTime).toBe("17:00");
 });
 
+describe("the title is distilled down to the thing itself", () => {
+  const CARRIER_CASES = [
+    { text: "i have a bio test on friday", title: "bio test", spaceId: "s1", type: "test" },
+    { text: "i need to do my bio homework", title: "bio homework", spaceId: "s1", type: "hw" },
+    { text: "there is a physics quiz tomorrow", title: "physics quiz", spaceId: "s4", type: "quiz" },
+    { text: "i've got a bio test friday", title: "bio test", spaceId: "s1" },
+    { text: "gotta do bio hw tonight", title: "bio hw", spaceId: "s1", type: "hw" },
+    { text: "can you remind me about the physics test on monday", title: "physics test", spaceId: "s4" },
+    { text: "dont forget the scioly meeting thursday", title: "scioly meeting", spaceId: "s5" },
+    { text: "please turn in the scholarship form friday", title: "turn in the scholarship form" },
+  ];
+
+  CARRIER_CASES.forEach((expected) => {
+    test(expected.text, () => {
+      const result = run(expected.text);
+      Object.entries(expected).forEach(([key, value]) => {
+        if (key === "text") return;
+        expect({ [key]: result[key] }).toEqual({ [key]: value });
+      });
+    });
+  });
+
+  test("a verb the user meant is not mistaken for filler", () => {
+    expect(run("finish the bio lab report").title).toBe("finish the bio lab report");
+    expect(run("read chapter 7 bio by tomorrow").title).toBe("read chapter 7");
+  });
+
+  test("filler alone still leaves something to look at", () => {
+    expect(run("i have to").title.length).toBeGreaterThan(0);
+  });
+});
+
 test("an unmatched #name is offered as a new class", () => {
   const result = run("essay #Ceramics fri");
   expect(result.spaceId).toBe("");

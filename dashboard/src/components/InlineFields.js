@@ -25,8 +25,8 @@ export const InlineText = ({ value, onChange, className = "", label }) => {
           setDraft(value);
           setEditing(true);
         }}
-        className={`${HIT} w-full truncate hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring/40 ${className}`}
-        title="Click to rename"
+        className={`${HIT} block w-full truncate hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring/40 ${className}`}
+        title={value}
       >
         {value}
       </button>

@@ -18,6 +18,7 @@ import { findSpaceMentions } from "./extractors/spaces";
 import { lexicalEncoder } from "./embed";
 import { resolveSpace } from "./resolve";
 import { lookup, memoryConfidence, LEARNABLE_FIELDS } from "./memory";
+import { fillerBoundary } from "./filler";
 
 const CONSUME_MIN = 0.65;
 
@@ -87,23 +88,21 @@ function tailStart(tokens, consumable) {
   return boundary;
 }
 
-function buildTitle(tokens, consumed) {
-  let title = tokens
-    .filter((token) => !consumed.has(token.index))
+const isTrailingNoise = (token) =>
+  token.norm === "" || TRAILING_STOPWORDS.has(token.norm);
+
+function buildTitle(tokens, consumed, options = {}) {
+  const kept = tokens.filter((token) => !consumed.has(token.index));
+  const start = options.raw ? 0 : fillerBoundary(kept);
+
+  let end = kept.length;
+  while (end > start && isTrailingNoise(kept[end - 1])) end -= 1;
+
+  return kept
+    .slice(start, end)
     .map((token) => token.raw)
     .join(" ")
     .trim();
-
-  let last = tokens.length ? title.split(/\s+/).pop() || "" : "";
-  let lastNorm = last.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
-
-  while (title && TRAILING_STOPWORDS.has(lastNorm)) {
-    title = title.slice(0, title.length - last.length).trim();
-    last = title.split(/\s+/).pop() || "";
-    lastNorm = last.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
-  }
-
-  return title;
 }
 
 export function captureText(input, options = {}) {
@@ -170,11 +169,10 @@ export function captureText(input, options = {}) {
     consumed = build(kept);
   }
 
-  while (buildTitle(tokens, consumed) === "" && kept.length > 0) {
-    const restorable = kept.filter((span) => !isAnywhere(span));
-    if (restorable.length === 0) break;
-    const earliest = restorable.reduce((a, b) => (a.from <= b.from ? a : b));
-    kept = kept.filter((span) => span !== earliest);
+  // Nothing descriptive survived: give the words back rather than ship a blank
+  // title. "bio test friday" keeps "bio test" and still files under Biology.
+  if (buildTitle(tokens, consumed) === "") {
+    kept = kept.filter(isAnywhere);
     consumed = build(kept);
   }
 
@@ -183,7 +181,8 @@ export function captureText(input, options = {}) {
     if (found[span.field] === undefined) found[span.field] = span;
   });
 
-  const title = buildTitle(tokens, consumed);
+  const title =
+    buildTitle(tokens, consumed) || buildTitle(tokens, consumed, { raw: true });
 
   const confidence = {};
   const setField = (field, value, score) => {

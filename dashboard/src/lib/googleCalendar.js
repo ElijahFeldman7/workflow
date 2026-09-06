@@ -24,6 +24,16 @@ export class GoogleAuthRequired extends Error {
   }
 }
 
+export class GoogleScopeDenied extends Error {
+  constructor(message) {
+    super(
+      message ||
+        "Calendar permission was not granted. Connect again and tick the calendar checkbox on Google's consent screen — the app cannot read or write your calendar without it."
+    );
+    this.name = "GoogleScopeDenied";
+  }
+}
+
 export class SyncTokenExpired extends Error {
   constructor() {
     super("Sync token expired");
@@ -60,7 +70,6 @@ function storeToken(token) {
       JSON.stringify({ token, expiresAt: Date.now() + TOKEN_TTL_MS })
     );
   } catch (e) {
-    /* private browsing */
   }
 }
 
@@ -68,7 +77,6 @@ export function clearToken() {
   try {
     sessionStorage.removeItem(TOKEN_KEY);
   } catch (e) {
-    /* private browsing */
   }
 }
 
@@ -76,18 +84,40 @@ export function hasToken() {
   return readStoredToken() !== null;
 }
 
+export async function grantedScopes(token) {
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(
+        token
+      )}`
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    return typeof data.scope === "string" ? data.scope.split(" ") : null;
+  } catch (e) {
+    return null; // Cannot check: let the API call be the judge instead.
+  }
+}
+
 export async function connect() {
   const provider = new GoogleAuthProvider();
   provider.addScope(CALENDAR_SCOPE);
-  provider.setCustomParameters({ include_granted_scopes: "true" });
+  provider.setCustomParameters({
+    prompt: "consent",
+    include_granted_scopes: "true",
+    ...(auth && auth.currentUser && auth.currentUser.email
+      ? { login_hint: auth.currentUser.email }
+      : {}),
+  });
 
   const result = await signInWithPopup(auth, provider);
   const credential = GoogleAuthProvider.credentialFromResult(result);
   const token = credential && credential.accessToken;
-  if (!token)
-    throw new Error(
-      "Google did not return calendar access. Make sure you allow the calendar permission."
-    );
+  if (!token) throw new GoogleScopeDenied();
+
+  const scopes = await grantedScopes(token);
+  if (scopes && !scopes.includes(CALENDAR_SCOPE)) throw new GoogleScopeDenied();
+
   storeToken(token);
   return token;
 }
@@ -96,6 +126,34 @@ async function getToken() {
   const token = readStoredToken();
   if (!token) throw new GoogleAuthRequired();
   return token;
+}
+
+const SCOPE_REASONS = new Set([
+  "insufficientPermissions",
+  "insufficientScopes",
+  "ACCESS_TOKEN_SCOPE_INSUFFICIENT",
+]);
+
+async function readError(response) {
+  try {
+    return await response.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function isScopeProblem(payload) {
+  const error = payload && payload.error;
+  if (!error) return false;
+  const reasons = [
+    error.status,
+    ...(error.errors || []).map((entry) => entry && entry.reason),
+    ...(error.details || []).map((entry) => entry && entry.reason),
+  ].filter(Boolean);
+  if (reasons.some((reason) => SCOPE_REASONS.has(reason))) return true;
+  return /insufficient (authentication|permission|scope)/i.test(
+    error.message || ""
+  );
 }
 
 async function api(path, { method = "GET", params, body } = {}) {
@@ -115,21 +173,28 @@ async function api(path, { method = "GET", params, body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     clearToken();
     throw new GoogleAuthRequired();
   }
   if (response.status === 410) throw new SyncTokenExpired();
   if (response.status === 404) return null;
   if (response.status === 204) return {};
+
   if (!response.ok) {
-    let detail = "";
-    try {
-      const payload = await response.json();
-      detail = payload?.error?.message || "";
-    } catch (e) {
-      /* non-JSON error body */
+    const payload = await readError(response);
+    const detail = payload?.error?.message || "";
+
+    if (response.status === 403) {
+      if (isScopeProblem(payload)) {
+        clearToken();
+        throw new GoogleScopeDenied();
+      }
+      throw new Error(
+        detail || "Google Calendar refused that request. Check the calendar you picked."
+      );
     }
+
     throw new Error(detail || `Google Calendar request failed (${response.status})`);
   }
   return response.json();
@@ -199,7 +264,8 @@ export async function deleteEvent(calendarId, eventId) {
       { method: "DELETE" }
     );
   } catch (err) {
-    if (err instanceof GoogleAuthRequired) throw err;
+    if (err instanceof GoogleAuthRequired || err instanceof GoogleScopeDenied)
+      throw err;
   }
 }
 

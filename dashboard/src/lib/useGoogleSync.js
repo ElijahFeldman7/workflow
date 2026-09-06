@@ -4,6 +4,7 @@ import { database } from "../firebase";
 import { normalizeItem, todayKey, addDaysKey, fromDateKey } from "../constants/work";
 import {
   GoogleAuthRequired,
+  GoogleScopeDenied,
   SyncTokenExpired,
   clearToken,
   connect,
@@ -21,6 +22,22 @@ import {
 
 const PULL_WINDOW_DAYS = 90;
 const AUTO_SYNC_MS = 5 * 60 * 1000;
+
+const QUIET_POPUP_CODES = new Set([
+  "auth/popup-closed-by-user",
+  "auth/cancelled-popup-request",
+]);
+
+const POPUP_MESSAGES = {
+  "auth/user-cancelled":
+    "Calendar permission was declined. Connect again and allow calendar access to sync.",
+  "auth/popup-blocked":
+    "Your browser blocked the Google window. Allow pop-ups for this site, then try again.",
+  "auth/unauthorized-domain":
+    "This address is not on the Google sign-in allow list for this project yet.",
+  "auth/operation-not-allowed":
+    "Google sign-in is switched off for this project.",
+};
 
 const configPath = (uid) => `users/${uid}/googleCalendar`;
 const linksPath = (uid) => `users/${uid}/googleCalendar/links`;
@@ -69,6 +86,12 @@ export function useGoogleSync(user, items, ready) {
   );
 
   const fail = useCallback((err) => {
+    if (err instanceof GoogleScopeDenied) {
+      setNeedsAuth(true);
+      setStatus("error");
+      setMessage(err.message);
+      return;
+    }
     if (err instanceof GoogleAuthRequired) {
       setNeedsAuth(true);
       setStatus("error");
@@ -112,8 +135,20 @@ export function useGoogleSync(user, items, ready) {
       }
       return true;
     } catch (err) {
-      if (err?.code === "auth/popup-closed-by-user") {
+      if (QUIET_POPUP_CODES.has(err?.code)) {
         setStatus("idle");
+        setMessage("");
+        return false;
+      }
+      const explained = POPUP_MESSAGES[err?.code];
+      if (explained) {
+        setStatus("error");
+        setMessage(explained);
+        return false;
+      }
+      if (/access_denied/i.test(err?.message || "")) {
+        setStatus("error");
+        setMessage(new GoogleScopeDenied().message);
         return false;
       }
       fail(err);
