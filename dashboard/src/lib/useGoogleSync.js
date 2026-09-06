@@ -8,17 +8,13 @@ import {
   SyncTokenExpired,
   clearToken,
   connect,
-  deleteEvent,
   eventToItem,
   fingerprint,
   getEvent,
   hasToken,
-  insertEvent,
-  itemToEvent,
   listCalendars,
   listEvents,
   localTimeZone,
-  patchEvent,
   workflowIdOf,
 } from "./googleCalendar";
 
@@ -225,7 +221,6 @@ export function useGoogleSync(user, items, ready) {
     const itemUpdates = {};
     let created = 0;
     let updated = 0;
-    let pushed = 0;
     let removed = 0;
     let deduped = 0;
 
@@ -470,37 +465,7 @@ export function useGoogleSync(user, items, ready) {
       // writing to Google.
       await flush();
 
-      for (const item of working.values()) {
-        if (!item.when.date) continue;
-        const resource = itemToEvent(item, timeZone);
-        if (!resource) continue;
-        const link = linkFor(item.id);
-        const stamp = fingerprint(item);
-
-        if (!link) {
-          const remote = await insertEvent(calendarId, resource);
-          if (remote && remote.id) {
-            linkUpdates[item.id] = {
-              eventId: remote.id,
-              fingerprint: stamp,
-              syncedAt: Date.now(),
-            };
-            pushed += 1;
-          }
-          continue;
-        }
-
-        if (link.fingerprint !== stamp) {
-          await patchEvent(calendarId, link.eventId, resource);
-          linkUpdates[item.id] = {
-            eventId: link.eventId,
-            fingerprint: stamp,
-            syncedAt: Date.now(),
-          };
-          pushed += 1;
-        }
-      }
-
+      // There is no push half any more. This reads the calendar and stops.
       // Surplus copies are left in Google too. They are skipped on the way in,
       // so they stop producing rows without anything being removed remotely.
       deduped += staleEventIds.size;
@@ -526,9 +491,9 @@ export function useGoogleSync(user, items, ready) {
       setNeedsAuth(false);
       const tidied = deduped > 0 ? ` Removed ${deduped} duplicate(s).` : "";
       setMessage(
-        created + updated + pushed + removed + deduped === 0
+        created + updated + removed + deduped === 0
           ? "Already up to date."
-          : `Pulled ${created} new, ${updated} changed and ${removed} removed; pushed ${pushed}.${tidied}`
+          : `Pulled ${created} new, ${updated} changed and ${removed} removed.${tidied}`
       );
     } catch (err) {
       // Save the links for events we already created. Losing them here is what

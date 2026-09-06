@@ -11,7 +11,12 @@ import {
   toDateKey,
 } from "../constants/work";
 
-export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
+// Read-only, permanently. There is no write scope here to ask for, so Google
+// itself refuses any attempt to change a calendar regardless of what this code
+// does. Writing was removed after a sync deleted events people had been
+// invited to, which Google reports to the organiser as a decline.
+export const CALENDAR_SCOPE =
+  "https://www.googleapis.com/auth/calendar.readonly";
 export const API_BASE = "https://www.googleapis.com/calendar/v3";
 
 const TOKEN_KEY = "googleCalendarToken";
@@ -264,35 +269,8 @@ export function getEvent(calendarId, eventId) {
   );
 }
 
-export function insertEvent(calendarId, resource) {
-  return api(`/calendars/${encodeURIComponent(calendarId)}/events`, {
-    method: "POST",
-    body: resource,
-  });
-}
-
-export function patchEvent(calendarId, eventId, resource) {
-  return api(
-    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(
-      eventId
-    )}`,
-    { method: "PATCH", body: resource }
-  );
-}
-
-export async function deleteEvent(calendarId, eventId) {
-  try {
-    await api(
-      `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(
-        eventId
-      )}`,
-      { method: "DELETE" }
-    );
-  } catch (err) {
-    if (err instanceof GoogleAuthRequired || err instanceof GoogleScopeDenied)
-      throw err;
-  }
-}
+// There is deliberately no insertEvent, patchEvent or deleteEvent. This module
+// can read a calendar and nothing else.
 
 const pad = (value) => String(value).padStart(2, "0");
 

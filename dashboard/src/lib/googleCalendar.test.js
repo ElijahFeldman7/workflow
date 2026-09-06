@@ -434,3 +434,30 @@ describe("asking Google what changed", () => {
     await expect(getEvent("cal1", "e1")).resolves.toBeNull();
   });
 });
+
+describe("this module cannot change a calendar", () => {
+  const api = jest.requireActual("./googleCalendar");
+
+  it("exposes no way to create, change or remove an event", () => {
+    // Not guarded, not gated: absent. There is no code path to reach.
+    expect(api.insertEvent).toBeUndefined();
+    expect(api.patchEvent).toBeUndefined();
+    expect(api.deleteEvent).toBeUndefined();
+  });
+
+  it("only ever asks Google for read permission", () => {
+    // Without the write scope Google refuses a write outright, so this holds
+    // even if a future change tries to send one.
+    expect(api.CALENDAR_SCOPE).toBe(
+      "https://www.googleapis.com/auth/calendar.readonly"
+    );
+    expect(api.CALENDAR_SCOPE).not.toContain("auth/calendar.events");
+  });
+
+  it("exports only read helpers", () => {
+    const writeish = Object.keys(api).filter((name) =>
+      /insert|patch|delete|update|create|write/i.test(name)
+    );
+    expect(writeish).toEqual([]);
+  });
+});

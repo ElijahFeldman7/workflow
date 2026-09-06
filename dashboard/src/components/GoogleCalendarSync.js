@@ -113,10 +113,10 @@ const GoogleCalendarSync = ({ user }) => {
             </p>
             <p className="text-sm text-muted-foreground">
               {sync.connected
-                ? `Syncing ${sync.config.calendarName || sync.config.calendarId} both ways · last synced ${relative(
+                ? `Reading ${sync.config.calendarName || sync.config.calendarId} · last synced ${relative(
                     sync.config.lastSyncedAt
                   )}`
-                : "Sign in with Google to keep this calendar and your work in step, both directions."}
+                : "Sign in with Google to see this calendar here. Read-only unless you turn writing on."}
             </p>
           </div>
 
@@ -257,6 +257,7 @@ const GoogleCalendarSync = ({ user }) => {
             </div>
           )}
         </div>
+
 
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-sm font-medium text-foreground">

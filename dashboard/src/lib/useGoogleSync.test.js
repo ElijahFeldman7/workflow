@@ -3,9 +3,7 @@ import { ref, get, update, push } from "firebase/database";
 import { useGoogleSync } from "./useGoogleSync";
 import {
   getEvent,
-  insertEvent,
   listEvents,
-  patchEvent,
   deleteEvent,
   hasToken,
 } from "./googleCalendar";
@@ -22,12 +20,10 @@ jest.mock("./googleCalendar", () => ({
   fingerprint: jest.requireActual("./googleCalendar").fingerprint,
   getEvent: jest.fn(),
   hasToken: jest.fn(() => false),
-  insertEvent: jest.fn(),
   itemToEvent: jest.requireActual("./googleCalendar").itemToEvent,
   listCalendars: jest.fn(() => Promise.resolve([])),
   listEvents: jest.fn(),
   localTimeZone: () => "UTC",
-  patchEvent: jest.fn(() => Promise.resolve({})),
   workflowIdOf: jest.requireActual("./googleCalendar").workflowIdOf,
 }));
 
@@ -81,9 +77,7 @@ beforeEach(() => {
   update.mockResolvedValue();
   hasToken.mockReturnValue(false);
   deleteEvent.mockResolvedValue();
-  patchEvent.mockResolvedValue({});
   getEvent.mockResolvedValue(null);
-  insertEvent.mockResolvedValue({ id: "inserted1" });
   listEvents.mockResolvedValue({ events: [], nextSyncToken: "tok2" });
   config = {
     calendarId: "cal1",
@@ -133,7 +127,6 @@ describe("a deletion in Google reaches the work list", () => {
     await act(() => result.current.syncNow());
 
     expect(mergedWrite("/work").w1).not.toBeNull();
-    expect(insertEvent).not.toHaveBeenCalled();
   });
 
   it("never deletes an item dated outside the window it pulled", async () => {
@@ -176,18 +169,26 @@ describe("a move in Google reaches the work list", () => {
   });
 });
 
-describe("events are never inserted twice", () => {
-  it("keeps the links of events it already created when the sync then fails", async () => {
+describe("events are never imported twice", () => {
+  it("keeps the links it worked out when the sync then fails", async () => {
     config.links = {};
-    insertEvent
-      .mockResolvedValueOnce({ id: "inserted1" })
-      .mockRejectedValueOnce(new Error("network died"));
+    listEvents.mockResolvedValue({
+      events: [googleEvent({ id: "e1", summary: "Assembly" })],
+      nextSyncToken: "tok2",
+    });
+    // Blows up on the final config write, after the pull has already worked
+    // out which row belongs to which event.
+    update.mockImplementation((target) =>
+      String(target.path).endsWith("/googleCalendar")
+        ? Promise.reject(new Error("network died"))
+        : Promise.resolve()
+    );
 
-    const { result } = setup([item({ id: "w1" }), item({ id: "w2" })]);
+    const { result } = setup([item({ id: "w1", title: "Something else" })]);
     await act(() => result.current.syncNow());
 
-    // The first event exists in Google, so its link has to survive the failure.
-    expect(mergedWrite("/links").w1).toMatchObject({ eventId: "inserted1" });
+    // Losing this link is what used to make the next run import a second copy.
+    expect(mergedWrite("/links").new1).toMatchObject({ eventId: "e1" });
     expect(result.current.status).toBe("error");
   });
 
@@ -207,7 +208,6 @@ describe("events are never inserted twice", () => {
 
     // Neither a second work item nor a second Google event.
     expect(push).not.toHaveBeenCalled();
-    expect(insertEvent).not.toHaveBeenCalled();
     expect(mergedWrite("/links").w1).toMatchObject({ eventId: "e1" });
   });
 
@@ -222,7 +222,6 @@ describe("events are never inserted twice", () => {
     await act(() => result.current.syncNow());
 
     expect(push).not.toHaveBeenCalled();
-    expect(insertEvent).not.toHaveBeenCalled();
     expect(mergedWrite("/links").w1).toMatchObject({ eventId: "e1" });
   });
 
@@ -263,8 +262,8 @@ describe("two runs at once cannot both act on the same thing", () => {
     });
 
     // Both used to get past the guard, because it was only claimed after an
-    // await, and both inserted the item.
-    expect(insertEvent).toHaveBeenCalledTimes(1);
+    // await, and both then ran the whole sync.
+    expect(listEvents).toHaveBeenCalledTimes(1);
   });
 
   it("frees the claim once a run fails, so the next one still works", async () => {
@@ -272,11 +271,12 @@ describe("two runs at once cannot both act on the same thing", () => {
 
     const { result } = setup([item()]);
     await act(() => result.current.syncNow());
-    expect(insertEvent).not.toHaveBeenCalled();
+    expect(listEvents).toHaveBeenCalledTimes(1);
 
+    // The claim was released, so a second run is not blocked out.
     listEvents.mockResolvedValue({ events: [], nextSyncToken: "tok2" });
     await act(() => result.current.syncNow());
-    expect(insertEvent).toHaveBeenCalledTimes(1);
+    expect(listEvents).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -425,4 +425,30 @@ describe("the calendar is never written away from", () => {
     expect(params.timeMax).toBeTruthy();
     expect(new Date(params.timeMax).getTime()).toBeGreaterThan(Date.now());
   });
+});
+
+describe("reading is all it can do", () => {
+  it("pushes nothing to Google, ever", async () => {
+
+    const { result } = setup([item()]);
+    await act(() => result.current.syncNow());
+
+    const api = jest.requireActual("./googleCalendar");
+    expect(api.insertEvent).toBeUndefined();
+    expect(api.patchEvent).toBeUndefined();
+    expect(api.deleteEvent).toBeUndefined();
+  });
+
+  it("still reads the calendar", async () => {
+    listEvents.mockResolvedValue({
+      events: [googleEvent({ id: "e5", summary: "Assembly" })],
+      nextSyncToken: "tok2",
+    });
+
+    const { result } = setup([]);
+    await act(() => result.current.syncNow());
+
+    expect(mergedWrite("/work").new1).toMatchObject({ title: "Assembly" });
+  });
+
 });
