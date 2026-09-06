@@ -93,13 +93,23 @@ const GoogleCalendarSync = ({ user }) => {
 
           <div className="flex-shrink-0 flex gap-2">
             {sync.connected && !sync.needsAuth && (
-              <button
-                onClick={sync.syncNow}
-                disabled={sync.status === "syncing"}
-                className={`${button} bg-muted text-foreground hover:bg-muted/70`}
-              >
-                {sync.status === "syncing" ? "Syncing..." : "Sync now"}
-              </button>
+              <>
+                <button
+                  onClick={sync.syncNow}
+                  disabled={sync.status === "syncing"}
+                  className={`${button} bg-muted text-foreground hover:bg-muted/70`}
+                >
+                  {sync.status === "syncing" ? "Syncing..." : "Sync now"}
+                </button>
+                <button
+                  onClick={sync.resync}
+                  disabled={sync.status === "syncing"}
+                  title="Re-read the whole calendar: clears duplicates and events deleted in Google"
+                  className={`${button} text-muted-foreground hover:bg-muted/40`}
+                >
+                  Full resync
+                </button>
+              </>
             )}
             {sync.connected && !sync.needsAuth ? (
               <button
