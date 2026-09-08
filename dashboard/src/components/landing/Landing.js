@@ -41,7 +41,6 @@ const Landing = () => (
         <h1 className="text-4xl sm:text-5xl font-medium tracking-tight leading-[1.1] max-w-2xl">
           School, in one place, without the setup.
         </h1>
-        <p className="mt-3 text-lg text-muted-foreground">test</p>
         <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
           Type what you have to do the way you would say it. Workflow reads the
           class, the kind of work, the priority and the date, then files it and
