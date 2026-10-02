@@ -28,7 +28,7 @@ test("bare words work without sigils", () => {
 });
 
 test("bare vocab in the middle of a title is left alone", () => {
-  expect(parse("Read chapter 4 bio quiz fri").title).toBe("Read chapter 4");
+  expect(parse("Read chapter 4 bio quiz fri").title).toBe("Read chapter 4 bio quiz");
   expect(parse("Test corrections #bio hw mon").title).toBe("Test corrections");
 });
 
@@ -50,8 +50,8 @@ test("a class named in the title tags the item but stays in the title", () => {
   expect(parseQuick("bio", { spaces, now }).title).toBe("bio");
 });
 
-test("trailing stopwords are trimmed off the title", () => {
-  expect(parse("Study for bio test friday").title).toBe("Study");
+test("a class and test remain in the title", () => {
+  expect(parse("Study for bio test friday").title).toBe("Study for bio test");
 });
 
 test("a time range makes it an event", () => {

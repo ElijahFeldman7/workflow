@@ -23,7 +23,7 @@ const CASES = [
   },
   {
     text: "study for the multivar test next tuesday",
-    title: "study",
+    title: "study for the multivar test",
     spaceId: "s3",
     type: "test",
     date: "2026-09-08",
@@ -223,10 +223,10 @@ test("a duration only applies when there is a start time", () => {
 describe("the title is distilled down to the thing itself", () => {
   const CARRIER_CASES = [
     { text: "i have a bio test on friday", title: "bio test", spaceId: "s1", type: "test" },
-    { text: "i need to do my bio homework", title: "bio homework", spaceId: "s1", type: "hw" },
+    { text: "i need to do my bio homework", title: "bio", spaceId: "s1", type: "hw" },
     { text: "there is a physics quiz tomorrow", title: "physics quiz", spaceId: "s4", type: "quiz" },
     { text: "i've got a bio test friday", title: "bio test", spaceId: "s1" },
-    { text: "gotta do bio hw tonight", title: "bio hw", spaceId: "s1", type: "hw" },
+    { text: "gotta do bio hw tonight", title: "bio", spaceId: "s1", type: "hw" },
     { text: "can you remind me about the physics test on monday", title: "physics test", spaceId: "s4" },
     { text: "dont forget the scioly meeting thursday", title: "scioly meeting", spaceId: "s5" },
     { text: "please turn in the scholarship form friday", title: "turn in the scholarship form" },
@@ -249,6 +249,24 @@ describe("the title is distilled down to the thing itself", () => {
 
   test("filler alone still leaves something to look at", () => {
     expect(run("i have to").title.length).toBeGreaterThan(0);
+  });
+});
+
+describe("work nouns in titles", () => {
+  test.each([
+    ["physics pset friday", "physics pset", "hw"],
+    ["physics test friday", "physics test", "test"],
+    ["physics quiz friday", "physics quiz", "quiz"],
+    ["physics lab friday", "physics lab", "lab"],
+    ["physics worksheet friday", "physics worksheet", "hw"],
+    ["physics project friday", "physics project", "project"],
+    ["physics homework friday", "physics", "hw"],
+    ["physics hw friday", "physics", "hw"],
+    ["physics assignment friday", "physics", "hw"],
+    ["homework physics friday", "physics", "hw"],
+    ["physics homework chapter 1 friday", "physics chapter 1", "hw"],
+  ])("%s", (input, title, type) => {
+    expect(run(input)).toMatchObject({ title, type, spaceId: "s4" });
   });
 });
 

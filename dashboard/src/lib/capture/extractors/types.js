@@ -50,6 +50,10 @@ export const TYPE_SEEDS = {
   other: "other miscellaneous general",
 };
 
+// These words name a category rather than the particular work. Other type
+// words (pset, test, quiz, lab, etc.) describe the work and belong in its title.
+const GENERIC_TYPE_LABELS = new Set(["homework", "hw", "assignment", "other", "misc"]);
+
 const has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
 export function findTypes(tokens, ctx) {
@@ -67,7 +71,11 @@ export function findTypes(tokens, ctx) {
 
       const key = list.join("");
       if (key && has(TYPE_ALIASES, key)) {
-        found.push(makeSpan("type", TYPE_ALIASES[key], from, to, 0.8));
+        const repeated = tokens.slice(0, from).some((token) => token.norm === key);
+        found.push(makeSpan("type", TYPE_ALIASES[key], from, to, 0.8, {
+          keep: !GENERIC_TYPE_LABELS.has(key) && !repeated,
+          repeated,
+        }));
         continue;
       }
 

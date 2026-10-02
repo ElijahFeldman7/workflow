@@ -146,10 +146,22 @@ export function captureText(input, options = {}) {
   const isAnywhere = (span) =>
     span.sigil !== undefined ||
     span.confidence >= 1 ||
+    (span.field === "type" && !span.keep) ||
     ANYWHERE_FIELDS.has(span.field);
 
+  const isTitleSpace = (span) =>
+    span.field === "space" &&
+    span.sigil === undefined &&
+    selected.some(
+      (other) =>
+        other.field === "type" &&
+        other.sigil === undefined &&
+        !other.repeated &&
+        other.from === span.to + 1
+    );
+
   const consuming = strong.filter(
-    (span) => !span.keep && (isAnywhere(span) || span.from >= boundary)
+    (span) => !span.keep && !isTitleSpace(span) && (isAnywhere(span) || span.from >= boundary)
   );
 
   const build = (list) => {
@@ -171,8 +183,6 @@ export function captureText(input, options = {}) {
     consumed = build(kept);
   }
 
-  // Nothing descriptive survived: give the words back rather than ship a blank
-  // title. "bio test friday" keeps "bio test" and still files under Biology.
   if (buildTitle(tokens, consumed) === "") {
     kept = kept.filter(isAnywhere);
     consumed = build(kept);
@@ -238,8 +248,6 @@ export function captureText(input, options = {}) {
   if (location) setField("location", location, found.location.confidence);
 
   let mode = "";
-  // A quiz or a test is a thing you sit at a time, not a thing you hand in, so
-  // it is an event by default. Anything the text actually says still wins.
   if (SITTING_TYPES.has(type)) mode = "event";
   if (found.mode) mode = found.mode.value;
   if (endTime) mode = "event";
