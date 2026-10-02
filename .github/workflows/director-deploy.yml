@@ -1,0 +1,56 @@
+name: Deploy to Director
+
+# Builds the dashboard and publishes it to the `director` branch. The site's
+# server polls that branch, so pushing here is all it takes to update
+# workflow.sites.tjhsst.edu.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'dashboard/**'
+      - 'director/**'
+      - '.github/workflows/director-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Build
+        working-directory: dashboard
+        run: npm run build
+
+      - name: Publish director branch
+        run: |
+          set -e
+          STAGE=$(mktemp -d)
+          cp -a dashboard/build "$STAGE/build"
+          cp director/server.js director/package.json director/run.sh "$STAGE/"
+          chmod +x "$STAGE/run.sh"
+          cd "$STAGE"
+          git init -q
+          git checkout -q -b director
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "director build from ${GITHUB_SHA:0:7}"
+          git push -q --force \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" director
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
