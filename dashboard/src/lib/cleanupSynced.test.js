@@ -31,14 +31,25 @@ describe("deciding what was yours", () => {
     expect(copies).toHaveLength(0);
   });
 
-  it("treats a row with no class and no type as calendar noise", () => {
-    const { noise } = classify([
+  it("is unsure about a row with no class and no type", () => {
+    // Old calendar noise looks like this, and so does something added by hand.
+    const { noise, unsure } = classify([
       row({ id: "a", title: "Z's peanut challenge" }),
       row({ id: "b", title: "Adam's birthday" }),
       row({ id: "c", title: "Zain : Mr. Osman USACO" }),
     ]);
 
-    expect(noise.map((item) => item.id)).toEqual(["a", "b", "c"]);
+    expect(unsure.map((item) => item.id)).toEqual(["a", "b", "c"]);
+    expect(noise).toHaveLength(0);
+  });
+
+  it("keeps a row that came from a pasted calendar file", () => {
+    const { keep, unsure } = classify([
+      { ...row({ id: "i", title: "Activity Fair" }), icsUid: "abc|2026-09-09|" },
+    ]);
+
+    expect(keep.map((item) => item.id)).toEqual(["i"]);
+    expect(unsure).toHaveLength(0);
   });
 
   it("drops the class-less twin of an assignment you filed", () => {
@@ -76,6 +87,7 @@ describe("running it", () => {
     junk1: { title: "Z's peanut challenge", when: {} },
     junk2: { title: "Adam's birthday", when: {} },
     twin1: { title: "PSET 3", type: "hw", when: {} },
+    sync1: { title: "Standup", origin: "google", when: {} },
   };
 
   beforeEach(() => {
@@ -85,26 +97,46 @@ describe("running it", () => {
   it("counts without writing anything", async () => {
     const preview = await previewCleanup(user);
 
-    expect(preview).toEqual({ total: 4, keep: 1, noise: 2, copies: 1 });
+    expect(preview).toEqual({
+      total: 5,
+      keep: 1,
+      noise: 1,
+      copies: 1,
+      unsure: [
+        { id: "junk1", title: "Z's peanut challenge", date: "" },
+        { id: "junk2", title: "Adam's birthday", date: "" },
+      ],
+    });
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("removes each item together with its link, in one write", async () => {
+  it("leaves the unsure rows alone unless told otherwise", async () => {
     const result = await runCleanup(user);
-    expect(result).toEqual({ removed: 3, kept: 1 });
+    expect(result).toEqual({ removed: 2, kept: 3 });
+
+    const [, payload] = update.mock.calls[0];
+    expect(payload["users/u1/work/sync1"]).toBeNull();
+    expect(payload["users/u1/work/twin1"]).toBeNull();
+    expect(payload["users/u1/work/junk1"]).toBeUndefined();
+    expect(payload["users/u1/work/junk2"]).toBeUndefined();
+  });
+
+  it("removes each item together with its link, in one write", async () => {
+    const result = await runCleanup(user, { includeUnsure: true });
+    expect(result).toEqual({ removed: 4, kept: 1 });
 
     expect(update).toHaveBeenCalledTimes(1);
     const [, payload] = update.mock.calls[0];
 
     // An item outliving its link is what used to make the sync delete the
     // event from Google, so both paths have to go in the same write.
-    ["junk1", "junk2", "twin1"].forEach((id) => {
+    ["junk1", "junk2", "twin1", "sync1"].forEach((id) => {
       expect(payload[`users/u1/work/${id}`]).toBeNull();
       expect(payload[`users/u1/googleCalendar/links/${id}`]).toBeNull();
     });
 
     expect(payload["users/u1/work/keep1"]).toBeUndefined();
-    expect(Object.keys(payload)).toHaveLength(6);
+    expect(Object.keys(payload)).toHaveLength(8);
   });
 
   it("writes nothing when there is nothing to remove", async () => {

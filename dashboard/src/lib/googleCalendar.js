@@ -1,22 +1,17 @@
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
-import {
-  DEFAULT_PRIORITY,
-  PRIORITY_IDS,
-  WORK_TYPE_IDS,
-  isDateKey,
-  isTimeValue,
-  addDaysKey,
-  fromDateKey,
-  toDateKey,
-} from "../constants/work";
+import { DEFAULT_PRIORITY, toDateKey } from "../constants/work";
 
-// Read-only, permanently. There is no write scope here to ask for, so Google
-// itself refuses any attempt to change a calendar regardless of what this code
-// does. Writing was removed after a sync deleted events people had been
-// invited to, which Google reports to the organiser as a decline.
+// Read-only, permanently. Only the read scope is asked for, a token that still
+// carries an older write grant is turned away, and every request below is a
+// GET. Writing was removed after a sync deleted events people had been invited
+// to, which Google reports to the organiser as a decline.
 export const CALENDAR_SCOPE =
   "https://www.googleapis.com/auth/calendar.readonly";
+const WRITE_SCOPES = [
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/calendar.events",
+];
 export const API_BASE = "https://www.googleapis.com/calendar/v3";
 
 const TOKEN_KEY = "googleCalendarToken";
@@ -33,26 +28,23 @@ export class GoogleScopeDenied extends Error {
   constructor(message) {
     super(
       message ||
-        "Calendar permission was not granted. Connect again and tick the calendar checkbox on Google's consent screen — the app cannot read or write your calendar without it."
+        "Calendar permission was not granted. Connect again and tick the calendar checkbox on Google's consent screen — the app cannot read your calendar without it."
     );
     this.name = "GoogleScopeDenied";
   }
 }
 
-export class SyncTokenExpired extends Error {
-  constructor() {
-    super("Sync token expired");
-    this.name = "SyncTokenExpired";
+export class GoogleStaleGrant extends Error {
+  constructor(message) {
+    super(
+      message ||
+        "Google still has an older permission on file that lets this app change your calendar. Remove Workflow under Third-party access in your Google account, then connect again."
+    );
+    this.name = "GoogleStaleGrant";
   }
 }
 
-export function localTimeZone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch (e) {
-    return "UTC";
-  }
-}
+const currentUid = () => (auth && auth.currentUser && auth.currentUser.uid) || "";
 
 function readStoredToken() {
   try {
@@ -62,6 +54,8 @@ function readStoredToken() {
     if (!saved || typeof saved.token !== "string") return null;
     if (!Number.isFinite(saved.expiresAt) || saved.expiresAt <= Date.now())
       return null;
+    // A token belongs to whoever was signed in when it was granted.
+    if (saved.uid && saved.uid !== currentUid()) return null;
     return saved.token;
   } catch (e) {
     return null;
@@ -72,7 +66,11 @@ function storeToken(token) {
   try {
     sessionStorage.setItem(
       TOKEN_KEY,
-      JSON.stringify({ token, expiresAt: Date.now() + TOKEN_TTL_MS })
+      JSON.stringify({
+        token,
+        uid: currentUid(),
+        expiresAt: Date.now() + TOKEN_TTL_MS,
+      })
     );
   } catch (e) {
   }
@@ -109,7 +107,6 @@ export async function connect() {
   provider.addScope(CALENDAR_SCOPE);
   provider.setCustomParameters({
     prompt: "consent",
-    include_granted_scopes: "true",
     ...(auth && auth.currentUser && auth.currentUser.email
       ? { login_hint: auth.currentUser.email }
       : {}),
@@ -121,6 +118,8 @@ export async function connect() {
   if (!token) throw new GoogleScopeDenied();
 
   const scopes = await grantedScopes(token);
+  if (scopes && scopes.some((scope) => WRITE_SCOPES.includes(scope)))
+    throw new GoogleStaleGrant();
   if (scopes && !scopes.includes(CALENDAR_SCOPE)) throw new GoogleScopeDenied();
 
   storeToken(token);
@@ -161,7 +160,8 @@ function isScopeProblem(payload) {
   );
 }
 
-async function api(path, { method = "GET", params, body, goneIsNull } = {}) {
+// GET only. There is no method or body to pass.
+async function api(path, params) {
   const token = await getToken();
   const url = new URL(`${API_BASE}${path}`);
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -170,33 +170,22 @@ async function api(path, { method = "GET", params, body, goneIsNull } = {}) {
   });
 
   const response = await fetch(url.toString(), {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (response.status === 401) {
     clearToken();
     throw new GoogleAuthRequired();
   }
-  if (response.status === 410) {
-    if (goneIsNull) return null;
-    throw new SyncTokenExpired();
-  }
-  if (response.status === 404) return null;
-  if (response.status === 204) return {};
+  // Not an empty calendar: answering with nothing here would empty the cache.
+  if (response.status === 404)
+    throw new Error(
+      "Google could not find that calendar. Pick another one in settings."
+    );
 
   if (!response.ok) {
     const payload = await readError(response);
     const detail = payload?.error?.message || "";
-
-    // Google rejects a sync token whose query no longer matches with a 400,
-    // not a 410. Both mean the same thing: start over with a full sync.
-    if (response.status === 400 && /sync ?token/i.test(detail))
-      throw new SyncTokenExpired();
 
     if (response.status === 403) {
       if (isScopeProblem(payload)) {
@@ -214,59 +203,48 @@ async function api(path, { method = "GET", params, body, goneIsNull } = {}) {
 }
 
 export async function listCalendars() {
-  const data = await api("/users/me/calendarList", {
-    params: { minAccessRole: "writer", maxResults: 250 },
-  });
-  return (data?.items || []).map((entry) => ({
-    id: entry.id,
-    name: entry.summaryOverride || entry.summary || entry.id,
-    primary: !!entry.primary,
-    readOnly: entry.accessRole !== "writer" && entry.accessRole !== "owner",
-  }));
-}
-
-export async function listEvents(
-  calendarId,
-  { syncToken, timeMin, timeMax } = {}
-) {
-  const events = [];
+  const calendars = [];
   let pageToken;
-  let nextSyncToken;
 
   do {
-    // A sync token is only valid for the exact query that produced it, so both
-    // paths must match. showDeleted is what carries a deletion back to us.
-    //
+    // Reader, not writer: school, holiday and subscribed calendars are exactly
+    // the ones worth showing, and nothing here needs to write to any of them.
+    const data = await api("/users/me/calendarList", {
+      minAccessRole: "reader",
+      maxResults: 250,
+      pageToken,
+    });
+    (data?.items || []).forEach((entry) =>
+      calendars.push({
+        id: entry.id,
+        name: entry.summaryOverride || entry.summary || entry.id,
+        primary: !!entry.primary,
+      })
+    );
+    pageToken = data?.nextPageToken;
+  } while (pageToken);
+
+  return calendars;
+}
+
+export async function listEvents(calendarId, { timeMin, timeMax } = {}) {
+  const events = [];
+  let pageToken;
+
+  do {
     // timeMax is not optional. singleEvents expands every repeating series into
     // separate instances, so an unbounded query asks Google for every instance
     // of every recurring event it can generate -- a yearly birthday runs to
     // 2056, a daily event is ~700 rows a year.
-    const params = {
-      maxResults: 250,
-      pageToken,
-      singleEvents: true,
-      showDeleted: true,
-      ...(syncToken ? { syncToken } : { timeMin, timeMax }),
-    };
     const data = await api(
       `/calendars/${encodeURIComponent(calendarId)}/events`,
-      { params }
+      { maxResults: 250, pageToken, singleEvents: true, timeMin, timeMax }
     );
     (data?.items || []).forEach((event) => events.push(event));
     pageToken = data?.nextPageToken;
-    nextSyncToken = data?.nextSyncToken || nextSyncToken;
   } while (pageToken);
 
-  return { events, nextSyncToken };
-}
-
-export function getEvent(calendarId, eventId) {
-  return api(
-    `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(
-      eventId
-    )}`,
-    { goneIsNull: true }
-  );
+  return { events };
 }
 
 // There is deliberately no insertEvent, patchEvent or deleteEvent. This module
@@ -278,53 +256,20 @@ function timeOf(date) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function itemToEvent(item, timeZone) {
-  const resource = {
-    summary: item.title,
-    description: item.notes || "",
-    location: item.location || "",
-    extendedProperties: {
-      private: {
-        workflowMode: item.when.mode,
-        workflowType: item.type || "",
-        workflowPriority: item.priority || "",
-        workflowDone: item.done ? "1" : "0",
-        workflowSpaceId: item.spaceId || "",
-        // Lets a sync re-adopt this event when the local link record is gone,
-        // instead of inserting a second copy of it.
-        workflowItemId: item.id || "",
-      },
-    },
-  };
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-  const { date, time, endTime } = item.when;
-  if (!isDateKey(date)) return null;
-
-  if (!isTimeValue(time)) {
-    resource.start = { date };
-    resource.end = { date: addDaysKey(date, 1) };
-    return resource;
+// Google's own start or end, kept as the moment it names rather than as a
+// clock reading, so each device can show it in its own timezone.
+function edgeOf(edge) {
+  if (!edge) return null;
+  if (typeof edge.date === "string" && DATE_ONLY.test(edge.date))
+    return { date: edge.date };
+  if (edge.dateTime) {
+    const moment = new Date(edge.dateTime);
+    if (!Number.isNaN(moment.getTime()))
+      return { dateTime: moment.toISOString() };
   }
-
-  const [startHour, startMinute] = time.split(":").map(Number);
-  const start = fromDateKey(date);
-  start.setHours(startHour, startMinute, 0, 0);
-
-  const end = new Date(start.getTime());
-  if (isTimeValue(endTime)) {
-    const [endHour, endMinute] = endTime.split(":").map(Number);
-    end.setHours(endHour, endMinute, 0, 0);
-    if (end <= start) end.setDate(end.getDate() + 1);
-  } else {
-    end.setMinutes(end.getMinutes() + 60);
-  }
-
-  const stamp = (value) =>
-    `${toDateKey(value)}T${timeOf(value)}:00`;
-
-  resource.start = { dateTime: stamp(start), timeZone };
-  resource.end = { dateTime: stamp(end), timeZone };
-  return resource;
+  return null;
 }
 
 /**
@@ -332,92 +277,27 @@ export function itemToEvent(item, timeZone) {
  * item: these are somebody else's rows, shown for context and never edited,
  * so they carry no class, type, priority or done state.
  *
- * @returns {null|{title,notes,location,allDay,recurring,when}}
+ * @returns {null|{title,notes,location,recurring,start,end}}
  */
 export function eventToCache(event) {
   if (!event || event.status === "cancelled") return null;
 
-  const when = { mode: "event", date: "", time: "", endTime: "" };
-  let allDay = false;
+  // An assignment the old two-way sync pushed to Google. The work list still
+  // has the original, so showing this too would be the same thing twice.
+  if (event.extendedProperties?.private?.workflowItemId) return null;
 
-  if (event.start?.date) {
-    when.date = event.start.date;
-    allDay = true;
-  } else if (event.start?.dateTime) {
-    const start = new Date(event.start.dateTime);
-    if (Number.isNaN(start.getTime())) return null;
-    when.date = toDateKey(start);
-    when.time = timeOf(start);
-    if (event.end?.dateTime) {
-      const end = new Date(event.end.dateTime);
-      if (!Number.isNaN(end.getTime())) when.endTime = timeOf(end);
-    }
-  } else {
-    return null;
-  }
+  const start = edgeOf(event.start);
+  if (!start) return null;
+  const end = edgeOf(event.end);
 
   return {
     title: event.summary || "Untitled",
     notes: event.description || "",
     location: event.location || "",
-    allDay,
     recurring: !!event.recurringEventId,
-    when,
+    start,
+    ...(end ? { end } : {}),
   };
-}
-
-export function workflowIdOf(event) {
-  const stored = event?.extendedProperties?.private || {};
-  return typeof stored.workflowItemId === "string" ? stored.workflowItemId : "";
-}
-
-export function eventToItem(event) {
-  const stored = event.extendedProperties?.private || {};
-  const when = { mode: "event", date: "", time: "", endTime: "" };
-
-  if (event.start?.date) {
-    when.date = event.start.date;
-  } else if (event.start?.dateTime) {
-    const start = new Date(event.start.dateTime);
-    if (Number.isNaN(start.getTime())) return null;
-    when.date = toDateKey(start);
-    when.time = timeOf(start);
-    if (event.end?.dateTime) {
-      const end = new Date(event.end.dateTime);
-      if (!Number.isNaN(end.getTime())) when.endTime = timeOf(end);
-    }
-  } else {
-    return null;
-  }
-
-  if (stored.workflowMode === "due") when.mode = "due";
-
-  return {
-    title: event.summary || "Untitled",
-    notes: event.description || "",
-    location: event.location || "",
-    when,
-    type: WORK_TYPE_IDS.includes(stored.workflowType) ? stored.workflowType : "",
-    priority: PRIORITY_IDS.includes(stored.workflowPriority)
-      ? stored.workflowPriority
-      : DEFAULT_PRIORITY,
-    done: stored.workflowDone === "1",
-  };
-}
-
-export function fingerprint(item) {
-  return [
-    item.title,
-    item.notes || "",
-    item.location || "",
-    item.when.mode,
-    item.when.date,
-    item.when.time,
-    item.when.endTime,
-    item.type || "",
-    item.priority || "",
-    item.done ? "1" : "0",
-  ].join(" ");
 }
 
 const unescapeText = (value) =>
@@ -478,7 +358,14 @@ export function parseIcs(text) {
   unfold(text).forEach((line) => {
     const trimmed = line.trim();
     if (trimmed === "BEGIN:VEVENT") {
-      current = { title: "", notes: "", location: "", start: null, end: null };
+      current = {
+        uid: "",
+        title: "",
+        notes: "",
+        location: "",
+        start: null,
+        end: null,
+      };
       return;
     }
     if (trimmed === "END:VEVENT") {
@@ -490,6 +377,8 @@ export function parseIcs(text) {
           endTime: current.end && current.start.time ? current.end.time : "",
         };
         items.push({
+          // One id per occurrence: a repeating series shares a single UID.
+          icsUid: `${current.uid || current.title}|${when.date}|${when.time}`,
           title: current.title || "Untitled",
           notes: current.notes,
           location: current.location,
@@ -516,6 +405,9 @@ export function parseIcs(text) {
     });
 
     switch (name.toUpperCase()) {
+      case "UID":
+        current.uid = value.trim();
+        break;
       case "SUMMARY":
         current.title = unescapeText(value).trim();
         break;

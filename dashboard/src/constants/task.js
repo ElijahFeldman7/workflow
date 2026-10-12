@@ -3,6 +3,7 @@ import {
   DEFAULT_PRIORITY,
   isDateKey,
   isTimeValue,
+  normalizePlan,
 } from "./work";
 
 export function normalizeTask(id, raw) {
@@ -36,6 +37,11 @@ export function normalizeTask(id, raw) {
       time: isTimeValue(when.time) ? when.time : "",
       endTime: isTimeValue(when.endTime) ? when.endTime : "",
     },
+    plan: normalizePlan(data.plan),
+    // Set on a to-do that a repeat made. Deleting one only hides it, or the
+    // repeat would make it again.
+    repeatId: typeof data.repeatId === "string" ? data.repeatId : "",
+    skipped: !!data.skipped,
     createdAt: Number(data.createdAt) || 0,
     completedAt: Number(data.completedAt) || 0,
   };

@@ -18,15 +18,20 @@ const linksPath = (uid) => `users/${uid}/googleCalendar/links`;
  * What a row looks like decides whether it was yours or the calendar's, since
  * rows created before the origin stamp carry no marker.
  *
+ *   - stamped as Google's                     -> calendar noise
  *   - a class means you filed it              -> assignment, keep
  *   - a type but no class means it came back  -> copy of an assignment
  *     from Google carrying its stamped type      you already have
- *   - neither means it was never yours        -> calendar noise
+ *   - neither                                 -> unsure
+ *
+ * Unsure rows look like old calendar noise, but so does anything added by
+ * hand without a class or a type, so they are only removed when asked for.
  */
 export function classify(items) {
   const keep = [];
   const noise = [];
   const copies = [];
+  const unsure = [];
 
   // Titles that still have a properly filed version, so a class-less twin is a
   // duplicate rather than the only record of something.
@@ -46,7 +51,9 @@ export function classify(items) {
       return;
     }
     if (!item.type) {
-      noise.push(item);
+      // A pasted calendar file was a deliberate import.
+      if (item.icsUid) keep.push(item);
+      else unsure.push(item);
       return;
     }
     if (filedTitles.has(item.title.trim().toLowerCase())) {
@@ -56,41 +63,51 @@ export function classify(items) {
     keep.push(item);
   });
 
-  return { keep, noise, copies };
+  return { keep, noise, copies, unsure };
 }
 
 async function readItems(uid) {
   const snapshot = await get(ref(database, workPath(uid)));
   const data = snapshot.val();
   return data
-    ? Object.entries(data).map(([key, value]) => normalizeItem(key, value))
+    ? Object.entries(data).map(([key, value]) => ({
+        ...normalizeItem(key, value),
+        icsUid: (value && value.icsUid) || "",
+      }))
     : [];
 }
 
 /** Counts only, so the damage can be read before anything is written. */
 export async function previewCleanup(user) {
-  if (!user) return { keep: 0, noise: 0, copies: 0, total: 0 };
+  if (!user) return { keep: 0, noise: 0, copies: 0, unsure: [], total: 0 };
   const items = await readItems(user.uid);
-  const { keep, noise, copies } = classify(items);
+  const { keep, noise, copies, unsure } = classify(items);
   return {
     keep: keep.length,
     noise: noise.length,
     copies: copies.length,
+    unsure: unsure.map((item) => ({
+      id: item.id,
+      title: item.title,
+      date: item.when.date,
+    })),
     total: items.length,
   };
 }
 
 /**
- * Removes the calendar noise and the duplicate copies. Assignments stay.
+ * Removes the calendar noise and the duplicate copies. Assignments stay, and
+ * so do the unsure rows unless includeUnsure says otherwise.
  * @returns {Promise<{removed: number, kept: number}>}
  */
-export async function runCleanup(user) {
+export async function runCleanup(user, { includeUnsure = false } = {}) {
   if (!user) return { removed: 0, kept: 0 };
 
   const items = await readItems(user.uid);
-  const { keep, noise, copies } = classify(items);
-  const doomed = [...noise, ...copies];
-  if (doomed.length === 0) return { removed: 0, kept: keep.length };
+  const { keep, noise, copies, unsure } = classify(items);
+  const doomed = [...noise, ...copies, ...(includeUnsure ? unsure : [])];
+  const kept = keep.length + (includeUnsure ? 0 : unsure.length);
+  if (doomed.length === 0) return { removed: 0, kept };
 
   // Both paths in one update: an item must never outlive its link, or the sync
   // would read the orphan and act on the calendar.
@@ -101,5 +118,5 @@ export async function runCleanup(user) {
   });
 
   await update(ref(database), updates);
-  return { removed: doomed.length, kept: keep.length };
+  return { removed: doomed.length, kept };
 }

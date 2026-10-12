@@ -9,9 +9,12 @@ export const DEFAULT_PREFS = {
   showPast: false,
   neuralCapture: false,
   calendarView: "month",
+  plannerView: "day",
 };
 
 const CALENDAR_VIEWS = ["month", "week"];
+const PLANNER_VIEWS = ["day", "week"];
+const CHOICES = { calendarView: CALENDAR_VIEWS, plannerView: PLANNER_VIEWS };
 
 export function readPrefs() {
   try {
@@ -25,6 +28,9 @@ export function readPrefs() {
       calendarView: CALENDAR_VIEWS.includes(saved.calendarView)
         ? saved.calendarView
         : DEFAULT_PREFS.calendarView,
+      plannerView: PLANNER_VIEWS.includes(saved.plannerView)
+        ? saved.plannerView
+        : DEFAULT_PREFS.plannerView,
     };
   } catch (e) {
     return { ...DEFAULT_PREFS };
@@ -47,7 +53,7 @@ export function useWorkPrefs() {
   const setPref = useCallback((key, value) => {
     const next = {
       ...readPrefs(),
-      [key]: key === "calendarView" ? value : !!value,
+      [key]: CHOICES[key] ? value : !!value,
     };
     localStorage.setItem(KEY, JSON.stringify(next));
     setPrefs(next);

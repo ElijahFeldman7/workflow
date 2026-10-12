@@ -9,8 +9,12 @@ import { useWorkPrefs } from "../lib/workPrefs";
 import { useCaptureMemory } from "../lib/useCaptureMemory";
 import { useTaskData } from "../lib/useTaskData";
 import { useTaskWrites } from "../lib/useTaskWrites";
-import { useAgenda, SOURCES } from "../lib/useAgenda";
-import { useGoogleSync } from "../lib/useGoogleSync";
+import { useAgenda, routedWrites, SOURCES } from "../lib/useAgenda";
+import {
+  useGoogleSync,
+  PULL_AHEAD_DAYS,
+  PULL_BEHIND_DAYS,
+} from "../lib/useGoogleSync";
 import { useGoogleEvents } from "../lib/googleEvents";
 import { migrateSchedule } from "../lib/migrateSchedule";
 import {
@@ -28,6 +32,7 @@ import {
   NEUTRAL_CHIP,
   colorOf,
   formatTime,
+  addDaysKey,
   fromDateKey,
   priorityOf,
   toDateKey,
@@ -48,27 +53,10 @@ const CalendarView = ({ user }) => {
   const taskWrites = useTaskWrites(user, setError);
   const { addItem } = workWrites;
 
-  const routed = (entry) =>
-    entry.source === "task"
-      ? { writes: taskWrites, target: { ...entry, id: entry.taskId } }
-      : { writes: workWrites, target: entry };
-
-  const isDone = (entry) => {
-    const { writes, target } = routed(entry);
-    return writes.isDone(target);
-  };
-  const toggleDone = (entry) => {
-    const { writes, target } = routed(entry);
-    return writes.toggleDone(target);
-  };
-  const patch = (entry, changes) => {
-    const { writes, target } = routed(entry);
-    return writes.patch(target, changes);
-  };
-  const deleteItem = (entry) => {
-    const { writes, target } = routed(entry);
-    return writes.deleteItem(target);
-  };
+  const { isDone, toggleDone, patch, deleteItem } = routedWrites(
+    workWrites,
+    taskWrites
+  );
 
   const today = todayKey();
   const [anchor, setAnchor] = useState(today);
@@ -161,6 +149,14 @@ const CalendarView = ({ user }) => {
     if (item.priority === "insane") return priorityOf("insane").chip;
     return NEUTRAL_CHIP;
   };
+
+  // Google is only read for a stretch around today, so a day outside it has
+  // no events to show rather than none on the calendar.
+  const outsideGoogleWindow =
+    gcal.connected &&
+    sources.includes("google") &&
+    (selected < addDaysKey(today, -PULL_BEHIND_DAYS) ||
+      selected >= addDaysKey(today, PULL_AHEAD_DAYS));
 
   const overdueByDate = useMemo(() => {
     const map = new Map();
@@ -286,6 +282,20 @@ const CalendarView = ({ user }) => {
         {error && (
           <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4 text-sm">
             {error}
+          </div>
+        )}
+
+        {gcal.connected && gcal.status === "error" && gcal.message && (
+          <div className="flex items-center justify-between gap-3 bg-destructive/10 text-destructive p-3 rounded-md mb-4 text-sm">
+            <span>{gcal.message}</span>
+            {gcal.needsAuth && (
+              <button
+                onClick={gcal.connectGoogle}
+                className="text-xs font-medium hover:underline flex-shrink-0"
+              >
+                Reconnect
+              </button>
+            )}
           </div>
         )}
 
@@ -438,6 +448,14 @@ const CalendarView = ({ user }) => {
               selected === today ? "today" : longDayLabel(selected)
             }`}
           />
+
+          {outsideGoogleWindow && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Google Calendar is only read from {PULL_BEHIND_DAYS} days back to{" "}
+              {PULL_AHEAD_DAYS} days ahead, so its events are not shown for this
+              day.
+            </p>
+          )}
 
           {selectedItems.length === 0 && (
             <p className="text-sm text-muted-foreground py-8 mt-4 text-center bg-muted/40 rounded-md border border-dashed border-border">

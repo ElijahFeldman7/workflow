@@ -50,13 +50,13 @@ const GoogleCalendarSync = ({ user }) => {
     }
   };
 
-  const confirmCleanup = async () => {
+  const confirmCleanup = async (includeUnsure = false) => {
     setCleaning(true);
     try {
-      const result = await runCleanup(user);
+      const result = await runCleanup(user, { includeUnsure });
       setPreview(null);
       setCleanMessage(
-        `Removed ${result.removed}. Kept ${result.kept} assignments. Nothing was deleted from Google.`
+        `Removed ${result.removed}. Kept ${result.kept}. Nothing was deleted from Google.`
       );
     } catch (err) {
       setCleanMessage(err?.message || "Cleanup failed");
@@ -82,7 +82,12 @@ const GoogleCalendarSync = ({ user }) => {
         setImportMessage("No events found in that calendar file.");
       } else {
         const count = await importItems(parsed);
-        setImportMessage(`Imported ${count} event${count === 1 ? "" : "s"}.`);
+        const skipped = parsed.length - count;
+        setImportMessage(
+          `Imported ${count} event${count === 1 ? "" : "s"}.${
+            skipped > 0 ? ` ${skipped} already here.` : ""
+          }`
+        );
         setPaste("");
       }
     } catch (err) {
@@ -116,7 +121,7 @@ const GoogleCalendarSync = ({ user }) => {
                 ? `Reading ${sync.config.calendarName || sync.config.calendarId} · last read ${relative(
                     sync.config.lastSyncedAt
                   )}`
-                : "Sign in with Google to see this calendar here. Read-only unless you turn writing on."}
+                : "Sign in with Google to see this calendar here. Read-only: nothing is ever changed in Google."}
             </p>
           </div>
 
@@ -171,7 +176,7 @@ const GoogleCalendarSync = ({ user }) => {
               <div>
                 <p className="text-sm font-medium text-foreground">Calendar</p>
                 <p className="text-sm text-muted-foreground">
-                  Which calendar to read from and write to
+                  Which calendar to read from
                 </p>
               </div>
               <select
@@ -222,8 +227,8 @@ const GoogleCalendarSync = ({ user }) => {
             <div className="mt-3 space-y-2">
               <p className="text-sm text-muted-foreground">
                 Paste the contents of an .ics file, or its address. This is a
-                one-time import: an .ics feed is read-only, so nothing syncs
-                back to it. Connect with Google above for two-way sync.
+                one-time import, so later changes to the feed are not picked
+                up. Connect with Google above to keep a calendar current.
               </p>
               <textarea
                 value={paste}
@@ -269,7 +274,7 @@ const GoogleCalendarSync = ({ user }) => {
               </p>
               <div className="flex items-center gap-3 mt-3">
                 <button
-                  onClick={confirmCleanup}
+                  onClick={() => confirmCleanup(false)}
                   disabled={cleaning || preview.noise + preview.copies === 0}
                   className={`${button} bg-destructive text-destructive-foreground hover:opacity-90`}
                 >
@@ -282,6 +287,31 @@ const GoogleCalendarSync = ({ user }) => {
                   Cancel
                 </button>
               </div>
+
+              {preview.unsure.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-border">
+                  <p className="text-foreground">
+                    {preview.unsure.length} more have no class and no type.
+                    They may be old calendar events or things you added
+                    yourself, so they stay unless you remove them here.
+                  </p>
+                  <ul className="mt-2 max-h-40 overflow-y-auto text-muted-foreground space-y-0.5">
+                    {preview.unsure.map((row) => (
+                      <li key={row.id} className="truncate">
+                        {row.title}
+                        {row.date ? ` · ${row.date}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => confirmCleanup(true)}
+                    disabled={cleaning}
+                    className={`${button} mt-3 border border-destructive text-destructive hover:bg-destructive/10`}
+                  >
+                    Remove these {preview.unsure.length} too
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-3">

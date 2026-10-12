@@ -329,6 +329,18 @@ export function normalizeSpace(id, raw) {
   };
 }
 
+// The day something is going to be done, apart from the day it is due. A time
+// puts it on the day's grid; without one it waits in the day's list.
+export function normalizePlan(raw) {
+  const data = raw || {};
+  const minutes = Number(data.minutes);
+  return {
+    date: isDateKey(data.date) ? data.date : "",
+    time: isTimeValue(data.time) ? data.time : "",
+    minutes: Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : 0,
+  };
+}
+
 export function normalizeItem(id, raw) {
   const data = raw || {};
   const when = data.when || {};
@@ -352,6 +364,7 @@ export function normalizeItem(id, raw) {
       time: isTimeValue(when.time) ? when.time : "",
       endTime: isTimeValue(when.endTime) ? when.endTime : "",
     },
+    plan: normalizePlan(data.plan),
     createdAt: Number(data.createdAt) || 0,
     completedAt: Number(data.completedAt) || 0,
   };

@@ -29,8 +29,8 @@ jest.mock("./firebase", () => ({
   signInWithGoogle: jest.fn(),
 }));
 
-jest.mock("./components/TaskManager", () => () => (
-  <div data-testid="task-manager">TaskManager</div>
+jest.mock("./components/Planner", () => () => (
+  <div data-testid="planner">Planner</div>
 ));
 jest.mock("./components/WorkTracker", () => () => (
   <div data-testid="work-tracker">WorkTracker</div>
@@ -184,7 +184,7 @@ describe("App component", () => {
       await waitFor(() => {
         expect(screen.getByText("Workflow")).toBeInTheDocument();
       });
-      expect(screen.getByText("Tasks")).toBeInTheDocument();
+      expect(screen.getByText("Plan")).toBeInTheDocument();
     });
 
     test("renders WorkTracker by default", async () => {
@@ -201,9 +201,9 @@ describe("App component", () => {
         expect(screen.getByTestId("work-tracker")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText("Tasks"));
+      fireEvent.click(screen.getByText("Plan"));
       await waitFor(() => {
-        expect(screen.getByTestId("task-manager")).toBeInTheDocument();
+        expect(screen.getByTestId("planner")).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText("Knowledge"));
@@ -213,7 +213,7 @@ describe("App component", () => {
       expect(screen.getByText("Knowledge")).toHaveClass(
         "bg-primary/15 text-primary"
       );
-      expect(screen.getByText("Tasks")).not.toHaveClass(
+      expect(screen.getByText("Plan")).not.toHaveClass(
         "bg-primary/15 text-primary"
       );
 
@@ -326,7 +326,7 @@ describe("App component", () => {
     test("navItems array is correctly structured", () => {
       const expectedNavItems = [
         { id: "work", label: "Work" },
-        { id: "tasks", label: "Tasks" },
+        { id: "plan", label: "Plan" },
         { id: "notes", label: "Knowledge" },
         { id: "calendar", label: "Calendar" },
         { id: "focus", label: "Focus" },

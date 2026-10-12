@@ -42,15 +42,15 @@ const Privacy = () => (
     <Heading>Google Calendar</Heading>
     <Paragraph>
       Connecting Google Calendar is optional and off until you turn it on. If you
-      connect it, you grant the calendar scope, which lets Workflow read events
-      from the calendar you choose and create, change, and delete events that it
-      manages there.
+      connect it, you grant read-only access to your calendars, which lets
+      Workflow show events from the calendar you choose. It cannot create,
+      change, or delete anything in Google Calendar.
     </Paragraph>
     <List
       items={[
         "The access token is held in your browser session storage only. It is never written to our database and it disappears when you close the tab.",
-        "We store the calendar you picked, a sync marker, and a map that links each of your items to the calendar event it created.",
-        "Disconnecting in Settings clears the token and deletes that map.",
+        "We store the calendar you picked, when it was last read, and a copy of that calendar's events from roughly the last three months and the next four so they can be shown without asking Google each time.",
+        "Disconnecting in Settings clears the token and deletes that copy.",
         "Workflow's use of information received from Google APIs follows the Google API Services User Data Policy, including its Limited Use requirements.",
       ]}
     />

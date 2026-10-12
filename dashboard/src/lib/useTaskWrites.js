@@ -67,10 +67,13 @@ export function useTaskWrites(user, onError) {
   );
 
   const addItem = useCallback(
-    async (parsed) => {
+    async (parsed, extra = {}) => {
       if (!user || parsed.title.trim() === "") return;
       try {
-        await set(push(ref(database, tasksPath)), taskRecord(parsed));
+        await set(push(ref(database, tasksPath)), {
+          ...taskRecord(parsed),
+          ...extra,
+        });
       } catch (err) {
         fail(err, "Failed to add task");
       }

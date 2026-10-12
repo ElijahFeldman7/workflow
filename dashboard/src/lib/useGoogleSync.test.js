@@ -9,6 +9,7 @@ import { todayKey } from "../constants/work";
 jest.mock("./googleCalendar", () => ({
   GoogleAuthRequired: class GoogleAuthRequired extends Error {},
   GoogleScopeDenied: class GoogleScopeDenied extends Error {},
+  GoogleStaleGrant: class GoogleStaleGrant extends Error {},
   clearToken: jest.fn(),
   connect: jest.fn(),
   eventToCache: jest.requireActual("./googleCalendar").eventToCache,
@@ -104,7 +105,8 @@ describe("reading a calendar", () => {
     expect(Object.keys(written)).toEqual(["e1"]);
     expect(written.e1).toMatchObject({
       title: "Private Lesson",
-      when: { mode: "event", date: today, time: "15:00", endTime: "16:00" },
+      start: { dateTime: new Date(`${today}T15:00:00`).toISOString() },
+      end: { dateTime: new Date(`${today}T16:00:00`).toISOString() },
     });
   });
 
@@ -144,10 +146,7 @@ describe("reading a calendar", () => {
     const { result } = setup();
     await act(() => result.current.syncNow());
 
-    expect(writesTo("/googleEvents")[0].a1).toMatchObject({
-      allDay: true,
-      when: { date: today },
-    });
+    expect(writesTo("/googleEvents")[0].a1.start).toEqual({ date: today });
   });
 
   it("skips an event with no usable start", async () => {
@@ -211,5 +210,77 @@ describe("running it twice at once", () => {
     listEvents.mockResolvedValue({ events: [] });
     await act(() => result.current.syncNow());
     expect(listEvents).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("changing your mind while Google is still answering", () => {
+  const deferred = () => {
+    let resolve;
+    const promise = new Promise((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
+  };
+
+  it("throws away a pull for the calendar you switched from", async () => {
+    const slow = deferred();
+    listEvents.mockReturnValueOnce(slow.promise);
+    listCalendars.mockResolvedValue([
+      { id: "cal1", name: "Primary", primary: true },
+      { id: "cal2", name: "School", primary: false },
+    ]);
+
+    const { result } = setup();
+    let pull;
+    await act(async () => {
+      pull = result.current.syncNow();
+      await Promise.resolve();
+    });
+
+    await act(() => result.current.chooseCalendar("cal2"));
+    config = { ...config, calendarId: "cal2" };
+    set.mockClear();
+    listEvents.mockResolvedValue({
+      events: [googleEvent({ id: "new", summary: "Assembly" })],
+    });
+
+    await act(async () => {
+      slow.resolve({ events: [googleEvent({ id: "old" })] });
+      await pull;
+    });
+    await act(async () => {});
+
+    // The old calendar's answer never lands, and the new one is read at once
+    // instead of waiting for the next tick.
+    const written = writesTo("/googleEvents");
+    expect(written).toHaveLength(1);
+    expect(Object.keys(written[0])).toEqual(["new"]);
+    expect(listEvents.mock.calls[1][0]).toBe("cal2");
+  });
+
+  it("does not bring events back after a disconnect", async () => {
+    const slow = deferred();
+    listEvents.mockReturnValueOnce(slow.promise);
+
+    const { result } = setup();
+    let pull;
+    await act(async () => {
+      pull = result.current.syncNow();
+      await Promise.resolve();
+    });
+
+    await act(() => result.current.disconnectGoogle());
+    config = null;
+    set.mockClear();
+    update.mockClear();
+
+    await act(async () => {
+      slow.resolve({ events: [googleEvent({ id: "old" })] });
+      await pull;
+    });
+    await act(async () => {});
+
+    expect(writesTo("/googleEvents")).toEqual([]);
+    expect(update).not.toHaveBeenCalled();
   });
 });

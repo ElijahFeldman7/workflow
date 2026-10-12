@@ -8,7 +8,7 @@ import Landing from "./components/landing/Landing";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 
-import TaskManager from "./components/TaskManager";
+import Planner from "./components/Planner";
 import WorkTracker from "./components/WorkTracker";
 import KnowledgeBase from "./components/KnowledgeBase";
 import CalendarView from "./components/CalendarView";
@@ -19,7 +19,7 @@ import UserSettings from "./components/UserSettings";
 
 export const buildNavItems = (user) => [
   { id: "work", label: "Work", component: <WorkTracker user={user} /> },
-  { id: "tasks", label: "Tasks", component: <TaskManager user={user} /> },
+  { id: "plan", label: "Plan", component: <Planner user={user} /> },
   { id: "notes", label: "Knowledge", component: <KnowledgeBase user={user} /> },
   { id: "calendar", label: "Calendar", component: <CalendarView user={user} /> },
   { id: "focus", label: "Focus", component: <FocusTimer user={user} /> },

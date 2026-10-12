@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ref, onValue, get, update, remove } from "firebase/database";
 import { database } from "../firebase";
 import { todayKey, addDaysKey, fromDateKey } from "../constants/work";
 import {
   GoogleAuthRequired,
   GoogleScopeDenied,
+  GoogleStaleGrant,
   clearToken,
   connect,
   eventToCache,
@@ -21,12 +22,17 @@ import { replaceGoogleEvents, clearGoogleEvents } from "./googleEvents";
 // owned, on the strength of what Google reported. It now writes one node it
 // fully owns, and replaces that node outright each time.
 
-const PULL_BEHIND_DAYS = 90;
-const PULL_AHEAD_DAYS = 120;
+export const PULL_BEHIND_DAYS = 90;
+export const PULL_AHEAD_DAYS = 120;
 const AUTO_SYNC_MS = 5 * 60 * 1000;
 
 // One pull per account at a time, across every component mounting the hook.
 const inFlight = new Set();
+// Bumped whenever the calendar is switched or disconnected, so a pull that
+// started before then knows its answer is for a calendar no longer wanted.
+const epochs = new Map();
+const epochOf = (uid) => epochs.get(uid) || 0;
+const bumpEpoch = (uid) => epochs.set(uid, epochOf(uid) + 1);
 
 const QUIET_POPUP_CODES = new Set([
   "auth/popup-closed-by-user",
@@ -59,6 +65,7 @@ export function useGoogleSync(user) {
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
   const [needsAuth, setNeedsAuth] = useState(!hasToken());
+  const rerun = useRef(() => {});
 
   useEffect(() => {
     if (!user) return undefined;
@@ -83,13 +90,17 @@ export function useGoogleSync(user) {
   );
 
   const fail = useCallback((err) => {
-    if (err instanceof GoogleScopeDenied || err instanceof GoogleAuthRequired) {
+    if (
+      err instanceof GoogleScopeDenied ||
+      err instanceof GoogleStaleGrant ||
+      err instanceof GoogleAuthRequired
+    ) {
       setNeedsAuth(true);
       setStatus("error");
       setMessage(
-        err instanceof GoogleScopeDenied
-          ? err.message
-          : "Google access expired. Connect again to keep reading your calendar."
+        err instanceof GoogleAuthRequired
+          ? "Google access expired. Connect again to keep reading your calendar."
+          : err.message
       );
       return;
     }
@@ -157,6 +168,7 @@ export function useGoogleSync(user) {
     setStatus("idle");
     setMessage("");
     if (!user) return;
+    bumpEpoch(user.uid);
     await clearGoogleEvents(user.uid);
     await remove(ref(database, configPath(user.uid)));
   }, [user]);
@@ -165,7 +177,10 @@ export function useGoogleSync(user) {
     async (calendarId) => {
       const found = calendars.find((entry) => entry.id === calendarId);
       // The cache holds the old calendar's events until the next pull.
-      if (user) await clearGoogleEvents(user.uid);
+      if (user) {
+        bumpEpoch(user.uid);
+        await clearGoogleEvents(user.uid);
+      }
       await saveConfig({
         calendarId,
         calendarName: found ? found.name : calendarId,
@@ -177,6 +192,7 @@ export function useGoogleSync(user) {
   const syncNow = useCallback(async () => {
     if (!user || inFlight.has(user.uid)) return;
     inFlight.add(user.uid);
+    const epoch = epochOf(user.uid);
 
     try {
       const snapshot = await get(ref(database, configPath(user.uid)));
@@ -205,6 +221,10 @@ export function useGoogleSync(user) {
         if (value) entries.push({ id: event.id, value });
       });
 
+      // Switched or disconnected while Google was answering: these events
+      // belong to a calendar nobody is looking at any more.
+      if (epochOf(user.uid) !== epoch) return;
+
       await replaceGoogleEvents(user.uid, entries);
       await saveConfig({ lastSyncedAt: Date.now() });
 
@@ -219,8 +239,14 @@ export function useGoogleSync(user) {
       fail(err);
     } finally {
       inFlight.delete(user.uid);
+      // The pull for the new calendar was turned away while this one ran.
+      if (epochOf(user.uid) !== epoch) rerun.current();
     }
   }, [user, fail, saveConfig]);
+
+  useEffect(() => {
+    rerun.current = syncNow;
+  }, [syncNow]);
 
   useEffect(() => {
     if (!user || !config.calendarId || !config.autoSync || needsAuth)

@@ -15,157 +15,7 @@ jest.mock("firebase/auth", () => ({
   },
 }));
 
-import {
-  eventToItem,
-  fingerprint,
-  itemToEvent,
-  parseIcs,
-} from "./googleCalendar";
-
-const item = (overrides = {}) => ({
-  id: "a1",
-  title: "Activity Fair",
-  spaceId: "",
-  type: "",
-  priority: "medium",
-  done: false,
-  notes: "",
-  location: "",
-  when: { mode: "event", date: "2026-09-09", time: "", endTime: "" },
-  createdAt: 0,
-  completedAt: 0,
-  ...overrides,
-});
-
-describe("itemToEvent", () => {
-  it("writes an undated item as nothing", () => {
-    expect(
-      itemToEvent(item({ when: { mode: "due", date: "", time: "", endTime: "" } }), "UTC")
-    ).toBeNull();
-  });
-
-  it("writes a dateless-time item as an all-day event", () => {
-    const event = itemToEvent(item(), "America/New_York");
-    expect(event.start).toEqual({ date: "2026-09-09" });
-    expect(event.end).toEqual({ date: "2026-09-10" });
-    expect(event.summary).toBe("Activity Fair");
-  });
-
-  it("writes a timed item with the local zone", () => {
-    const event = itemToEvent(
-      item({
-        when: {
-          mode: "event",
-          date: "2026-09-09",
-          time: "15:30",
-          endTime: "16:45",
-        },
-      }),
-      "America/New_York"
-    );
-    expect(event.start).toEqual({
-      dateTime: "2026-09-09T15:30:00",
-      timeZone: "America/New_York",
-    });
-    expect(event.end).toEqual({
-      dateTime: "2026-09-09T16:45:00",
-      timeZone: "America/New_York",
-    });
-  });
-
-  it("defaults a missing end time to an hour", () => {
-    const event = itemToEvent(
-      item({
-        when: { mode: "event", date: "2026-09-09", time: "23:30", endTime: "" },
-      }),
-      "UTC"
-    );
-    expect(event.end.dateTime).toBe("2026-09-10T00:30:00");
-  });
-
-  it("rolls an end time before the start onto the next day", () => {
-    const event = itemToEvent(
-      item({
-        when: {
-          mode: "event",
-          date: "2026-09-09",
-          time: "22:00",
-          endTime: "01:00",
-        },
-      }),
-      "UTC"
-    );
-    expect(event.end.dateTime).toBe("2026-09-10T01:00:00");
-  });
-
-  it("carries the fields Google has no column for", () => {
-    const event = itemToEvent(
-      item({ type: "quiz", priority: "insane", done: true, spaceId: "s1" }),
-      "UTC"
-    );
-    expect(event.extendedProperties.private).toMatchObject({
-      workflowMode: "event",
-      workflowType: "quiz",
-      workflowPriority: "insane",
-      workflowDone: "1",
-      workflowSpaceId: "s1",
-    });
-  });
-});
-
-describe("eventToItem", () => {
-  it("reads an all-day event", () => {
-    expect(
-      eventToItem({ id: "e1", summary: "Orientation", start: { date: "2026-09-11" } })
-    ).toMatchObject({
-      title: "Orientation",
-      when: { mode: "event", date: "2026-09-11", time: "", endTime: "" },
-    });
-  });
-
-  it("skips an event with no start", () => {
-    expect(eventToItem({ id: "e1", summary: "Nothing" })).toBeNull();
-  });
-
-  it("restores the fields it wrote out", () => {
-    const round = eventToItem(
-      itemToEvent(
-        item({ type: "test", priority: "high", notes: "chapters 1-3" }),
-        "UTC"
-      )
-    );
-    expect(round).toMatchObject({
-      title: "Activity Fair",
-      notes: "chapters 1-3",
-      type: "test",
-      priority: "high",
-      when: { mode: "event", date: "2026-09-09" },
-    });
-  });
-
-  it("falls back to defaults for values Google does not carry", () => {
-    const mapped = eventToItem({
-      id: "e2",
-      summary: "Club meeting",
-      start: { date: "2026-09-12" },
-      extendedProperties: { private: { workflowPriority: "bogus" } },
-    });
-    expect(mapped.priority).toBe("medium");
-    expect(mapped.type).toBe("");
-  });
-});
-
-describe("fingerprint", () => {
-  it("ignores fields that do not travel to Google", () => {
-    expect(fingerprint(item({ createdAt: 1 }))).toBe(
-      fingerprint(item({ createdAt: 999 }))
-    );
-  });
-
-  it("changes when a synced field changes", () => {
-    expect(fingerprint(item())).not.toBe(fingerprint(item({ title: "Other" })));
-  });
-});
+import { eventToCache, parseIcs } from "./googleCalendar";
 
 describe("parseIcs", () => {
   const ics = [
@@ -214,6 +64,26 @@ describe("parseIcs", () => {
     );
   });
 
+  it("gives each occurrence an id an import can be matched on", () => {
+    const series = [
+      "BEGIN:VEVENT",
+      "UID:abc@google.com",
+      "DTSTART:20260910T143000",
+      "SUMMARY:Club",
+      "END:VEVENT",
+      "BEGIN:VEVENT",
+      "UID:abc@google.com",
+      "DTSTART:20260917T143000",
+      "SUMMARY:Club",
+      "END:VEVENT",
+    ].join("\r\n");
+
+    expect(parseIcs(series).map((entry) => entry.icsUid)).toEqual([
+      "abc@google.com|2026-09-10|14:30",
+      "abc@google.com|2026-09-17|14:30",
+    ]);
+  });
+
   it("ignores events with no usable start", () => {
     expect(parseIcs("BEGIN:VEVENT\r\nSUMMARY:Nope\r\nEND:VEVENT")).toEqual([]);
   });
@@ -228,6 +98,7 @@ describe("connecting when the app is not yet verified", () => {
   const {
     CALENDAR_SCOPE,
     GoogleScopeDenied,
+    GoogleStaleGrant,
     connect,
     grantedScopes,
     hasToken,
@@ -263,6 +134,43 @@ describe("connecting when the app is not yet verified", () => {
     expect(provider.params.prompt).toBe("consent");
     expect(provider.scopes).toContain(CALENDAR_SCOPE);
     expect(hasToken()).toBe(true);
+  });
+
+  it("does not ask Google to fold in permissions granted before", async () => {
+    // That is how a write grant from the two-way days would ride along.
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, { scope: `openid ${CALENDAR_SCOPE}` })
+    );
+
+    await connect();
+
+    expect(provider.params.include_granted_scopes).toBeUndefined();
+  });
+
+  it.each([
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/calendar.events",
+  ])("turns away a token that can still write (%s)", async (writeScope) => {
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, { scope: `openid ${CALENDAR_SCOPE} ${writeScope}` })
+    );
+
+    await expect(connect()).rejects.toBeInstanceOf(GoogleStaleGrant);
+    expect(hasToken()).toBe(false);
+  });
+
+  it("does not hand one person's token to the next to sign in", async () => {
+    const { auth } = require("../firebase");
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, { scope: `openid ${CALENDAR_SCOPE}` })
+    );
+    await connect();
+    expect(hasToken()).toBe(true);
+
+    const before = auth.currentUser;
+    auth.currentUser = { uid: "someone-else" };
+    expect(hasToken()).toBe(false);
+    auth.currentUser = before;
   });
 
   it("says so plainly when calendar access was not granted", async () => {
@@ -348,14 +256,15 @@ describe("what the calendar API refuses", () => {
   });
 });
 
-describe("asking Google what changed", () => {
-  const {
-    SyncTokenExpired,
-    getEvent,
-    listEvents,
-  } = require("./googleCalendar");
+describe("asking Google for events and calendars", () => {
+  const { listCalendars, listEvents } = require("./googleCalendar");
 
   const params = (call) => new URL(call[0]).searchParams;
+  const ok = (body) => ({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(body),
+  });
 
   beforeEach(() => {
     sessionStorage.clear();
@@ -366,72 +275,121 @@ describe("asking Google what changed", () => {
     global.fetch = jest.fn();
   });
 
-  it("asks for deleted events, or a deletion can never reach us", async () => {
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve({ items: [], nextSyncToken: "tok2" }),
-    });
-
-    await listEvents("cal1", { timeMin: "2026-01-01T00:00:00.000Z" });
-
-    const query = params(global.fetch.mock.calls[0]);
-    expect(query.get("showDeleted")).toBe("true");
-    expect(query.get("singleEvents")).toBe("true");
-    expect(query.get("timeMin")).toBe("2026-01-01T00:00:00.000Z");
-  });
-
-  it("repeats the same question when following a sync token", async () => {
-    global.fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve({ items: [], nextSyncToken: "tok3" }),
-    });
+  it("asks for single instances inside a window", async () => {
+    global.fetch.mockResolvedValue(ok({ items: [] }));
 
     await listEvents("cal1", {
-      syncToken: "tok2",
       timeMin: "2026-01-01T00:00:00.000Z",
+      timeMax: "2026-06-01T00:00:00.000Z",
     });
 
     const query = params(global.fetch.mock.calls[0]);
-    // Google rejects a sync token whose query differs from the one that made it.
     expect(query.get("singleEvents")).toBe("true");
-    expect(query.get("showDeleted")).toBe("true");
-    expect(query.get("syncToken")).toBe("tok2");
-    expect(query.get("timeMin")).toBeNull();
+    expect(query.get("timeMin")).toBe("2026-01-01T00:00:00.000Z");
+    expect(query.get("timeMax")).toBe("2026-06-01T00:00:00.000Z");
   });
 
-  it("treats a rejected sync token as a call for a full sync", async () => {
-    global.fetch.mockResolvedValue({
-      ok: false,
-      status: 400,
-      json: () =>
-        Promise.resolve({
-          error: {
-            message: "Sync token is no longer valid, a full sync is required.",
-          },
-        }),
-    });
+  it("follows every page of events", async () => {
+    global.fetch
+      .mockResolvedValueOnce(ok({ items: [{ id: "a" }], nextPageToken: "p2" }))
+      .mockResolvedValueOnce(ok({ items: [{ id: "b" }] }));
 
-    await expect(listEvents("cal1", { syncToken: "stale" })).rejects.toBeInstanceOf(
-      SyncTokenExpired
-    );
+    const { events } = await listEvents("cal1", {});
+
+    expect(events.map((event) => event.id)).toEqual(["a", "b"]);
+    expect(params(global.fetch.mock.calls[1]).get("pageToken")).toBe("p2");
   });
 
-  it("reports a vanished event as gone rather than as a stale token", async () => {
-    global.fetch.mockResolvedValue({
-      ok: false,
-      status: 410,
-      json: () => Promise.resolve({}),
-    });
-    await expect(getEvent("cal1", "e1")).resolves.toBeNull();
-
+  it("refuses to read a missing calendar as an empty one", async () => {
+    // Answering with no events here is what used to empty the cache.
     global.fetch.mockResolvedValue({
       ok: false,
       status: 404,
       json: () => Promise.resolve({}),
     });
-    await expect(getEvent("cal1", "e1")).resolves.toBeNull();
+    await expect(listEvents("gone", {})).rejects.toThrow(/could not find/i);
+  });
+
+  it("lists calendars you can only read, across pages", async () => {
+    global.fetch
+      .mockResolvedValueOnce(
+        ok({
+          items: [{ id: "me", summary: "Me", primary: true }],
+          nextPageToken: "p2",
+        })
+      )
+      .mockResolvedValueOnce(
+        ok({ items: [{ id: "school", summary: "School", accessRole: "reader" }] })
+      );
+
+    const calendars = await listCalendars();
+
+    expect(calendars).toEqual([
+      { id: "me", name: "Me", primary: true },
+      { id: "school", name: "School", primary: false },
+    ]);
+    expect(params(global.fetch.mock.calls[0]).get("minAccessRole")).toBe(
+      "reader"
+    );
+  });
+
+  it("only ever sends a GET", async () => {
+    global.fetch.mockResolvedValue(ok({ items: [] }));
+    await listEvents("cal1", {});
+    await listCalendars();
+
+    global.fetch.mock.calls.forEach(([, init]) => {
+      expect(init.method).toBeUndefined();
+      expect(init.body).toBeUndefined();
+    });
+  });
+});
+
+describe("what the cache keeps of an event", () => {
+  const event = (overrides = {}) => ({
+    id: "e1",
+    status: "confirmed",
+    summary: "Private Lesson",
+    start: { dateTime: "2026-09-09T15:00:00-04:00" },
+    end: { dateTime: "2026-09-09T16:00:00-04:00" },
+    ...overrides,
+  });
+
+  it("keeps the moment, not a clock reading", () => {
+    // A clock reading is only right on the device that wrote it.
+    expect(eventToCache(event())).toMatchObject({
+      title: "Private Lesson",
+      start: { dateTime: "2026-09-09T19:00:00.000Z" },
+      end: { dateTime: "2026-09-09T20:00:00.000Z" },
+    });
+  });
+
+  it("keeps an all-day span as its dates", () => {
+    const cached = eventToCache(
+      event({ start: { date: "2026-09-09" }, end: { date: "2026-09-12" } })
+    );
+    expect(cached.start).toEqual({ date: "2026-09-09" });
+    expect(cached.end).toEqual({ date: "2026-09-12" });
+  });
+
+  it("skips cancelled events and ones with no usable start", () => {
+    expect(eventToCache(event({ status: "cancelled" }))).toBeNull();
+    expect(eventToCache(event({ start: undefined }))).toBeNull();
+    expect(eventToCache(event({ start: { dateTime: "nonsense" } }))).toBeNull();
+  });
+
+  it("skips an assignment the old sync pushed to Google", () => {
+    // The work list still has the original.
+    expect(
+      eventToCache(
+        event({ extendedProperties: { private: { workflowItemId: "w1" } } })
+      )
+    ).toBeNull();
+  });
+
+  it("writes nothing Firebase would reject", () => {
+    const cached = eventToCache(event({ end: undefined }));
+    expect(Object.values(cached)).not.toContain(undefined);
   });
 });
 

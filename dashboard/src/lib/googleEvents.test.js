@@ -1,6 +1,7 @@
 import { ref, set } from "firebase/database";
 import {
   safeKey,
+  expandCached,
   normalizeCached,
   replaceGoogleEvents,
   clearGoogleEvents,
@@ -67,6 +68,87 @@ describe("reading the cache back", () => {
 
   it("prefixes the id so it cannot collide with a work item", () => {
     expect(normalizeCached("abc", stored).id).toBe("gcal:abc");
+  });
+});
+
+describe("an event that runs over more than one day", () => {
+  const local = (key, hour, minute = 0) => {
+    const [year, month, day] = key.split("-").map(Number);
+    return new Date(year, month - 1, day, hour, minute).toISOString();
+  };
+
+  it("shows a timed event at this device's clock time", () => {
+    const [entry] = expandCached("e1", {
+      title: "Lesson",
+      start: { dateTime: local("2026-09-09", 15) },
+      end: { dateTime: local("2026-09-09", 16, 30) },
+    });
+
+    expect(entry.when).toEqual({
+      mode: "event",
+      date: "2026-09-09",
+      time: "15:00",
+      endTime: "16:30",
+    });
+    expect(entry.allDay).toBe(false);
+  });
+
+  it("puts an all-day span on every day it covers", () => {
+    // Google's end date is the morning after the last day.
+    const entries = expandCached("trip", {
+      title: "Trip",
+      start: { date: "2026-09-09" },
+      end: { date: "2026-09-12" },
+    });
+
+    expect(entries.map((entry) => entry.when.date)).toEqual([
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+    ]);
+    expect(entries.every((entry) => entry.allDay)).toBe(true);
+    expect(entries.map((entry) => entry.id)).toEqual([
+      "gcal:trip",
+      "gcal:trip@2026-09-10",
+      "gcal:trip@2026-09-11",
+    ]);
+  });
+
+  it("keeps a one-day all-day event to its one day", () => {
+    expect(
+      expandCached("d", {
+        start: { date: "2026-09-09" },
+        end: { date: "2026-09-10" },
+      })
+    ).toHaveLength(1);
+  });
+
+  it("splits a timed event at midnight", () => {
+    const entries = expandCached("night", {
+      title: "Lock-in",
+      start: { dateTime: local("2026-09-09", 22) },
+      end: { dateTime: local("2026-09-11", 2) },
+    });
+
+    expect(entries.map((entry) => entry.when)).toEqual([
+      { mode: "event", date: "2026-09-09", time: "22:00", endTime: "23:59" },
+      { mode: "event", date: "2026-09-10", time: "", endTime: "" },
+      { mode: "event", date: "2026-09-11", time: "00:00", endTime: "02:00" },
+    ]);
+  });
+
+  it("keeps an event ending on the stroke of midnight to its own day", () => {
+    const entries = expandCached("late", {
+      start: { dateTime: local("2026-09-09", 21) },
+      end: { dateTime: local("2026-09-10", 0) },
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].when).toMatchObject({ time: "21:00", endTime: "23:59" });
+  });
+
+  it("drops a start that is not a moment", () => {
+    expect(expandCached("bad", { start: { dateTime: "nonsense" } })).toEqual([]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { mergeAgenda, SOURCES } from "./useAgenda";
+import { mergeAgenda, routedWrites, SOURCES } from "./useAgenda";
 import { byDate } from "./calendar";
 
 const items = [
@@ -85,4 +85,32 @@ describe("google events ride alongside without becoming work", () => {
       items.length + tasks.length
     );
   });
+});
+
+test("rows the old sync left in the work list stay off the calendar", () => {
+  const merged = mergeAgenda(
+    [...items, { id: "old", title: "Standup", origin: "google", when: { mode: "event", date: "2026-09-11", time: "" } }],
+    []
+  );
+  expect(merged.map((e) => e.id)).toEqual(["w1", "w2"]);
+});
+
+test("a write goes to the list its entry came from, under its own id", () => {
+  const workWrites = { patch: jest.fn(), toggleDone: jest.fn() };
+  const taskWrites = { patch: jest.fn(), toggleDone: jest.fn() };
+  const writes = routedWrites(workWrites, taskWrites);
+  const [work, , task] = mergeAgenda(items, tasks);
+
+  writes.patch(work, { title: "x" });
+  writes.patch(task, { title: "y" });
+  writes.toggleDone(task);
+
+  expect(workWrites.patch).toHaveBeenCalledWith(work, { title: "x" });
+  expect(taskWrites.patch).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "t1" }),
+    { title: "y" }
+  );
+  expect(taskWrites.toggleDone).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "t1" })
+  );
 });

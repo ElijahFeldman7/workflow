@@ -98,16 +98,22 @@ const MIN_BLOCK_MINUTES = 30;
 export const isTimedBlock = (item) =>
   item.when.mode === "event" && isTimeValue(item.when.time);
 
+export function timedBlock(item) {
+  const start = minutesOf(item.when.time);
+  const end = isTimeValue(item.when.endTime)
+    ? Math.max(minutesOf(item.when.endTime), start + MIN_BLOCK_MINUTES)
+    : start + DEFAULT_BLOCK_MINUTES;
+  return { item, start, end };
+}
+
 export function layoutTimed(items) {
-  const blocks = items
-    .filter(isTimedBlock)
-    .map((item) => {
-      const start = minutesOf(item.when.time);
-      const end = isTimeValue(item.when.endTime)
-        ? Math.max(minutesOf(item.when.endTime), start + MIN_BLOCK_MINUTES)
-        : start + DEFAULT_BLOCK_MINUTES;
-      return { item, start, end, column: 0, columns: 1 };
-    })
+  return layoutBlocks(items.filter(isTimedBlock).map(timedBlock));
+}
+
+/** Side-by-side columns for blocks that overlap. Takes { item, start, end }. */
+export function layoutBlocks(given) {
+  const blocks = given
+    .map((block) => ({ ...block, column: 0, columns: 1 }))
     .sort((a, b) => a.start - b.start || a.end - b.end);
 
   const laid = [];
