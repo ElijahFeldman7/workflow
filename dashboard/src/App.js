@@ -12,16 +12,18 @@ import Planner from "./components/Planner";
 import WorkTracker from "./components/WorkTracker";
 import KnowledgeBase from "./components/KnowledgeBase";
 import CalendarView from "./components/CalendarView";
+import Grades from "./components/Grades";
 import FocusTimer from "./components/FocusTimer";
 import HabitTracker from "./components/HabitTracker";
 import QuickLinks from "./components/QuickLinks";
 import UserSettings from "./components/UserSettings";
 
-export const buildNavItems = (user) => [
+export const buildNavItems = (user, activeTab) => [
   { id: "work", label: "Work", component: <WorkTracker user={user} /> },
   { id: "plan", label: "Plan", component: <Planner user={user} /> },
   { id: "notes", label: "Knowledge", component: <KnowledgeBase user={user} /> },
   { id: "calendar", label: "Calendar", component: <CalendarView user={user} /> },
+  { id: "grades", label: "grades", component: <Grades active={activeTab === "grades"} /> },
   { id: "focus", label: "Focus", component: <FocusTimer user={user} /> },
   { id: "habits", label: "Habits", component: <HabitTracker user={user} /> },
   { id: "links", label: "Links", component: <QuickLinks user={user} /> },
@@ -35,10 +37,10 @@ export const buildNavItems = (user) => [
 
 const Dashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState("work");
-  const navItems = buildNavItems(user);
-  const ActiveComponent = navItems.find(
-    (item) => item.id === activeTab
-  )?.component;
+  const navItems = buildNavItems(user, activeTab);
+  const gradesTab = navItems.find((item) => item.id === "grades");
+  const gradesActive = activeTab === gradesTab.id;
+  const ActiveComponent = navItems.find((item) => item.id === activeTab)?.component;
 
   return (
     <div className="bg-background min-h-screen flex flex-col transition-colors duration-200">
@@ -51,7 +53,10 @@ const Dashboard = ({ user }) => {
       />
 
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">{ActiveComponent}</div>
+        <div className="max-w-6xl mx-auto">
+          {!gradesActive && ActiveComponent}
+          <div hidden={!gradesActive}>{gradesTab.component}</div>
+        </div>
       </main>
     </div>
   );
@@ -86,7 +91,7 @@ function App() {
         />
         <Route
           path="/app"
-          element={user ? <Dashboard user={user} /> : <Navigate to="/" replace />}
+          element={user ? <Dashboard key={user.uid} user={user} /> : <Navigate to="/" replace />}
         />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />

@@ -2,6 +2,27 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## StudentVUE browser companion
+
+The grades tab can send legacy sign-in requests from the browser directly to
+FCPS. It refreshes every five minutes while the grades tab is visible. It keeps
+credentials in page memory until you disconnect, sign out, reload, or close
+the page. FCPS plans to remove legacy sign-in in December 2026.
+
+The optional Chrome and Edge companion reads the visible FCPS StudentVUE Grade
+Book overview. Sign in on FCPS's own site and open Grade Book. With
+one Grade Book tab open, choose **read grade book** in Workflow. Reload Grade
+Book before reading again if you need newer marks. FCPS controls when you need
+to sign in again. The companion reads only the Grade Book page. Workflow uses
+a 15-minute in-memory cache.
+
+Production builds package the companion as a downloadable zip. For local
+development, copy `studentvue-extension` to a temporary directory and add
+`http://localhost/app` to `externally_connectable.matches` in the copied manifest.
+Load the copy on the Chrome or Edge extensions page using **Load unpacked**.
+The worker accepts local messages from `http://localhost:3000/app`. Once the
+extension loads, reload any existing Workflow and Grade Book tabs.
+
 ## Available Scripts
 
 In the project directory, you can run:

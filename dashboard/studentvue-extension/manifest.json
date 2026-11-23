@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Workflow gradebook companion",
+  "version": "1.0.0",
+  "description": "Read the course grades visible in your FCPS StudentVUE Grade Book for Workflow.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5AwUMUhRHtvwT11uZzD9Ga8gnFGpxZomHKCDMj1stafvPUOpYmFg+WhOY3rChao6g2J8mFT504RCk5GkLQV5TKRXOT2M1g+6TzLQpcYlLiRkVcjRqblkNUWPU2atQXQI0pY3F6J6CzZmPjr3EMnHSrOd19aUhEeMiBZfBN53OroavUw5hFaQT96XlvrsMIosH+JDbL8w8zKaOhEZgNXWI4R+xY2u4oGSGHC1o25iw9qq7P9AyT5UCt7aLdJPo3sUPl40s2qu0ST6GiFRS8fniFwhfV/6dcVxT7/oqlY+63H238jLZ6I2NVdJj/RAQyFbDUK9TxgM5lVEelV1qosQowIDAQAB",
+  "background": { "service_worker": "background.js" },
+  "incognito": "not_allowed",
+  "host_permissions": ["https://sisstudent.fcps.edu/*"],
+  "externally_connectable": {
+    "matches": ["https://workflow.sites.tjhsst.edu/app"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://sisstudent.fcps.edu/SVUE/PXP2_Gradebook.aspx*",
+        "https://sisstudent.fcps.edu/SVUE/PXP2_GradeBook.aspx*",
+        "https://sisstudent.fcps.edu/svue/PXP2_Gradebook.aspx*",
+        "https://sisstudent.fcps.edu/svue/PXP2_GradeBook.aspx*"
+      ],
+      "js": ["gradebook.js"]
+    }
+  ]
+}

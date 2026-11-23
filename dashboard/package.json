@@ -18,6 +18,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "CI=false react-scripts build",
+    "postbuild": "zip -jq build/workflow-gradebook-companion.zip studentvue-extension/manifest.json studentvue-extension/background.js studentvue-extension/gradebook.js",
     "dev": "react-scripts start",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

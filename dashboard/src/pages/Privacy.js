@@ -2,7 +2,7 @@ import React from "react";
 import LegalPage, { Paragraph, Heading, List } from "./LegalPage";
 
 const Privacy = () => (
-  <LegalPage title="Privacy Policy" updated="September 5, 2026">
+  <LegalPage title="Privacy Policy" updated="November 23, 2026">
     <Paragraph>
       Workflow is a personal school planner. This policy explains what the app
       stores, where it goes, and how to get rid of it. It is written to describe
@@ -37,6 +37,25 @@ const Privacy = () => (
       Some preferences never leave your device. Your dark mode choice, color
       theme, work view settings, and timer durations live in your browser local
       storage. Clearing your browser data resets them.
+    </Paragraph>
+
+    <Heading>StudentVUE grade book</Heading>
+    <Paragraph>
+      If you choose legacy sign-in, your browser sends your FCPS student ID and
+      password directly to FCPS. Workflow servers and Firebase do not receive
+      them. Workflow keeps them in the open browser page’s memory to refresh
+      your grades while you view the grades tab. Disconnecting, signing out,
+      closing the page, or reloading clears them from that memory.
+    </Paragraph>
+    <Paragraph>
+      The optional browser companion reads course names, periods, grades, and
+      the selected term from the StudentVUE grade book open in your browser.
+      With the companion, you sign in directly on the FCPS website. When you
+      request grades, the companion
+      passes only those course details to the Workflow tab on the same device.
+      Workflow keeps them in memory for up to 15 minutes, or until you clear
+      them, sign out, or close or reload the tab. Grades and calculator inputs
+      are never uploaded to Workflow servers or Firebase.
     </Paragraph>
 
     <Heading>Google Calendar</Heading>

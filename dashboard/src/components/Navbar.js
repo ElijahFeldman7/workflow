@@ -55,7 +55,7 @@ const Navbar = ({
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label={isMenuOpen ? "Close navigation" : "Open navigation"}
               aria-expanded={isMenuOpen}
-              className="sm:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
+              className="lg:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
             >
               <svg
                 className="w-6 h-6"
@@ -82,7 +82,7 @@ const Navbar = ({
               </span>
             </div>
 
-            <nav className="hidden sm:flex space-x-2">
+            <nav className="hidden lg:flex space-x-2">
               {navItems.map((item) => (
                 <button
                   key={item.id}
@@ -236,7 +236,7 @@ const Navbar = ({
       </div>
 
       {isMenuOpen && (
-        <div className="sm:hidden fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col bg-card">
+        <div className="lg:hidden fixed inset-x-0 top-16 bottom-0 z-40 flex flex-col bg-card">
           <nav className="flex-1 overflow-y-auto flex flex-col p-3 gap-1">
             {navItems.map((item) => (
               <button

@@ -36,7 +36,7 @@ test("the hamburger is the only way in, and it opens a full-height menu", () => 
   expect(menuPanel(container)).toBeNull();
 
   const hamburger = screen.getByRole("button", { name: "Open navigation" });
-  expect(hamburger.className).toContain("sm:hidden");
+  expect(hamburger.className).toContain("lg:hidden");
 
   fireEvent.click(hamburger);
 
@@ -45,7 +45,7 @@ test("the hamburger is the only way in, and it opens a full-height menu", () => 
   expect(panel.className).toContain("top-16");
   expect(panel.className).toContain("bottom-0");
   expect(panel.className).toContain("flex-col");
-  expect(panel.className).toContain("sm:hidden");
+  expect(panel.className).toContain("lg:hidden");
 });
 
 test("the close control is the same button in the same place", () => {

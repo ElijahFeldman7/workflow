@@ -228,12 +228,16 @@ describe("App component", () => {
         "bg-primary/15 text-primary"
       );
 
+      fireEvent.click(screen.getByRole("button", { name: "grades" }));
+      expect(screen.getByRole("heading", { name: "grades" })).toBeVisible();
+      expect(screen.getByRole("heading", { name: "what-if calculator" })).toBeVisible();
+
       fireEvent.click(screen.getByText("Focus"));
       await waitFor(() => {
         expect(screen.getByTestId("focus-timer")).toBeInTheDocument();
       });
       expect(screen.getByText("Focus")).toHaveClass("bg-primary/15 text-primary");
-      expect(screen.getByText("Calendar")).not.toHaveClass(
+      expect(screen.getByText("grades", { selector: "button" })).not.toHaveClass(
         "bg-primary/15 text-primary"
       );
 
@@ -274,6 +278,37 @@ describe("App component", () => {
       fireEvent.click(screen.getByText("Sign out"));
 
       expect(logout).toHaveBeenCalledTimes(1);
+    });
+
+    test("shows and clears a browser-only gradebook snapshot", async () => {
+      const chrome = window.chrome;
+      window.chrome = {
+        runtime: {
+          sendMessage: jest.fn((_id, _message, respond) => respond({
+            status: "ok",
+            courses: [{ name: "Algebra 2", period: "1", percent: 92.5, mark: "A-" }],
+            term: "Q2",
+          })),
+        },
+      };
+      try {
+        renderApp();
+        fireEvent.click(screen.getByRole("button", { name: "grades" }));
+        fireEvent.click(screen.getByText("browser companion setup"));
+        fireEvent.click(screen.getByRole("button", { name: "read grade book" }));
+        expect(await screen.findByText("Algebra 2")).toBeVisible();
+        expect(screen.getByText("fcps rounded estimate A")).toBeVisible();
+
+        fireEvent.click(screen.getByRole("button", { name: "Work" }));
+        expect(screen.queryByRole("heading", { name: "grades" })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "grades" }));
+        expect(screen.getByText("Algebra 2")).toBeVisible();
+
+        fireEvent.click(screen.getByRole("button", { name: "clear grades" }));
+        expect(screen.queryByText("Algebra 2")).not.toBeInTheDocument();
+      } finally {
+        window.chrome = chrome;
+      }
     });
 
     test("unsubscribes from auth state changes on unmount", () => {
@@ -329,6 +364,7 @@ describe("App component", () => {
         { id: "plan", label: "Plan" },
         { id: "notes", label: "Knowledge" },
         { id: "calendar", label: "Calendar" },
+        { id: "grades", label: "grades" },
         { id: "focus", label: "Focus" },
         { id: "habits", label: "Habits" },
         { id: "links", label: "Links" },
@@ -346,7 +382,7 @@ describe("App component", () => {
       expect(renderedNavItems).toHaveLength(expectedNavItems.length);
 
       expectedNavItems.forEach((item) => {
-        expect(screen.getByText(item.label)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: item.label })).toBeInTheDocument();
       });
     });
   });
