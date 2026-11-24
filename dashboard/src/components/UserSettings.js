@@ -239,6 +239,30 @@ const UserSettings = ({ user }) => {
 
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
+          Tabs
+        </h3>
+        <div className="flex items-center justify-between py-3">
+          <p className="text-sm font-medium text-foreground">Grades</p>
+          <Switch
+            on={workPrefs.showGrades}
+            onClick={() => setWorkPref("showGrades", !workPrefs.showGrades)}
+            label="Show Grades tab"
+          />
+        </div>
+        {workPrefs.showGrades && (
+          <div className="flex items-center justify-between py-3">
+            <p className="text-sm font-medium text-foreground">Grade graph</p>
+            <Switch
+              on={workPrefs.showGradeGraph}
+              onClick={() => setWorkPref("showGradeGraph", !workPrefs.showGradeGraph)}
+              label="Show grade graph"
+            />
+          </div>
+        )}
+      </section>
+
+      <section className="mb-8">
+        <h3 className="text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border">
           Notifications
         </h3>
         <div className="flex items-center justify-between py-3">

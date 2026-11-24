@@ -2,7 +2,9 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "./App";
 import { DarkModeProvider } from "./context/DarkModeContext";
 import { onAuthStateChanged } from "firebase/auth";
+import { push, ref, runTransaction } from "firebase/database";
 import { logout } from "./firebase";
+import { rememberGradeConnection, shouldReconnectGrades } from "./lib/useLegacyGrades";
 
 const renderApp = () => {
   return render(
@@ -167,12 +169,15 @@ describe("App component", () => {
 
   describe("when user is authenticated", () => {
     const mockUser = {
+      uid: "test-user",
       displayName: "Test User",
       email: "test@example.com",
       photoURL: "https://example.com/avatar.png",
     };
 
     beforeEach(() => {
+      localStorage.removeItem("workPrefs");
+      localStorage.removeItem("studentVueReconnect");
       onAuthStateChanged.mockImplementation((auth, callback) => {
         callback(mockUser);
         return () => {};
@@ -228,16 +233,12 @@ describe("App component", () => {
         "bg-primary/15 text-primary"
       );
 
-      fireEvent.click(screen.getByRole("button", { name: "grades" }));
-      expect(screen.getByRole("heading", { name: "grades" })).toBeVisible();
-      expect(screen.getByRole("heading", { name: "what-if calculator" })).toBeVisible();
-
       fireEvent.click(screen.getByText("Focus"));
       await waitFor(() => {
         expect(screen.getByTestId("focus-timer")).toBeInTheDocument();
       });
       expect(screen.getByText("Focus")).toHaveClass("bg-primary/15 text-primary");
-      expect(screen.getByText("grades", { selector: "button" })).not.toHaveClass(
+      expect(screen.getByText("Calendar")).not.toHaveClass(
         "bg-primary/15 text-primary"
       );
 
@@ -280,6 +281,130 @@ describe("App component", () => {
       expect(logout).toHaveBeenCalledTimes(1);
     });
 
+    const openSettings = () => {
+      fireEvent.click(screen.getByText("Test User"));
+      fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    };
+
+    const enableGrades = () => {
+      openSettings();
+      fireEvent.click(screen.getByRole("switch", { name: "Show Grades tab" }));
+    };
+
+    test("Grades is opt-in and can be hidden again from Settings", () => {
+      renderApp();
+      expect(screen.queryByRole("button", { name: "Grades" })).not.toBeInTheDocument();
+      enableGrades();
+      fireEvent.click(screen.getByRole("button", { name: "Grades" }));
+      expect(screen.getByRole("heading", { name: "Grades" })).toBeVisible();
+      expect(screen.queryByLabelText("FCPS password")).not.toBeInTheDocument();
+      openSettings();
+      expect(screen.getByRole("switch", { name: "Show Grades tab" })).toBeChecked();
+      fireEvent.click(screen.getByRole("switch", { name: "Show Grades tab" }));
+      expect(screen.queryByRole("button", { name: "Grades" })).not.toBeInTheDocument();
+    });
+
+    test("reopens Grades and reconnects only with browser-filled credentials after reload", async () => {
+      localStorage.setItem("workPrefs", JSON.stringify({ showGrades: true }));
+      rememberGradeConnection(mockUser.uid, true);
+      const fetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 401 });
+      const match = Element.prototype.matches;
+      const autofill = jest.spyOn(Element.prototype, "matches").mockImplementation(function (selector) {
+        return selector === ":autofill" ? this.dataset.autofilled === "true" : match.call(this, selector);
+      });
+      try {
+        renderApp();
+        expect(screen.getByRole("heading", { name: "Grades" })).toBeVisible();
+        const username = screen.getByLabelText("Student ID");
+        const password = screen.getByLabelText("FCPS password");
+        fireEvent.input(username, { target: { value: "demo" } });
+        fireEvent.input(password, { target: { value: "secret" } });
+        expect(global.fetch).not.toHaveBeenCalled();
+
+        username.dataset.autofilled = "true";
+        password.dataset.autofilled = "true";
+        fireEvent.input(password);
+        expect(await screen.findByText("FCPS rejected the student ID or password")).toBeVisible();
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(shouldReconnectGrades(mockUser.uid)).toBe(false);
+      } finally {
+        autofill.mockRestore();
+        global.fetch = fetch;
+      }
+    });
+
+    test("edits an assignment locally and restores the StudentVUE score", async () => {
+      const fetch = global.fetch;
+      ref.mockImplementation((_database, path) => ({ toString: () => path }));
+      push.mockReturnValue({ key: "imported-algebra" });
+      const save = jest.fn();
+      runTransaction.mockImplementation(async (_location, update) => save(update(null)));
+      const gradebook = `<Gradebook><ReportingPeriod GradePeriod="Q2"/><Courses><Course Title="Algebra 2" Period="1">
+        <Marks><Mark CalculatedScoreString="B" CalculatedScoreRaw="85"><Assignments>
+          <Assignment GradebookID="1" Measure="Quiz" Type="Summative" Points="85 / 100"/>
+        </Assignments></Mark></Marks>
+      </Course></Courses></Gradebook>`;
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, text: async () => `
+        <ProcessWebServiceRequestResult xmlns="http://edupoint.com/webservices/"><![CDATA[${gradebook}]]></ProcessWebServiceRequestResult>` });
+      try {
+        renderApp();
+        enableGrades();
+        fireEvent.click(screen.getByRole("button", { name: "Grades" }));
+        fireEvent.click(screen.getByRole("button", { name: "Connect StudentVUE" }));
+        fireEvent.change(screen.getByLabelText("Student ID"), { target: { value: "synthetic" } });
+        fireEvent.change(screen.getByLabelText("FCPS password"), { target: { value: "synthetic" } });
+        fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+        fireEvent.click(await screen.findByRole("button", { name: /^Algebra 2/ }));
+        fireEvent.change(screen.getByLabelText("Earned points for Quiz"), { target: { value: "92.5" } });
+        expect(screen.getByText("Projected")).toBeVisible();
+        expect(screen.getByText("A", { exact: true })).toBeVisible();
+        expect(screen.getByLabelText("Earned points for Quiz")).toHaveValue("92.5");
+        fireEvent.click(screen.getByRole("button", { name: "Show actual" }));
+        expect(screen.getByLabelText("Earned points for Quiz")).toHaveValue("85");
+        expect(screen.getByLabelText("Earned points for Quiz")).toHaveAttribute("readonly");
+        expect(screen.getByText("B", { exact: true })).toHaveClass("text-red-700");
+        fireEvent.click(screen.getByRole("button", { name: "Show edits" }));
+
+        fireEvent.click(screen.getByRole("button", { name: "Add assignment" }));
+        fireEvent.change(screen.getByLabelText("Assignment name"), { target: { value: "Practice" } });
+        fireEvent.paste(screen.getByLabelText("Earned points for new assignment"), {
+          clipboardData: { getData: () => "14/15" },
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Add", exact: true }));
+        expect(screen.getByLabelText("Earned points for Practice")).toHaveValue("14");
+        expect(screen.getByLabelText("Possible points for Practice")).toHaveValue("15");
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(runTransaction).toHaveBeenCalledWith(
+          expect.objectContaining({ toString: expect.any(Function) }),
+          expect.any(Function),
+          { applyLocally: false }
+        );
+        expect(runTransaction.mock.calls[0][0].toString()).toBe("users/test-user/spaces");
+        expect(save).toHaveBeenCalledWith({
+          "imported-algebra": {
+            name: "Algebra 2",
+            kind: "class",
+            color: expect.any(String),
+            teacher: "",
+            room: "",
+            archived: false,
+            order: 0,
+            createdAt: expect.any(Number),
+            studentVue: { course: "algebra 2", schoolYear: expect.any(Number) },
+          },
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: "Reset edits" }));
+        expect(screen.getByLabelText("Earned points for Quiz")).toHaveValue("85");
+        expect(screen.queryByLabelText("Earned points for Practice")).not.toBeInTheDocument();
+        expect(screen.queryByText("Projected")).not.toBeInTheDocument();
+      } finally {
+        global.fetch = fetch;
+      }
+    });
+
     test("shows and clears a browser-only gradebook snapshot", async () => {
       const chrome = window.chrome;
       window.chrome = {
@@ -293,18 +418,21 @@ describe("App component", () => {
       };
       try {
         renderApp();
-        fireEvent.click(screen.getByRole("button", { name: "grades" }));
-        fireEvent.click(screen.getByText("browser companion setup"));
-        fireEvent.click(screen.getByRole("button", { name: "read grade book" }));
+        enableGrades();
+        fireEvent.click(screen.getByRole("button", { name: "Grades" }));
+        fireEvent.click(screen.getByRole("button", { name: "Connect StudentVUE" }));
+        fireEvent.click(screen.getByText("Browser companion"));
+        fireEvent.click(screen.getByRole("button", { name: "Read Grade Book" }));
         expect(await screen.findByText("Algebra 2")).toBeVisible();
-        expect(screen.getByText("fcps rounded estimate A")).toBeVisible();
+        expect(screen.getByText("A", { exact: true })).toBeVisible();
 
         fireEvent.click(screen.getByRole("button", { name: "Work" }));
-        expect(screen.queryByRole("heading", { name: "grades" })).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", { name: "grades" }));
+        expect(screen.queryByRole("heading", { name: "Grades" })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Grades" }));
         expect(screen.getByText("Algebra 2")).toBeVisible();
 
-        fireEvent.click(screen.getByRole("button", { name: "clear grades" }));
+        fireEvent.click(screen.getByRole("button", { name: "StudentVUE" }));
+        fireEvent.click(screen.getByRole("button", { name: "Clear grades" }));
         expect(screen.queryByText("Algebra 2")).not.toBeInTheDocument();
       } finally {
         window.chrome = chrome;
@@ -364,7 +492,6 @@ describe("App component", () => {
         { id: "plan", label: "Plan" },
         { id: "notes", label: "Knowledge" },
         { id: "calendar", label: "Calendar" },
-        { id: "grades", label: "grades" },
         { id: "focus", label: "Focus" },
         { id: "habits", label: "Habits" },
         { id: "links", label: "Links" },

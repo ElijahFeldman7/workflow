@@ -10,7 +10,7 @@ const credentials = { username: "student&1", password: "synthetic<password>&" };
 const originalFetch = global.fetch;
 afterEach(() => { global.fetch = originalFetch; });
 
-test("posts directly to FCPS and returns only the active term and course grades", async () => {
+test("posts directly to FCPS and returns only the active term, scores, and category weights", async () => {
   const text = wrap(`<Gradebook ErrorMessage="">
     <ReportingPeriod GradePeriod="Q2"/>
     <Courses>
@@ -18,7 +18,13 @@ test("posts directly to FCPS and returns only the active term and course grades"
         <Marks>
           <Mark MarkName="Q1" CalculatedScoreString="B" CalculatedScoreRaw="85"/>
           <Mark MarkName="Q2" CalculatedScoreString="A-" CalculatedScoreRaw="92.5">
-            <Assignments><Assignment Measure="Private assignment"/></Assignments>
+            <GradeCalculationSummary>
+              <AssignmentGradeCalc Type="Summative" Weight="70%" Points="37 / 40"/>
+            </GradeCalculationSummary>
+            <Assignments>
+              <Assignment GradebookID="3" Measure="Quiz" Type="Summative" Points="37 / 40" Score="A" DueDate="11/6/2026" StudentID="private"/>
+              <Assignment GradebookID="4" Measure="Lab" Points=" / 0" PointsPossible="15" Notes="Review the results"/>
+            </Assignments>
           </Mark>
         </Marks>
       </Course>
@@ -32,8 +38,15 @@ test("posts directly to FCPS and returns only the active term and course grades"
     status: "ok",
     term: "Q2",
     courses: [
-      { name: "Algebra 2", period: "1", mark: "A-", percent: 92.5 },
-      { name: "Biology", period: "2", mark: "", percent: null },
+      {
+        name: "Algebra 2", period: "1", mark: "A-", percent: 92.5,
+        assignments: [
+          { id: "assignment:3", name: "Quiz", category: "Summative", earned: 37, possible: 40, score: "A", comment: "", date: "2026-11-06", gradedDate: "", excluded: false },
+          { id: "assignment:4", name: "Lab", category: "", earned: null, possible: 15, score: "", comment: "Review the results", date: "", gradedDate: "", excluded: false },
+        ],
+        categories: [{ name: "Summative", weight: 70, earned: 37, possible: 40 }],
+      },
+      { name: "Biology", period: "2", mark: "", percent: null, assignments: [], categories: [] },
     ],
   });
   const [url, options] = global.fetch.mock.calls[0];

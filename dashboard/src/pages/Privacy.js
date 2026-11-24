@@ -35,7 +35,7 @@ const Privacy = () => (
     </Paragraph>
     <Paragraph>
       Some preferences never leave your device. Your dark mode choice, color
-      theme, work view settings, and timer durations live in your browser local
+      theme, work view settings, Grades tab and graph preferences, and timer durations live in your browser local
       storage. Clearing your browser data resets them.
     </Paragraph>
 
@@ -44,8 +44,20 @@ const Privacy = () => (
       If you choose legacy sign-in, your browser sends your FCPS student ID and
       password directly to FCPS. Workflow servers and Firebase do not receive
       them. Workflow keeps them in the open browser page’s memory to refresh
-      your grades while you view the grades tab. Disconnecting, signing out,
-      closing the page, or reloading clears them from that memory.
+      your grades while you view the Grades tab. Disabling the tab, disconnecting,
+      signing out, closing the page, or reloading clears them from that memory.
+      Course and assignment grades and score edits stay in page memory. Score
+      edits are used only to calculate projections in Workflow. You may also
+      let your browser’s password manager save and autofill the credentials.
+      Your browser controls saved logins. Workflow remembers whether to
+      reconnect in this browser without saving the student ID or password.
+      Teacher comments displayed with assignments also stay in page memory.
+    </Paragraph>
+    <Paragraph>
+      Workflow adds StudentVUE course names to Classes for the current school
+      year. These class records and their school year are saved in your Workflow
+      account so assignment capture can use them. Grade and assignment scores
+      stay in the browser.
     </Paragraph>
     <Paragraph>
       The optional browser companion reads course names, periods, grades, and
@@ -54,7 +66,7 @@ const Privacy = () => (
       request grades, the companion
       passes only those course details to the Workflow tab on the same device.
       Workflow keeps them in memory for up to 15 minutes, or until you clear
-      them, sign out, or close or reload the tab. Grades and calculator inputs
+      them, sign out, or close or reload the tab. Grades and score edits
       are never uploaded to Workflow servers or Firebase.
     </Paragraph>
 

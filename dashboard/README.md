@@ -4,10 +4,18 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ## StudentVUE browser companion
 
-The grades tab can send legacy sign-in requests from the browser directly to
-FCPS. It refreshes every five minutes while the grades tab is visible. It keeps
+Enable Grades under Settings > Tabs. The Grades tab can send legacy sign-in
+requests from the browser directly to FCPS. Open a course to view its
+assignments, edit points, or add a hypothetical assignment. Enable Grade graph
+under Settings > Tabs to see the estimated trend in each course. Grades
+refresh every five minutes while the tab is visible. It keeps
 credentials in page memory until you disconnect, sign out, reload, or close
-the page. FCPS plans to remove legacy sign-in in December 2026.
+the page. Firefox or another browser can save them in its password manager.
+
+Current-year StudentVUE course names are added to Classes for assignment
+capture. Course scores, assignment grades, and projections stay in memory.
+
+FCPS plans to remove legacy sign-in in December 2026.
 
 The optional Chrome and Edge companion reads the visible FCPS StudentVUE Grade
 Book overview. Sign in on FCPS's own site and open Grade Book. With

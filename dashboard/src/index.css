@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+:root:not(.dark) .grades-page {
+  background-color: color-mix(in oklab, hsl(var(--background)), #acbcc0 59%);
+}
+
+:root:not(.dark) .grades-shell > header {
+  background-color: color-mix(in oklab, hsl(var(--card)), #bac8ca 68%);
+}
+
+:root:not(.dark) .grades-page .grades-connection {
+  background-color: color-mix(in oklab, hsl(var(--popover)), #b9c8cb 71%);
+}
+
+:root:not(.dark) .grades-page .grades-field {
+  background-color: color-mix(in oklab, hsl(var(--background)), #c2d0d3 60%);
+}
+
 :root {
   --background: 214 95% 93%;
   --foreground: 221 39% 11%;

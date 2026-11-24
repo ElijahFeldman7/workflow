@@ -3,6 +3,25 @@ import { readLegacyGradebook } from "./studentvueLegacy";
 
 const refreshInterval = 5 * 60 * 1000;
 const requestTimeout = 15000;
+const reconnectKey = "studentVueReconnect";
+
+export function shouldReconnectGrades(uid) {
+  try {
+    return Boolean(uid && localStorage.getItem(reconnectKey) === uid);
+  } catch {
+    return false;
+  }
+}
+
+export function rememberGradeConnection(uid, connected) {
+  if (!uid) return;
+  try {
+    if (connected) localStorage.setItem(reconnectKey, uid);
+    else if (shouldReconnectGrades(uid)) localStorage.removeItem(reconnectKey);
+  } catch {
+    // The current page can still connect when browser storage is unavailable.
+  }
+}
 
 export function useLegacyGrades({ active, onResult }) {
   const credentials = useRef(null);

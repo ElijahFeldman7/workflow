@@ -7,6 +7,8 @@ export const DEFAULT_PREFS = {
   colors: false,
   table: false,
   showPast: false,
+  showGrades: false,
+  showGradeGraph: false,
   neuralCapture: false,
   calendarView: "month",
   plannerView: "day",
@@ -24,6 +26,8 @@ export function readPrefs() {
       colors: !!saved.colors,
       table: !!saved.table,
       showPast: !!saved.showPast,
+      showGrades: saved.showGrades === true,
+      showGradeGraph: saved.showGradeGraph === true,
       neuralCapture: !!saved.neuralCapture,
       calendarView: CALENDAR_VIEWS.includes(saved.calendarView)
         ? saved.calendarView
